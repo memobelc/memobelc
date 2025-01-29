@@ -26,8 +26,7 @@ export default function SignIn() {
     const handleLogin = async () => {
         try {
             await signIn(email, password);
-            Alert.alert('Sucesso!', 'Login realizado com sucesso.');
-            router.replace('/');
+
         } catch (error) {
             Alert.alert('Erro', 'Credenciais inválidas. Tente novamente.');
         }
