@@ -7,17 +7,17 @@ import {
     TouchableOpacity,
     Switch,
     Image,
-    Alert,
 } from 'react-native';
 import { styles } from './styles';
 
 import { useSession } from '@/contexts/AuthContext';
+import { Loading } from '@/components/Loading';
 
 export default function SignIn() {
     const router = useRouter();
     // const { signIn } = useAuth();
 
-    const { signIn } = useSession()
+    const { signIn, isLoading } = useSession()
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -28,12 +28,16 @@ export default function SignIn() {
             await signIn(email, password);
 
         } catch (error) {
-            Alert.alert('Erro', 'Credenciais inválidas. Tente novamente.');
+            alert('Credenciais inválidas. Tente novamente.');
         }
     };
 
     return (
-        <View style={styles.container}>
+
+        isLoading ? (
+            <Loading />
+        ) : (
+            <View style={styles.container}>
             <Image
                 source={require('@/assets/logo_memobelc.jpg')}
                 style={styles.logo}
@@ -85,5 +89,7 @@ export default function SignIn() {
                 <Text style={styles.forgotPasswordLink}>Esqueceu a senha?</Text>
             </TouchableOpacity>
         </View>
+        )
+        
     );
 }

@@ -1,9 +1,6 @@
 import { useContext, createContext, type PropsWithChildren } from 'react';
-import {
-    Alert,
-} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useStorageState } from '@/storage/useStorageState';
+import { useStorageStateSession, useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
 
 const AuthContext = createContext<{
@@ -33,7 +30,8 @@ export function useSession() {
 }
 
 export function SessionProvider({ children }: PropsWithChildren) {
-    const [[isLoading, session], setSession] = useStorageState('session');
+    const [session, setSession] = useStorageStateSession('session');
+    const [isLoading, setIsLoading] = useStorageStateLoading();
     const router = useRouter();
 
     return (
@@ -41,21 +39,23 @@ export function SessionProvider({ children }: PropsWithChildren) {
             value={{
                 signIn: async (email: string, password: string) => {
                     try {
+                        setIsLoading(true);
                         const response = await api.post('/auth/login', { email, password });
 
                         if (response.data.pending){
                             router.push({ pathname: '/verify-code', params: { token: response.data.pending[1] } });
-                            Alert.alert('Sucesso!', 'Você precisa validar seu email, por favor verifique o codigo que foi enviado pelo seu email!');
-                        }
+                           }
                         else{
                             await setSession(response.data.token);
-                            Alert.alert('Sucesso!', 'Login realizado com sucesso.');
+                          
                             router.replace('/');
+                            setIsLoading(false);
                         }
                         
 
 
                     } catch (error) {
+                        setIsLoading(false);
                         setSession(null);
 
                     }

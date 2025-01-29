@@ -9,11 +9,12 @@ import {
     TouchableOpacity,
     Switch,
     Image,
-    Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useStorageStateLoading } from '@/storage/useStorageState';
 import { styles } from './styles'
 import api from '@/services/api';
+import { Loading } from '@/components/Loading';
 export default function Register() {
     const router = useRouter();
 
@@ -23,9 +24,13 @@ export default function Register() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
 
+    const [isLoading, setIsLoading] = useStorageStateLoading();
+
+
 
     const handleRegister = async () => {
         try {
+            setIsLoading(true)
             const response = await api.post('/auth/register', {
                 name,
                 email,
@@ -34,96 +39,102 @@ export default function Register() {
 
             if (response.status === 201) {
                 router.push({ pathname: '/verify-code', params: { token: response.data.token } });
-                Alert.alert('Sucesso!', 'Cadastro realizado com sucesso!');
+                setIsLoading(false)
+                alert('Cadastro realizado com sucesso!');
             }
 
         } catch (error) {
-            Alert.alert('Erro', 'Credenciais inválidas. Tente novamente.');
+            alert('Credenciais inválidas. Tente novamente.');
 
         }
     };
 
 
     return (
-        <View style={styles.container}>
 
-            <Image
-                source={require("@/assets/logo_memobelc.jpg")}
-                style={styles.logo}
-            />
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Name"
-                    placeholderTextColor="#7A4F7F"
-                    value={name}
-                    onChangeText={setName}
-                />
-            </View>
+        isLoading ?
+            (<Loading />) :
+            (<View style={styles.container}>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="E-mail"
-                    placeholderTextColor="#7A4F7F"
-                    value={email}
-                    onChangeText={setEmail}
+                <Image
+                    source={require("@/assets/logo_memobelc.jpg")}
+                    style={styles.logo}
                 />
-            </View>
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Name"
+                        placeholderTextColor="#7A4F7F"
+                        value={name}
+                        onChangeText={setName}
+                    />
+                </View>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Senha"
-                    placeholderTextColor="#7A4F7F"
-                    secureTextEntry={!isPasswordVisible}
-                    value={password}
-                    onChangeText={setPassword}
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="E-mail"
+                        placeholderTextColor="#7A4F7F"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Senha"
+                        placeholderTextColor="#7A4F7F"
+                        secureTextEntry={!isPasswordVisible}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setPasswordVisible(!isPasswordVisible)}
+                        style={styles.eyeIcon}
+                    >
+                        <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="confirmar Senha"
+                        placeholderTextColor="#7A4F7F"
+                        secureTextEntry={!isPasswordVisible}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setPasswordVisible(!isPasswordVisible)}
+                        style={styles.eyeIcon}
+                    >
+                        <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <TouchableOpacity
-                    onPress={() => setPasswordVisible(!isPasswordVisible)}
-                    style={styles.eyeIcon}
+                    style={styles.button}
+                    onPress={() =>
+                        handleRegister()
+                    }
                 >
-                    <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+                    <Text style={styles.buttonText}>Cadastrar</Text>
                 </TouchableOpacity>
-            </View>
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="confirmar Senha"
-                    placeholderTextColor="#7A4F7F"
-                    secureTextEntry={!isPasswordVisible}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                />
-                <TouchableOpacity
-                    onPress={() => setPasswordVisible(!isPasswordVisible)}
-                    style={styles.eyeIcon}
-                >
-                    <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
-                </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-                style={styles.button}
-                onPress={() =>
-                    handleRegister()
-                }
-            >
-                <Text style={styles.buttonText}>Cadastrar</Text>
-            </TouchableOpacity>
-            <View style={styles.footerContainer}>
-                <Text style={styles.footerText}>Já tem uma conta?</Text>
-                <TouchableOpacity onPress={() => router.push('./login')}>
-                    <Text style={styles.footerLink}> Faça login!</Text>
-                </TouchableOpacity>
+                <View style={styles.footerContainer}>
+                    <Text style={styles.footerText}>Já tem uma conta?</Text>
+                    <TouchableOpacity onPress={() => router.push('./login')}>
+                        <Text style={styles.footerLink}> Faça login!</Text>
+                    </TouchableOpacity>
 
 
 
-            </View>
+                </View>
 
 
 
-        </View>
+            </View>)
+
+
     )
 }

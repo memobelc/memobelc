@@ -2,13 +2,14 @@ import { Text } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 
 import { useSession } from '@/contexts/AuthContext';
+import { Loading } from '@/components/Loading';
 
 export default function AppLayout() {
     const { session, isLoading, refresh_token } = useSession();
 
 
     if (isLoading) {
-        return <Text>Loading...</Text>;
+        return <Loading />;
     }
 
     if (!session) {
