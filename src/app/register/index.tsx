@@ -33,8 +33,8 @@ export default function Register() {
             });
 
             if (response.status === 201) {
+                router.push({ pathname: '/verify-code', params: { token: response.data.token } });
                 Alert.alert('Sucesso!', 'Cadastro realizado com sucesso!');
-                router.push('./login');
             }
 
         } catch (error) {

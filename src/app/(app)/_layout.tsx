@@ -16,11 +16,6 @@ export default function AppLayout() {
         return <Redirect href="/login" />;
     }
 
-    // refresh_token(session)
-
-
-
-
 
     return <Stack />;
 }
