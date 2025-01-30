@@ -3,9 +3,11 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
+import { colors } from "@/styles/colors";
 
 export default function AppLayout() {
-    const { session, isLoading, refresh_token } = useSession();
+    const { session, isLoading, refresh_token, userInfo } = useSession();
+    const backgroundColor = colors.gray[100];
 
 
     if (isLoading) {
@@ -17,6 +19,12 @@ export default function AppLayout() {
         return <Redirect href="/login" />;
     }
 
+    if (!userInfo) {
+        refresh_token();
+    }
 
-    return <Stack />;
+    return <Stack screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor },
+    }} />;
 }

@@ -1,20 +1,28 @@
-import { useContext, createContext, type PropsWithChildren } from 'react';
+import { useContext, createContext, type PropsWithChildren, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useStorageStateSession, useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
 
+type User = {
+    email: string;
+    name: string;
+    token: string;
+};
+
 const AuthContext = createContext<{
     signIn: (email: string, password: string) => void;
     signOut: () => void;
-    refresh_token: (token: string) => void;
+    refresh_token: () => void;
     session?: string | null;
     isLoading: boolean;
+    userInfo?: User | null; 
 }>({
     signIn: () => false,
     signOut: () => null,
     refresh_token: () => false,
     session: null,
     isLoading: false,
+    userInfo: null,
 });
 
 export function useSession() {
@@ -32,6 +40,7 @@ export function useSession() {
 export function SessionProvider({ children }: PropsWithChildren) {
     const [session, setSession] = useStorageStateSession('session');
     const [isLoading, setIsLoading] = useStorageStateLoading();
+    const [userInfo, setUserInfo] = useState<User | null>(null);
     const router = useRouter();
 
     return (
@@ -47,6 +56,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
                            }
                         else{
                             await setSession(response.data.token);
+
+                            setUserInfo({
+                                email: response.data.email,
+                                name: response.data.name,
+                                token: response.data.token
+                            });
                           
                             router.replace('/');
                             setIsLoading(false);
@@ -55,34 +70,50 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
 
                     } catch (error) {
-                        setIsLoading(false);
+                        setUserInfo(null);
                         setSession(null);
 
+                    } finally {
+                        setIsLoading(false);
                     }
                 },
 
-                refresh_token: async (token) => {
+                refresh_token: async () => {
+                    if (!session) return;
                     try {
-                        const response = await api.post('/auth/refresh_token', { token });
-                        setSession(response.data.token);
-
-
+                        setIsLoading(true);
+                        const response = await api.post('/auth/refresh_token', { token: session });
+                        if (response.data) {
+                            setSession(response.data.token); 
+                            setUserInfo({
+                                email: response.data.email,
+                                name: response.data.name,
+                                token: response.data.token
+                            }); 
+                            router.replace('/'); 
+                        }
                     } catch (error) {
-                        setSession(null);
-
-
+                        setSession(null);  
+                        setUserInfo(null); 
+                        router.replace('/login');  
+                    } finally {
+                        setIsLoading(false);
                     }
-
                 },
 
 
                 signOut: () => {
                     setSession(null);
+                    setUserInfo(null);
+                    router.replace('/login')
                 },
                 session,
                 isLoading,
+                userInfo,
             }}>
             {children}
         </AuthContext.Provider>
     );
 }
+
+

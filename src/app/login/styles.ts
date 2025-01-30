@@ -4,7 +4,8 @@ export const styles = StyleSheet.create({
 
     title: {
         color: "white",
-        fontSize: 22
+        fontSize: 22,
+        fontFamily: "ComicSans"
     },
 
     container: {
