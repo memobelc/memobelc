@@ -4,6 +4,8 @@ import { Stack } from 'expo-router';
 import { SessionProvider, useSession } from '@/contexts/AuthContext';
 import { useFonts } from "expo-font";
 
+import "@/styles/global.css"
+
 export default function Layout() {
     const backgroundColor = colors.primary[500];
     const { session, isLoading, refresh_token } = useSession();
