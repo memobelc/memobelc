@@ -13,6 +13,7 @@ const AuthContext = createContext<{
     signIn: (email: string, password: string) => void;
     signOut: () => void;
     refresh_token: () => void;
+    verify_code: (token:any, code:string) => void;
     session?: string | null;
     isLoading: boolean;
     userInfo?: User | null; 
@@ -20,6 +21,7 @@ const AuthContext = createContext<{
     signIn: () => false,
     signOut: () => null,
     refresh_token: () => false,
+    verify_code:() => false,
     session: null,
     isLoading: false,
     userInfo: null,
@@ -84,21 +86,43 @@ export function SessionProvider({ children }: PropsWithChildren) {
                         setIsLoading(true);
                         const response = await api.post('/auth/refresh_token', { token: session });
                         if (response.data) {
-                            setSession(response.data.token); 
+                            setSession(response.data.token);
                             setUserInfo({
                                 email: response.data.email,
                                 name: response.data.name,
                                 token: response.data.token
-                            }); 
-                            router.replace('/'); 
+                            });
+                
+                            setTimeout(() => {
+                                router.replace('/');
+                            }, 0); 
                         }
                     } catch (error) {
-                        setSession(null);  
-                        setUserInfo(null); 
-                        router.replace('/login');  
+                        setSession(null);
+                        setUserInfo(null);
+                        setTimeout(() => {
+                            router.replace('/login');
+                        }, 0);
                     } finally {
                         setIsLoading(false);
                     }
+                },
+                verify_code: async (token:string, code: string) => {
+                    const response = await api.post('/auth/verify_code', { code }, {
+                        headers: {
+                          Authorization: `Bearer ${token}`
+                        }
+                      });
+                      if(response.status == 200){
+                        await setSession(response.data.token);
+                
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        router.replace('/');
+                      }else {
+                        alert(response.data.message);
+                        router.replace('/');
+                      }
                 },
 
 

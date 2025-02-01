@@ -30,21 +30,21 @@ export default function Register() {
 
     const handleRegister = async () => {
         try {
-            setIsLoading(true)
-            const response = await api.post('/auth/register', {
-                name,
-                email,
-                password,
-            });
+        setIsLoading(true)
+        const response = await api.post('/auth/register', {
+            name,
+            email,
+            password,
+        });
 
-            if (response.status === 201) {
-                router.push({ pathname: '/verify-code', params: { token: response.data.token } });
-                setIsLoading(false)
-                alert('Cadastro realizado com sucesso!');
-            }
+        if (response.status === 201) {
+            router.push({ pathname: '/verify-code', params: { token: response.data.token } });
+            setIsLoading(false)
+            alert('Cadastro realizado com sucesso!');
+        }
 
         } catch (error) {
-            alert('Credenciais inválidas. Tente novamente.');
+            alert(error);
 
         }
     };

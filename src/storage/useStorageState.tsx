@@ -31,7 +31,6 @@ export async function setStorageItemAsync(key: string, value: string | null) {
   }
 }
 
-// Hook separado para session
 export function useStorageStateSession(key: string): UseStateHook<string | null> {
   const [state, setState] = useAsyncState<string | null>(null);
 

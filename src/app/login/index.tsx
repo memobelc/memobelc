@@ -15,7 +15,6 @@ import { Loading } from '@/components/Loading';
 
 export default function SignIn() {
     const router = useRouter();
-    // const { signIn } = useAuth();
 
     const { signIn, isLoading } = useSession()
     const [email, setEmail] = useState('');
