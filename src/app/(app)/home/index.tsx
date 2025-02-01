@@ -19,7 +19,6 @@ export default function Home() {
                     <MaterialIcons name="arrow-forward" size={24} color="#007AFF" />
                 </TouchableOpacity>
             </View>
-            <Card />
 
             </View>
 
@@ -34,14 +33,6 @@ export default function Home() {
                 <MaterialIcons name="add" size={40} color="#fff" />
             </TouchableOpacity>
 
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text
-                    onPress={() => {
-                        signOut();
-                    }}>
-                    Sign Out
-                </Text>
-            </View>
         </View>
 
     );
