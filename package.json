@@ -51,7 +51,8 @@
     "react-native-screens": "~4.4.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "tailwind-merge": "^3.0.1"
+    "tailwind-merge": "^3.0.1",
+    "expo-image-picker": "~16.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

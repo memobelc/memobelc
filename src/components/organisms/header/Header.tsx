@@ -16,6 +16,7 @@ import {
 } from "@/components/Avatar"
 
 import { styles } from './styles'
+import { colors } from "@/styles/colors";
 
 const Header = () => {
     const { userInfo, signOut } = useSession();
@@ -36,7 +37,7 @@ const Header = () => {
                                             uri: '',
                                         }}
                                     />
-                                    <AvatarFallback />
+                                    <AvatarFallback color="#fff" />
                                 </Avatar>
                             </TouchableOpacity>
                         </DropDownTrigger>
@@ -50,7 +51,7 @@ const Header = () => {
                                                 uri: '',
                                             }}
                                         />
-                                        <AvatarFallback />
+                                        <AvatarFallback color={colors.primary[500]} />
                                     </Avatar>
                                     <View>
                                         <Text className="text-primary text-xs">{userInfo?.name}</Text>

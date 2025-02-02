@@ -5,6 +5,9 @@ import { SessionProvider, useSession } from '@/contexts/AuthContext';
 import { useFonts } from "expo-font";
 
 import "@/styles/global.css"
+import { Loading } from '@/components/Loading';
+import { Dialog } from "@/components/Dialog"
+
 
 export default function Layout() {
     const backgroundColor = colors.primary[500];
@@ -13,16 +16,21 @@ export default function Layout() {
 
     const [fontsLoaded] = useFonts({
         "ComicSans": require("../../assets/fonts/ComicSans-MS-400.ttf"),
-      });
+    });
 
+    if (!fontsLoaded) {
+        <Loading />
+    }
     return (
         <SessionProvider>
-            <Stack
-                screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor },
-                }}
-            />
+            <Dialog>
+                <Stack
+                    screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor },
+                    }}
+                />
+            </Dialog>
         </SessionProvider>
     );
 }
