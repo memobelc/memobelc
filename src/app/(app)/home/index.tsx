@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSession } from '@/contexts/AuthContext';
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter, Link } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getGreeting } from '@/utils/greeting';
@@ -20,6 +21,7 @@ export default function Home() {
     }
     const { setOpen } = useDialog();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const router = useRouter();
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -61,57 +63,64 @@ export default function Home() {
                 <CardSecondary />
                 <CardSecondary />
 
-                </ScrollView>
+                <Link href="./decks" asChild>
+                    <TouchableOpacity className='w-full flex flex-row items-center justify-end'>
+                        <Text style={{color: colors.primary[500]}}>See all your decks</Text>
+                        <MaterialIcons name="arrow-right-alt" size={24} color={colors.primary[500]} />
+                    </TouchableOpacity>
+                </Link>
 
-                <LinearGradient 
-                colors={['transparent', 'white']} 
-                className="absolute bottom-0 left-0 right-0 h-28" 
-                pointerEvents="none" 
+            </ScrollView>
+
+            <LinearGradient
+                colors={['transparent', 'white']}
+                className="absolute bottom-0 left-0 right-0 h-28"
+                pointerEvents="none"
             />
 
 
-                <TouchableOpacity className="absolute bottom-7 right-7 bg-[#007AFF] rounded-full p-2.5"
-                    onPress={() => setOpen(true)}>
-                    <MaterialIcons name="add" size={40} color={colors.gray[100]} />
+            <TouchableOpacity className="absolute bottom-7 right-7 bg-[#007AFF] rounded-full p-2.5"
+                onPress={() => setOpen(true)}>
+                <MaterialIcons name="add" size={40} color={colors.gray[100]} />
+            </TouchableOpacity>
+
+            <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-1/2 p-4">
+                {/* Cabeçalho do Dialog */}
+                <View className="flex flex-row justify-between items-center mb-2 w-full">
+                    <Text className="font-semibold text-xl text-primary justify-center">New deck collection</Text>
+                    <TouchableOpacity onPress={() => setOpen(false)}>
+                        <MaterialIcons name="close" size={24} color={colors.gray[950]} />
+                    </TouchableOpacity>
+                </View>
+
+                <View className="border-b border-gray-300 mb-4 w-full" />
+
+                <TouchableOpacity
+                    onPress={pickImage}
+                    className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-full"
+                >
+                    {selectedImage ? (
+                        <View className='relative'>
+                            <Image source={{ uri: selectedImage }} className="w-32 h-32 rounded-lg" />
+                            <View className='bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md' >
+                                <MaterialIcons onPress={() => setSelectedImage(null)} name="close" size={24} color="red" className='' />
+                            </View>
+                        </View>
+
+                    ) : (
+                        <View className='flex-col items-center justify-center '>
+                            <MaterialIcons name="cloud-upload" size={40} color="gray" />
+                            <Text className="text-gray-500 mt-2 ">Tap to send an image</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+                <Input placeholder="Enter your name deck collection" className='py-6 w-full' />
+                <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={() => console.log()}>
+                    <Text className='text-white text-base font-bold'>Create New deck collection</Text>
                 </TouchableOpacity>
 
-                <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-1/2 p-4">
-                    {/* Cabeçalho do Dialog */}
-                    <View className="flex flex-row justify-between items-center mb-2 w-full">
-                        <Text className="font-semibold text-xl text-primary justify-center">New deck collection</Text>
-                        <TouchableOpacity onPress={() => setOpen(false)}>
-                            <MaterialIcons name="close" size={24} color={colors.gray[950]} />
-                        </TouchableOpacity>
-                    </View>
+            </DialogContent>
 
-                    <View className="border-b border-gray-300 mb-4 w-full" />
-
-                    <TouchableOpacity
-                        onPress={pickImage}
-                        className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-full"
-                    >
-                        {selectedImage ? (
-                            <View className='relative'>
-                                <Image source={{ uri: selectedImage }} className="w-32 h-32 rounded-lg" />
-                                <View className='bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md' >
-                                    <MaterialIcons onPress={() => setSelectedImage(null)} name="close" size={24} color="red" className='' />
-                                </View>
-                            </View>
-
-                        ) : (
-                            <View className='flex-col items-center justify-center '>
-                                <MaterialIcons name="cloud-upload" size={40} color="gray" />
-                                <Text className="text-gray-500 mt-2 ">Tap to send an image</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                    <Input placeholder="Enter your name deck collection" className='py-6 w-full' />
-                    <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={() => console.log()}>
-                        <Text className='text-white text-base font-bold'>Create New deck collection</Text>
-                    </TouchableOpacity>
-
-                </DialogContent>
-            
         </View>
     );
 }

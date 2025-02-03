@@ -7,7 +7,6 @@ import Home from './home';
 export default function Index() {
     return (
         <>
-            <Header />
             <Home />
         </>
     );
