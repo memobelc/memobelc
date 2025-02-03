@@ -35,6 +35,12 @@
           "backgroundColor": "#1f9ae9"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you create deck collections."
+        }
+      ],
       "expo-secure-store",
       "expo-font"
     ],
