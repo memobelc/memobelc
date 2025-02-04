@@ -1,5 +1,5 @@
 import { cloneElement, createContext, useContext, useState } from 'react';
-import { Modal, TouchableOpacity, View } from 'react-native';
+import { Modal, TouchableOpacity, View,  StyleProp, ViewStyle } from 'react-native';
 
 import { cn } from '../lib/utils';
 
@@ -29,9 +29,11 @@ function DialogTrigger({ children }: any) {
 function DialogContent({
   className,
   children,
+  style,
 }: {
   className?: string;
   children: React.ReactNode;
+  style?:StyleProp<ViewStyle>;
 }) {
   const { open, setOpen } = useDialog();
 
@@ -48,6 +50,7 @@ function DialogContent({
       >
         <View className="flex flex-1 justify-center items-center bg-black/75">
           <TouchableOpacity
+          style={style}
             className={cn(
               'border border-border bg-background rounded-lg p-6 shadow-lg',
               className
