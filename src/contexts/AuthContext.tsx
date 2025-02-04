@@ -1,4 +1,4 @@
-import { useContext, createContext, type PropsWithChildren, useState } from 'react';
+import { useEffect, useContext, createContext, type PropsWithChildren, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useStorageStateSession, useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
@@ -47,6 +47,34 @@ export function SessionProvider({ children }: PropsWithChildren) {
     const router = useRouter();
     const { toast } = useToast();
 
+
+    useEffect(() => {
+        if (session) {
+            (async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await api.post('/auth/refresh_token', { token: session });
+                    if (response.data) {
+                        setSession(response.data.token);
+                        setUserInfo({
+                            email: response.data.email,
+                            name: response.data.name,
+                            token: response.data.token
+                        });
+
+                        router.replace('/');
+                    }
+                } catch (error) {
+                    setSession(null);
+                    setUserInfo(null);
+                    router.replace('/login');
+                } finally {
+                    setIsLoading(false);
+                }
+            })();
+        }
+    }, [session]); 
+
     return (
         <AuthContext.Provider
             value={{
@@ -57,8 +85,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
                         if (response.data.pending) {
                             router.push({ pathname: '/verify-code', params: { token: response.data.pending[1] } });
-                        }
-                        else {
+                        } else {
                             await setSession(response.data.token);
 
                             setUserInfo({
@@ -70,30 +97,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
                             router.replace('/');
                             setIsLoading(false);
                         }
-
-
-
                     } catch (error) {
                         if (error instanceof Error) {
                             toast({
                                 message:
-                                    error.message == "Request failed with status code 401"
+                                    error.message === "Request failed with status code 401"
                                         ? "Invalid email or password, please enter again."
                                         : error.message,
                                 variant: 'destructive',
                                 showProgress: true
                             });
-
-
                         } else {
                             toast({ message: `An unexpected error has occurred`, variant: 'destructive' });
-
                         }
-
 
                         setUserInfo(null);
                         setSession(null);
-
                     } finally {
                         setIsLoading(false);
                     }
@@ -132,7 +151,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
                             Authorization: `Bearer ${token}`
                         }
                     });
-                    if (response.status == 200) {
+                    if (response.status === 200) {
                         await setSession(response.data.token);
 
                         await new Promise(resolve => setTimeout(resolve, 100));
@@ -144,11 +163,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
                     }
                 },
 
-
                 signOut: () => {
                     setSession(null);
                     setUserInfo(null);
-                    router.replace('/login')
+                    router.replace('/login');
                 },
                 session,
                 isLoading,

@@ -20,7 +20,7 @@ export const Card = () => {
                         <View className="flex flex-row justify-between items-center">
                             <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row"
                             >
-                                <MaterialCommunityIcons className="pr-2" name="cards" size={24} color={colors.red[600]} />
+                                <MaterialCommunityIcons className="pr-2" name="cards" size={24} color={colors.error[600]} />
                                 <Text className="text-xs  color-red-700">1000 out of 1200 to study</Text>
                             </View>
                             <MaterialIcons name="language" size={24} color="#000" />

@@ -7,10 +7,8 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    Switch,
     Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStorageStateLoading } from '@/storage/useStorageState';
 import { styles } from './styles'
 import api from '@/services/api';

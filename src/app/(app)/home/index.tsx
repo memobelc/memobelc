@@ -14,11 +14,8 @@ import { CardSecondary } from '@/components/atoms/CardSecondary';
 
 
 export default function Home() {
-    // const { userInfo } = useSession();
+    const { userInfo } = useSession();
 
-    const userInfo = {
-        name: "John",
-    }
     const { setOpen } = useDialog();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const router = useRouter();
