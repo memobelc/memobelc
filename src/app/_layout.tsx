@@ -7,12 +7,11 @@ import { useFonts } from "expo-font";
 import "@/styles/global.css"
 import { Loading } from '@/components/Loading';
 import { Dialog } from "@/components/Dialog"
+import { ToastProvider } from '@/components/Toast';
 
 
 export default function Layout() {
     const backgroundColor = colors.primary[500];
-    const { session, isLoading, refresh_token } = useSession();
-
 
     const [fontsLoaded] = useFonts({
         "ComicSans": require("../../assets/fonts/ComicSans-MS-400.ttf"),
@@ -22,16 +21,20 @@ export default function Layout() {
         <Loading />
     }
     return (
-        <SessionProvider>
-            <Dialog>
-                <Stack
-                    screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor },
-                    }}
-                />
-            </Dialog>
-        </SessionProvider>
+        <ToastProvider>
+            <SessionProvider>
+
+                <Dialog>
+                    <Stack
+                        screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor },
+                        }}
+                    />
+                </Dialog>
+
+            </SessionProvider>
+        </ToastProvider>
     );
 }
 

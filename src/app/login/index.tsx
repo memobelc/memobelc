@@ -12,6 +12,7 @@ import { styles } from './styles';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
+import { useToast } from '@/components/Toast';
 
 export default function SignIn() {
     const router = useRouter();
@@ -21,14 +22,12 @@ export default function SignIn() {
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const { toast } = useToast();
 
-    const handleLogin = async () => {
-        try {
-            await signIn(email, password);
+    const handleLogin = () => {
 
-        } catch (error) {
-            alert('Credenciais inválidas. Tente novamente.');
-        }
+        signIn(email, password);
+
     };
 
     return (
@@ -37,58 +36,58 @@ export default function SignIn() {
             <Loading />
         ) : (
             <View style={styles.container}>
-            <Image
-                source={require('@/assets/logo_memobelc.jpg')}
-                style={styles.logo}
-            />
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="E-mail"
-                    placeholderTextColor="#7A4F7F"
-                    value={email}
-                    onChangeText={setEmail}
+                <Image
+                    source={require('@/assets/logo_memobelc.jpg')}
+                    style={styles.logo}
                 />
-            </View>
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Senha"
-                    placeholderTextColor="#7A4F7F"
-                    secureTextEntry={!isPasswordVisible}
-                    value={password}
-                    onChangeText={setPassword}
-                />
-                <TouchableOpacity
-                    onPress={() => setPasswordVisible(!isPasswordVisible)}
-                    style={styles.eyeIcon}
-                >
-                    <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="E-mail"
+                        placeholderTextColor="#7A4F7F"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                </View>
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Senha"
+                        placeholderTextColor="#7A4F7F"
+                        secureTextEntry={!isPasswordVisible}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setPasswordVisible(!isPasswordVisible)}
+                        style={styles.eyeIcon}
+                    >
+                        <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.rememberMeContainer}>
+                    <Switch
+                        value={rememberMe}
+                        onValueChange={setRememberMe}
+                        thumbColor={rememberMe ? '#4285F4' : '#f4f3f4'}
+                        trackColor={{ false: '#767577', true: '#4285F4' }}
+                    />
+                    <Text style={styles.rememberMeText}>Lembrar de mim</Text>
+                </View>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin()}>
+                    <Text style={styles.loginButtonText}>Login</Text>
+                </TouchableOpacity>
+                <View style={styles.footerContainer}>
+                    <Text style={styles.footerText}>Não tem uma conta ainda?</Text>
+                    <TouchableOpacity onPress={() => router.push('./register')}>
+                        <Text style={styles.footerLink}> Crie agora!</Text>
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => router.push('./forgot-password')}>
+                    <Text style={styles.forgotPasswordLink}>Esqueceu a senha?</Text>
                 </TouchableOpacity>
             </View>
-            <View style={styles.rememberMeContainer}>
-                <Switch
-                    value={rememberMe}
-                    onValueChange={setRememberMe}
-                    thumbColor={rememberMe ? '#4285F4' : '#f4f3f4'}
-                    trackColor={{ false: '#767577', true: '#4285F4' }}
-                />
-                <Text style={styles.rememberMeText}>Lembrar de mim</Text>
-            </View>
-            <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin()}>
-                <Text style={styles.loginButtonText}>Login</Text>
-            </TouchableOpacity>
-            <View style={styles.footerContainer}>
-                <Text style={styles.footerText}>Não tem uma conta ainda?</Text>
-                <TouchableOpacity onPress={() => router.push('./register')}>
-                    <Text style={styles.footerLink}> Crie agora!</Text>
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity onPress={() => router.push('./forgot-password')}>
-                <Text style={styles.forgotPasswordLink}>Esqueceu a senha?</Text>
-            </TouchableOpacity>
-        </View>
         )
-        
+
     );
 }
