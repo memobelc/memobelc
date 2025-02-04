@@ -23,7 +23,6 @@ export default function Layout() {
     return (
         <ToastProvider>
             <SessionProvider>
-
                 <Dialog>
                     <Stack
                         screenOptions={{
@@ -32,7 +31,6 @@ export default function Layout() {
                         }}
                     />
                 </Dialog>
-
             </SessionProvider>
         </ToastProvider>
     );

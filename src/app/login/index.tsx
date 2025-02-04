@@ -12,7 +12,6 @@ import { styles } from './styles';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
-import { useToast } from '@/components/Toast';
 
 export default function SignIn() {
     const router = useRouter();
@@ -22,10 +21,8 @@ export default function SignIn() {
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
-    const { toast } = useToast();
 
     const handleLogin = () => {
-
         signIn(email, password);
 
     };
