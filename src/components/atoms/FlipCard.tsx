@@ -1,5 +1,8 @@
+import { colors } from '@/styles/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
+
 
 const FlipCard = () => {
   const [flipped, setFlipped] = useState(false);
@@ -55,18 +58,48 @@ const FlipCard = () => {
           }}
           className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg">
           <Text className="text-xl font-bold">Front Side</Text>
-          {/* <View className="absolute top-0 right-0 w-8 h-8 bg-gray-200 rounded-br-3xl transform rotate-45 -translate-y-2 translate-x-2" /> */}
+          <View style={{ position: 'absolute', top: 0, right: 0 }}>
+            <LinearGradient
+              colors={[colors.gray[100], colors.primary[500]]}
+              start={{ x: 0.01, y: 0 }}
+              end={{x: 0, y: 0.01}}
+              style={{
+                height: 40, 
+                width: 40,
+                borderTopRightRadius: 16, 
+                borderBottomLeftRadius: 16,
+              }}
+            />
+          </View>
+
+
+          
         </Animated.View>
-        
+
         {/* Back of Card */}
 
         <Animated.View
           style={{
             transform: [{ rotateY: backInterpolate }],
             opacity: backOpacity,
+            backgroundColor: colors.primary[500]
           }}
-          className="absolute w-full h-full bg-blue-500 rounded-2xl justify-center items-center shadow-lg">
+          className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg">
           <Text className="text-xl font-bold text-white">Back Side</Text>
+          <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
+            <LinearGradient
+              colors={['white', colors.gray[100]]}
+              start={{ x: 0.01, y: 0 }}
+              end={{x: 0, y: 0.01}}
+              style={{
+                height: 40, 
+                width: 40,
+                borderTopRightRadius: 16, 
+                borderBottomLeftRadius: 16,
+                transform: [{ rotate: '90deg' }]
+              }}
+            />
+          </View>
         </Animated.View>
       </Pressable>
     </View>
