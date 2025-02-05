@@ -3,8 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 
+interface FlipCardProps {
+  frontSide: string,
+  backSide: string
+}
 
-const FlipCard = () => {
+
+const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
   const rotateAnim = useState(new Animated.Value(0))[0];
 
@@ -47,7 +52,7 @@ const FlipCard = () => {
   });
 
   return (
-    <View className="flex items-center justify-center h-full">
+    <View className="flex items-center justify-center py-5">
       <Pressable onPress={flipCard} className="w-64 h-96 relative">
         {/* Front of Card */}
 
@@ -57,23 +62,23 @@ const FlipCard = () => {
             opacity: frontOpacity,
           }}
           className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg">
-          <Text className="text-xl font-bold">Front Side</Text>
+          <Text className="text-xl font-bold">{frontSide}</Text>
           <View style={{ position: 'absolute', top: 0, right: 0 }}>
             <LinearGradient
               colors={[colors.gray[100], colors.primary[500]]}
               start={{ x: 0.01, y: 0 }}
-              end={{x: 0, y: 0.01}}
+              end={{ x: 0, y: 0.01 }}
               style={{
-                height: 40, 
+                height: 40,
                 width: 40,
-                borderTopRightRadius: 16, 
+                borderTopRightRadius: 16,
                 borderBottomLeftRadius: 16,
               }}
             />
           </View>
 
 
-          
+
         </Animated.View>
 
         {/* Back of Card */}
@@ -85,16 +90,16 @@ const FlipCard = () => {
             backgroundColor: colors.primary[500]
           }}
           className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg">
-          <Text className="text-xl font-bold text-white">Back Side</Text>
+          <Text className="text-xl font-bold text-white">{backSide}</Text>
           <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
             <LinearGradient
               colors={['white', colors.gray[100]]}
               start={{ x: 0.01, y: 0 }}
-              end={{x: 0, y: 0.01}}
+              end={{ x: 0, y: 0.01 }}
               style={{
-                height: 40, 
+                height: 40,
                 width: 40,
-                borderTopRightRadius: 16, 
+                borderTopRightRadius: 16,
                 borderBottomLeftRadius: 16,
                 transform: [{ rotate: '90deg' }]
               }}

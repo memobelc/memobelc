@@ -1,52 +1,53 @@
 
-import { View, Image, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Image, Text, TouchableOpacity, ScrollView, TextInput, Touchable } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
-import { useState } from 'react';
-import { Input } from '@/components/Input';
 import { CardDisplaying } from '@/components/atoms/CardDisplaying';
+import { Input } from '@/components/Input';
+import FlipCard from '@/components/atoms/FlipCard';
 
 export default function Deck() {
     const router = useRouter();
     const { setOpen } = useDialog();
-    const [openAddDeck, setOpenAddDeck] = useState(false)
+    const [openAddCard, setOpenAddCard] = useState(false)
     const [openStudy, setOpenStudy] = useState(false);
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const { name } = useLocalSearchParams();
 
-    const pickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            alert('Permission denied, You need to allow access to the gallery.');
-            return;
-        }
+    const [frontSide, setFrontSide] = useState('')
+    const [backSide, setBackSide] = useState('')
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 1,
-        });
+    const [viewCArd, setViewCArd] = useState(false);
 
-        if (!result.canceled) {
-            setSelectedImage(result.assets[0].uri);
-        }
-    };
 
-    const HandleOpenAddDeck = () => {
-        setOpenAddDeck(true)
+
+    const HandleOpenAddCard = () => {
+        setOpenAddCard(true)
         setOpenStudy(false);
         setOpen(true)
     }
 
     const HandleOpenStudy = () => {
         setOpenStudy(true);
-        setOpenAddDeck(false)
+        setOpenAddCard(false)
         setOpen(true)
+    }
+
+    const HandleClose = () => {
+        setOpen(false)
+        setFrontSide('')
+        setBackSide('')
+        setViewCArd(false)
+    }
+
+    const HandleSave = () => {
+        console.log('frontSide', frontSide);
+        console.log('backSide', backSide);
+        HandleClose();
     }
 
     return (
@@ -97,7 +98,7 @@ export default function Deck() {
                 pointerEvents="none"
             />
 
-            <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2" onPress={HandleOpenAddDeck}>
+            <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2" onPress={HandleOpenAddCard}>
                 <Text className='text-white font-bold text-2xl'>Add cards</Text>
             </TouchableOpacity>
 
@@ -158,42 +159,39 @@ export default function Deck() {
             </DialogContent>}
 
 
-
             {
-                openAddDeck && <DialogContent className="bg-white rounded-t-lg flex w-full absolute items-center bottom-0 h-1/2 p-4">
+                openAddCard && <DialogContent className="bg-white rounded-t-lg flex w-full  h-full absolute items-center bottom-0  p-4">
 
                     <View className="flex flex-row justify-between items-center mb-2 w-full">
-                        <Text className="font-semibold text-xl text-primary justify-center">New card</Text>
-                        <TouchableOpacity onPress={() => setOpen(false)}>
-                            <MaterialIcons name="close" size={24} color={colors.gray[950]} />
+
+                        <TouchableOpacity onPress={HandleClose}>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color="black" />
                         </TouchableOpacity>
+                        <View className='flex-row w-[60%] items-center justify-between'>
+                            <Text className="font-semibold text-xl text-primary justify-center">New card</Text>
+                            <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
+
+                                <MaterialCommunityIcons name={!viewCArd ? "eye" : "eye-off"} size={24} color="black" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={HandleSave} style={{ backgroundColor: colors.primary[500] }} className='rounded-2xl p-2.5'>
+
+                                <MaterialCommunityIcons name="check" size={24} color="white" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <View className="border-b border-gray-300 mb-4 w-full" />
+                    {!viewCArd ? <>
+                        <Input label='Front Side' className='py-6 w-full' inputClasses='h-40' value={frontSide} onChangeText={(text) => setFrontSide(text)} />
+                        <Input label='Back Side' className='py-6 w-full' inputClasses='h-40' value={backSide} onChangeText={(text) => setBackSide(text)} />
+                    </> : <FlipCard frontSide={frontSide} backSide={backSide} />
+                    }
 
-                    <TouchableOpacity
-                        onPress={pickImage}
-                        className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-full"
-                    >
-                        {selectedImage ? (
-                            <View className='relative'>
-                                <Image source={{ uri: selectedImage }} className="w-32 h-32 rounded-lg" />
-                                <View className='bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md' >
-                                    <MaterialIcons onPress={() => setSelectedImage(null)} name="close" size={24} color="red" className='' />
-                                </View>
-                            </View>
 
-                        ) : (
-                            <View className='flex-col items-center justify-center '>
-                                <MaterialIcons name="cloud-upload" size={40} color="gray" />
-                                <Text className="text-gray-500 mt-2 ">Tap to send an image</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                    <Input placeholder="Enter your name deck collection" className='py-6 w-full' />
-                    <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={() => console.log()}>
-                        <Text className='text-white text-base font-bold'>Create New deck collection</Text>
-                    </TouchableOpacity>
+
+
+
 
                 </DialogContent>
 
