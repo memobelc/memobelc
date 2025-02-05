@@ -1,4 +1,4 @@
-
+import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { View, Image, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,9 +9,8 @@ import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
 import { useState } from 'react';
 import { Input } from '@/components/Input';
-import { CardDisplaying } from '@/components/atoms/CardDisplaying';
 
-export default function Deck() {
+export default function Collection() {
     const router = useRouter();
     const { setOpen } = useDialog();
     const [openAddDeck, setOpenAddDeck] = useState(false)
@@ -68,9 +67,9 @@ export default function Deck() {
                 {name}
             </Text>
 
-            <View className="my-6 w-full h-36 bg-white rounded-[12px] overflow-hidden shadow-lg">
+            <View className="my-6 w-full h-40 bg-white rounded-[12px] overflow-hidden shadow-lg">
                 <Image
-                    source={{ uri: "https://travelopod.com/_next/image?url=https%3A%2F%2Fstatic.wixstatic.com%2Fmedia%2F0539f7_aee4fccbe409439e8334b9f9b5426020~mv2.jpg&w=2048&q=75" }}
+                    source={require('@/assets/masterdeck.png')}
                     className="w-full h-full top-0"
                 />
             </View>
@@ -80,15 +79,24 @@ export default function Deck() {
                 <MaterialIcons name="arrow-right-alt" size={40} color='white' />
             </TouchableOpacity>
 
+            <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
+                <TextInput
+                    placeholder="Search decks..."
+                    placeholderTextColor="#888"
+                    className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
+                />
+            </View>
 
             <ScrollView
                 contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
             >
-                <CardDisplaying front="No problem, do you have your passport with you?" back="Sem problema, você tem seu passaporte com você?" />
-                <CardDisplaying front="No problem, do you have your passport with you?" back="Sem problema, você tem seu passaporte com você?" />
-
+                <DeckCardSecondary name="DC - Checking in at the airport" image="https://travelopod.com/_next/image?url=https%3A%2F%2Fstatic.wixstatic.com%2Fmedia%2F0539f7_aee4fccbe409439e8334b9f9b5426020~mv2.jpg&w=2048&q=75" type="deck" />
+                <DeckCardSecondary name="DC - Checking in at the airport" image="'@/assets/logo_memobelc.jpg'" type="deck" />
+                <DeckCardSecondary name="DC - Checking in at the airport" image="'@/assets/logo_memobelc.jpg'" type="deck" />
+                <DeckCardSecondary name="DC - Checking in at the airport" image="'@/assets/logo_memobelc.jpg'" type="deck" />
+                <DeckCardSecondary name="DC - Checking in at the airport" image="'@/assets/logo_memobelc.jpg'" type="deck" />
             </ScrollView>
 
             <LinearGradient
@@ -98,7 +106,7 @@ export default function Deck() {
             />
 
             <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2" onPress={HandleOpenAddDeck}>
-                <Text className='text-white font-bold text-2xl'>Add cards</Text>
+                <Text className='text-white font-bold text-2xl'>Add deck</Text>
             </TouchableOpacity>
 
             {openStudy && <DialogContent style={{ backgroundColor: colors.primary[500], display: openStudy ? 'flex' : 'none' }} className="rounded-t-lg w-full absolute items-center bottom-0 h-4/5 p-4">
@@ -163,7 +171,7 @@ export default function Deck() {
                 openAddDeck && <DialogContent className="bg-white rounded-t-lg flex w-full absolute items-center bottom-0 h-1/2 p-4">
 
                     <View className="flex flex-row justify-between items-center mb-2 w-full">
-                        <Text className="font-semibold text-xl text-primary justify-center">New card</Text>
+                        <Text className="font-semibold text-xl text-primary justify-center">New deck collection</Text>
                         <TouchableOpacity onPress={() => setOpen(false)}>
                             <MaterialIcons name="close" size={24} color={colors.gray[950]} />
                         </TouchableOpacity>

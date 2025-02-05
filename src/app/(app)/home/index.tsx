@@ -9,8 +9,8 @@ import { getGreeting } from '@/utils/greeting';
 import { useDialog, DialogContent } from '@/components/Dialog';
 import { Input } from '@/components/Input';
 import { colors } from '@/styles/colors';
-import { Card } from '@/components/atoms/Card';
-import { CardSecondary } from '@/components/atoms/CardSecondary';
+import { MainDeckCard } from '@/components/atoms/MainDeckCard';
+import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 
 
 export default function Home() {
@@ -49,20 +49,21 @@ export default function Home() {
                         <Text style={{ color: colors.primary[500] }}
                             className="text-2xl font-bold">New Day, New Strength!</Text>
                     </View>
-                    <Card />
+                    <MainDeckCard />
                 </View>
 
                 <Text style={{ color: colors.primary[600] }}
                     className="text-sm font-bold my-7">CHECK OUT OTHERS MASTERDECKS</Text>
 
-                <CardSecondary />
-                <CardSecondary />
-                <CardSecondary />
-                <CardSecondary />
+                <DeckCardSecondary name="Ingles" image="https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress" type="collection" />
+                <DeckCardSecondary name="Espanhol" image="https://www.agbt.com.br/wp-content/uploads/2020/02/O-Melhor-Tradutor-de-Portugu%C3%AAs-para-Espanhol.jpg" type="collection" />
+                <DeckCardSecondary name="Italiano" image="https://laviaitalia.com.br/wp-content/uploads/2023/10/aprender-italiano-960x640-1.jpg" type="collection" />
+                <DeckCardSecondary name="Chinês" image="https://ibrachina.com.br/wp-content/uploads/2019/11/wp1939724-scaled.jpg" type="collection" />
+                <DeckCardSecondary name="Francês" image="https://cdn.wizard.com.br/wp-content/uploads/2019/08/14113136/moca-torre-eiffel-com-bandeira-francesa.jpg" type="collection" />
 
-                <Link href="./decks" asChild>
+                <Link href="./collections" asChild>
                     <TouchableOpacity className='w-full flex flex-row items-center justify-end'>
-                        <Text style={{color: colors.primary[500]}}>See all your decks</Text>
+                        <Text style={{ color: colors.primary[500] }}>See all your decks</Text>
                         <MaterialIcons name="arrow-right-alt" size={24} color={colors.primary[500]} />
                     </TouchableOpacity>
                 </Link>
@@ -82,7 +83,7 @@ export default function Home() {
             </TouchableOpacity>
 
             <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-1/2 p-4">
-                {/* Cabeçalho do Dialog */}
+
                 <View className="flex flex-row justify-between items-center mb-2 w-full">
                     <Text className="font-semibold text-xl text-primary justify-center">New deck collection</Text>
                     <TouchableOpacity onPress={() => setOpen(false)}>
