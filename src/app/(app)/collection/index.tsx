@@ -9,6 +9,7 @@ import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
 import { useState } from 'react';
 import { Input } from '@/components/Input';
+import { OpenStudy } from '@/components/atoms/openStudy';
 
 export default function Collection() {
     const router = useRouter();
@@ -109,69 +110,13 @@ export default function Collection() {
                 <Text className='text-white font-bold text-2xl'>Add deck</Text>
             </TouchableOpacity>
 
-            {openStudy && <DialogContent style={{ backgroundColor: colors.primary[500], display: openStudy ? 'flex' : 'none' }} className="rounded-t-lg w-full absolute items-center bottom-0 h-4/5 p-4">
-
-                <View className="flex flex-row justify-between items-center mb-2 w-full">
-                    <TouchableOpacity onPress={() => setOpen(false)}>
-                        <MaterialIcons name="close" size={24} color={colors.gray[100]} />
-                    </TouchableOpacity>
-                </View>
-
-                <View className='my-10'>
-                    <Text className='text-white text-3xl font-bold'>Select your study goal now</Text>
-                    <Text className='text-white text-xl'>The more you study, the more you learn!</Text>
-                </View>
-
-                <View className='w-full gap-3' >
-
-                    <TouchableOpacity >
-                        <View className='w-full h-28 bg-white flex-row rounded-lg items-center justify-start'>
-                            <MaterialIcons className='mx-8' name="emoji-emotions" size={36} color={colors.warning[500]} />
-                            <View>
-                                <Text className='text-gray-700 font-bold text-2xl'>Ideal</Text>
-                                <Text className='text-gray-700 font-bold text-1xs'>Study all of the cards from the deck</Text>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity >
-                        <View className='w-full h-28 bg-white flex-row rounded-lg items-center justify-start'>
-                            <MaterialIcons className='mx-8' name="thumb-up" size={36} color={colors.warning[500]} />
-                            <View>
-                                <Text className='text-gray-700 font-bold text-2xl'>Good</Text>
-                                <Text className='text-gray-700 font-bold text-1xs'>Up to 150 cards</Text>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity >
-                        <View className='w-full h-28 bg-white flex-row rounded-lg items-center justify-start'>
-                            <MaterialIcons className='mx-8' name="balance" size={36} color={colors.warning[500]} />
-                            <View>
-                                <Text className='text-gray-700 font-bold text-2xl'>Medium</Text>
-                                <Text className='text-gray-700 font-bold text-1xs'>Up to 100 cards</Text>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity >
-                        <View className='w-full h-28 bg-white flex-row rounded-lg items-center justify-start'>
-                            <MaterialIcons className='mx-8' name="hourglass-bottom" size={36} color={colors.warning[500]} />
-                            <View>
-                                <Text className='text-gray-700 font-bold text-2xl'>Short</Text>
-                                <Text className='text-gray-700 font-bold text-1xs'>Up to 50 cards</Text>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-
-                </View>
-
-            </DialogContent>}
-
-
+            {openStudy && <OpenStudy open={openStudy} />}
 
             {
                 openAddDeck && <DialogContent className="bg-white rounded-t-lg flex w-full absolute items-center bottom-0 h-1/2 p-4">
 
                     <View className="flex flex-row justify-between items-center mb-2 w-full">
-                        <Text className="font-semibold text-xl text-primary justify-center">New deck collection</Text>
+                        <Text className="font-semibold text-xl text-primary justify-center">New deck</Text>
                         <TouchableOpacity onPress={() => setOpen(false)}>
                             <MaterialIcons name="close" size={24} color={colors.gray[950]} />
                         </TouchableOpacity>
@@ -198,9 +143,9 @@ export default function Collection() {
                             </View>
                         )}
                     </TouchableOpacity>
-                    <Input placeholder="Enter your name deck collection" className='py-6 w-full' />
+                    <Input placeholder="Enter your name deck" className='py-6 w-full' />
                     <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={() => console.log()}>
-                        <Text className='text-white text-base font-bold'>Create New deck collection</Text>
+                        <Text className='text-white text-base font-bold'>Create New deck</Text>
                     </TouchableOpacity>
 
                 </DialogContent>

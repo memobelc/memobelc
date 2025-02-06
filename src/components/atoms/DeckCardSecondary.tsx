@@ -23,12 +23,12 @@ export const DeckCardSecondary = ({ image, name, type, ...rest }: CardSecondaryP
                     />
 
                     <View className="w-[70%] h-full justify-center items-center left-[30%]">
-                        <Text className="text-xl font-bold pb-3">{name}</Text>
+                    <Text className="font-[ComicSans] text-xl font-bold pb-3 text-start w-full px-6">{name}</Text>
                         <View className="flex flex-row justify-between items-center  w-[80%]">
                             <View className="flex  bg-red-100 px-2 py-1 rounded-md items-center justify-between flex-row"
                             >
                                 <MaterialCommunityIcons className="pr-2" name="cards" size={24} color={colors.error[600]} />
-                                <Text className="text-xs  color-red-700">1000 out of 1200</Text>
+                                <Text className="font-[ComicSans] text-xs  color-red-700">1000 out of 1200</Text>
                             </View>
 
                             {
