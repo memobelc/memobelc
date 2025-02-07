@@ -8,6 +8,7 @@ import "@/styles/global.css"
 import { Loading } from '@/components/Loading';
 import { Dialog } from "@/components/Dialog"
 import { ToastProvider } from '@/components/Toast';
+import { CollectionProvider } from '@/contexts/CollectionContext';
 
 
 export default function Layout() {
@@ -23,6 +24,7 @@ export default function Layout() {
     return (
         <ToastProvider>
             <SessionProvider>
+                <CollectionProvider>
                 <Dialog>
                     <Stack
                         screenOptions={{
@@ -31,6 +33,7 @@ export default function Layout() {
                         }}
                     />
                 </Dialog>
+                </CollectionProvider>
             </SessionProvider>
         </ToastProvider>
     );

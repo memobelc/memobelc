@@ -8,6 +8,7 @@ type User = {
     email: string;
     name: string;
     token: string;
+    user_id: string;
 };
 
 const AuthContext = createContext<{
@@ -59,7 +60,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
                         setUserInfo({
                             email: response.data.email,
                             name: response.data.name,
-                            token: response.data.token
+                            token: response.data.token,
+                            user_id: response.data.user_id
                         });
 
                         router.replace('/');
@@ -91,7 +93,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
                             setUserInfo({
                                 email: response.data.email,
                                 name: response.data.name,
-                                token: response.data.token
+                                token: response.data.token,
+                                user_id: response.data.user_id
                             });
 
                             router.replace('/');
@@ -128,7 +131,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
                             setUserInfo({
                                 email: response.data.email,
                                 name: response.data.name,
-                                token: response.data.token
+                                token: response.data.token,
+                                user_id: response.data.user_id
                             });
 
                             setTimeout(() => {

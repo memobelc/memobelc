@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from '@/contexts/AuthContext';
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -12,13 +12,23 @@ import { colors } from '@/styles/colors';
 import { MainDeckCard } from '@/components/atoms/MainDeckCard';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 
+import { storage } from '../../../../FirebaseConfig';
+import { getDownloadURL, ref, uploadBytes, listAll, deleteObject } from 'firebase/storage';
+import { useToast } from '@/components/Toast';
+import api from '@/services/api';
+import { useCollection } from '@/contexts/CollectionContext';
+import { Loading } from '@/components/Loading';
+
 
 export default function Home() {
-    const { userInfo } = useSession();
+    const { userInfo, signOut } = useSession();
+    const { toast } = useToast();
+    const { collections, setCollections } = useCollection();
 
     const { setOpen } = useDialog();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const router = useRouter();
+    const [nameCollection, setNameCollection] = useState('');
+    const [loadingCollection, setLoadingCollection] = useState(false)
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,6 +48,83 @@ export default function Home() {
         }
     };
 
+    const HandleCreateCollection = async () => {
+        if (!selectedImage) return;
+
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `images/decks/${Date.now()}`);
+
+
+        try {
+            await uploadBytes(storageRef, blob);
+            const url = await getDownloadURL(storageRef);
+
+            await api.post('/collections/create', {
+                name: nameCollection,
+                image: url,
+                user_id: userInfo?.user_id
+            })
+
+            toast({
+                message: "Collection of deck  created successfully",
+                variant: 'success',
+                showProgress: true
+            });
+
+        } catch (error) {
+            if (error instanceof Error) {
+                console.log(error.message);
+                toast({
+                    message: error.message,
+                    variant: 'destructive',
+                    showProgress: true
+                });
+            } else {
+                toast({ message: `An unexpected error has occurred`, variant: 'destructive' });
+            }
+        } finally {
+            setOpen(false);
+            setNameCollection('')
+            setSelectedImage(null)
+        }
+    };
+
+    const fetchData = async () => {
+        setLoadingCollection(true);
+        try {
+            const response = await api.get('/collections/get_by_user',
+                {
+                    headers: {
+                        Authorization: `Bearer ${userInfo?.token}`
+                    }
+                },
+            );
+
+            if (response.status === 200) {
+                setCollections(response.data.collections)
+            }
+
+            console.log(collections)
+
+        } catch (error) {
+            console.log(error)
+        }
+        finally {
+            setLoadingCollection(false)
+        }
+
+    };
+
+
+    useEffect(() => {
+
+
+        fetchData();
+    }, []);
+
+
+
     return (
         <View className='flex-1 w-4/5 max-w-[1440px] mx-auto mt-12 relative'>
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
@@ -49,24 +136,50 @@ export default function Home() {
                         <Text style={{ color: colors.primary[500] }}
                             className="text-2xl font-bold">New Day, New Strength!</Text>
                     </View>
-                    <MainDeckCard />
+                    {loadingCollection
+                        ? <Loading />
+                        : collections && <MainDeckCard
+                            name={collections[0].name}
+                            image={collections[0].image ? collections[0].image : ''}
+                            pending_cards={collections[0].pending_cards}
+                            total_cards={collections[0].total_cards}
+                        />}
                 </View>
 
-                <Text style={{ color: colors.primary[600] }}
-                    className="text-sm font-bold my-7">CHECK OUT OTHERS MASTERDECKS</Text>
+                {collections && collections.length > 1 && (
+                    <>
+                        <Text style={{ color: colors.primary[600] }} className="text-sm font-bold my-7">
+                            CHECK OUT OTHER MASTERDECKS
+                        </Text>
 
-                <DeckCardSecondary name="Ingles" image="https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress" type="collection" />
-                <DeckCardSecondary name="Espanhol" image="https://www.agbt.com.br/wp-content/uploads/2020/02/O-Melhor-Tradutor-de-Portugu%C3%AAs-para-Espanhol.jpg" type="collection" />
-                <DeckCardSecondary name="Italiano" image="https://laviaitalia.com.br/wp-content/uploads/2023/10/aprender-italiano-960x640-1.jpg" type="collection" />
-                <DeckCardSecondary name="Chinês" image="https://ibrachina.com.br/wp-content/uploads/2019/11/wp1939724-scaled.jpg" type="collection" />
-                <DeckCardSecondary name="Francês" image="https://cdn.wizard.com.br/wp-content/uploads/2019/08/14113136/moca-torre-eiffel-com-bandeira-francesa.jpg" type="collection" />
+                        {collections.slice(1, 4).map((item) => (
+                            <DeckCardSecondary
+                                key={item._id}
+                                name={item.name}
+                                image={item.image || "https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress"}
+                                type="collection"
+                                pending_cards={item.pending_cards}
+                                total_cards={item.total_cards}
+                            />
+                        ))}
+                    </>
+                )
 
-                <Link href="./collections" asChild>
-                    <TouchableOpacity className='w-full flex flex-row items-center justify-end'>
-                        <Text style={{ color: colors.primary[500] }}>See all your decks</Text>
-                        <MaterialIcons name="arrow-right-alt" size={24} color={colors.primary[500]} />
-                    </TouchableOpacity>
-                </Link>
+                }{
+                    collections && collections.length > 4 && (
+                        <Link href="./collections" asChild>
+                            <TouchableOpacity className='w-full flex flex-row items-center justify-end'>
+                                <Text style={{ color: colors.primary[500] }}>See all your decks</Text>
+                                <MaterialIcons name="arrow-right-alt" size={24} color={colors.primary[500]} />
+                            </TouchableOpacity>
+                        </Link>
+                    )
+                }
+
+                <TouchableOpacity className='w-full flex flex-row items-center justify-end' onPress={signOut}>
+                    <Text style={{ color: colors.primary[500] }}>logout</Text>
+                    <MaterialIcons name="arrow-right-alt" size={24} color={colors.primary[500]} />
+                </TouchableOpacity>
 
             </ScrollView>
 
@@ -112,8 +225,8 @@ export default function Home() {
                         </View>
                     )}
                 </TouchableOpacity>
-                <Input placeholder="Enter your name deck collection" className='py-6 w-full' />
-                <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={() => console.log()}>
+                <Input placeholder="Enter your name deck collection" className='py-6 w-full' value={nameCollection} onChangeText={(text) => setNameCollection(text)} />
+                <TouchableOpacity style={{ backgroundColor: colors.primary[500] }} className='w-full max-w-[500px] py-4 rounded-3xl items-center mb-5' onPress={HandleCreateCollection}>
                     <Text className='text-white text-base font-bold'>Create New deck collection</Text>
                 </TouchableOpacity>
 

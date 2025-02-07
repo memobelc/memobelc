@@ -4,9 +4,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
+import { useCollection } from '@/contexts/CollectionContext';
 
 export default function AllCollections() {
     const router = useRouter();
+    const { collections, setCollections } = useCollection();
 
     return (
         <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -25,16 +27,22 @@ export default function AllCollections() {
             </View>
             <View>
                 <ScrollView contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }} showsVerticalScrollIndicator={false}>
-                    <DeckCardSecondary  name="Ingles" image="https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress" type="collection" />
-                    <DeckCardSecondary  name="Espanhol" image="https://www.agbt.com.br/wp-content/uploads/2020/02/O-Melhor-Tradutor-de-Portugu%C3%AAs-para-Espanhol.jpg" type="collection" />
-                    <DeckCardSecondary  name="Italiano" image="https://laviaitalia.com.br/wp-content/uploads/2023/10/aprender-italiano-960x640-1.jpg" type="collection" />
-                    <DeckCardSecondary  name="Chinês" image="https://ibrachina.com.br/wp-content/uploads/2019/11/wp1939724-scaled.jpg" type="collection" />
-                    <DeckCardSecondary  name="Francês" image="https://cdn.wizard.com.br/wp-content/uploads/2019/08/14113136/moca-torre-eiffel-com-bandeira-francesa.jpg" type="collection" />
-                    <DeckCardSecondary  name="Ingles" image="https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress" type="collection" />
-                    <DeckCardSecondary  name="Espanhol" image="https://www.agbt.com.br/wp-content/uploads/2020/02/O-Melhor-Tradutor-de-Portugu%C3%AAs-para-Espanhol.jpg" type="collection" />
-                    <DeckCardSecondary  name="Italiano" image="https://laviaitalia.com.br/wp-content/uploads/2023/10/aprender-italiano-960x640-1.jpg" type="collection" />
-                    <DeckCardSecondary  name="Chinês" image="https://ibrachina.com.br/wp-content/uploads/2019/11/wp1939724-scaled.jpg" type="collection" />
-                    <DeckCardSecondary  name="Francês" image="https://cdn.wizard.com.br/wp-content/uploads/2019/08/14113136/moca-torre-eiffel-com-bandeira-francesa.jpg" type="collection" />
+                    {collections && collections.length > 1 && (
+                        <>
+                            {collections.map((item) => (
+                                <DeckCardSecondary
+                                    key={item._id}
+                                    name={item.name}
+                                    image={item.image || "https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress"}
+                                    type="collection"
+                                    pending_cards={item.pending_cards}
+                                    total_cards={item.total_cards}
+                                />
+                            ))}
+                        </>
+                    )
+
+                    }
                 </ScrollView>
 
             </View>
