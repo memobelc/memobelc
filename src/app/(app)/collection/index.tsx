@@ -32,7 +32,7 @@ import { useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 
 export default function Collection() {
-  const { collections, setCollections, currentCollection } = useCollection();
+  const { setCollections, currentCollection, setCurrentDeck } = useCollection();
   const { userInfo, signOut } = useSession();
   const { toast } = useToast();
 
@@ -162,7 +162,9 @@ export default function Collection() {
             color={colors.error[600]}
           />
           <Text className="text-xs color-red-700">
-            1000 out of 1200 to study
+            {currentCollection?.total_cards != 0
+              ? `${currentCollection?.pending_cards} out of ${currentCollection?.total_cards} to study`
+              : 'No cards added yet'}
           </Text>
         </View>
       </View>
@@ -171,7 +173,11 @@ export default function Collection() {
 
       <View className="my-6 w-full h-40 bg-white rounded-[12px] overflow-hidden shadow-lg">
         <Image
-          source={require('@/assets/masterdeck.png')}
+          source={{
+            uri: currentCollection?.image
+              ? currentCollection?.image
+              : 'https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress',
+          }}
           className="w-full h-full top-0"
         />
       </View>
@@ -211,6 +217,7 @@ export default function Collection() {
                 type="deck"
                 pending_cards={item.pending_cards}
                 total_cards={item.total_cards}
+                onPress={() => setCurrentDeck(item)}
               />
             ))}
           </>

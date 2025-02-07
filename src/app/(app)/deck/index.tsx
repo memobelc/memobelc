@@ -10,9 +10,21 @@ import { CardDisplaying } from '@/components/atoms/CardDisplaying';
 import { Input } from '@/components/Input';
 import FlipCard from '@/components/atoms/FlipCard';
 import { OpenStudy } from '@/components/atoms/openStudy';
+import { useCollection } from '@/contexts/CollectionContext';
+import api from '@/services/api';
+import { useSession } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
 
 export default function Deck() {
   const router = useRouter();
+
+  const { currentDeck, setCollections } = useCollection();
+
+  const { userInfo, signOut } = useSession();
+  const { toast } = useToast();
+
+  const [loadingCollection, setLoadingCollection] = useState(false);
+
   const { setOpen } = useDialog();
   const [openAddCard, setOpenAddCard] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
@@ -42,10 +54,57 @@ export default function Deck() {
     setViewCArd(false);
   };
 
-  const HandleSave = () => {
-    console.log('frontSide', frontSide);
-    console.log('backSide', backSide);
-    HandleClose();
+  const fetchData = async () => {
+    setLoadingCollection(true);
+    try {
+      const response = await api.get('/collections/get_by_user', {
+        headers: {
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setCollections(response.data.collections);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoadingCollection(false);
+    }
+  };
+
+  const HandleCreateCard = async () => {
+    try {
+      await api.post('/card', {
+        front: frontSide,
+        back: backSide,
+        deck_id: currentDeck?._id,
+      });
+
+      toast({
+        message: 'Card created successfully',
+        variant: 'success',
+        showProgress: true,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(error.message);
+        toast({
+          message: error.message,
+          variant: 'destructive',
+          showProgress: true,
+        });
+      } else {
+        toast({
+          message: `An unexpected error has occurred`,
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setOpen(false);
+      HandleClose();
+      fetchData();
+    }
   };
 
   return (
@@ -151,7 +210,7 @@ export default function Deck() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={HandleSave}
+                onPress={HandleCreateCard}
                 style={{ backgroundColor: colors.primary[500] }}
                 className="rounded-2xl p-2.5"
               >

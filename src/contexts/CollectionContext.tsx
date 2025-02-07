@@ -26,13 +26,17 @@ type Collection = DefaultDeck & {
 const CollectionContext = createContext<{
   collections: Collection[] | null;
   currentCollection: Collection | null;
+  currentDeck: Deck | null;
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
+  setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
 }>({
   collections: null,
   currentCollection: null,
+  currentDeck: null,
   setCollections: () => {},
   setCurrentCollection: () => {},
+  setCurrentDeck: () => {},
 });
 
 export function useCollection() {
@@ -54,6 +58,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
     null,
   );
 
+  const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
+
   // useEffect(() => {
 
   //     }
@@ -66,6 +72,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         setCollections,
         currentCollection,
         setCurrentCollection,
+        currentDeck,
+        setCurrentDeck,
       }}
     >
       {children}
