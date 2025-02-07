@@ -12,7 +12,7 @@ const Avatar = forwardRef<
     ref={ref}
     className={cn(
       'relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border-gray-100',
-      className
+      className,
     )}
     {...props}
   />
@@ -47,11 +47,11 @@ const AvatarFallback = forwardRef<
     ref={ref}
     className={cn(
       'flex h-full w-full items-center justify-center rounded-full bg-gray',
-      className
+      className,
     )}
     {...props}
   >
-   <MaterialIcons name="account-circle" size={40} color="#fff" />
+    <MaterialIcons name="account-circle" size={40} color="#fff" />
   </View>
 ));
 AvatarFallback.displayName = 'AvatarFallback';

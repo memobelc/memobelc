@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
   View,
   TouchableOpacity,
-  Image
+  Image,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSession } from '@/contexts/AuthContext';
@@ -21,10 +21,12 @@ const ConfirmAccountScreen = () => {
   const { token } = useLocalSearchParams();
 
   const [codeOTP, setCodeOTP] = useState<string[]>(Array(6).fill(''));
-  const inputRefs = Array(6).fill(null).map(() => useRef<TextInput>(null));
+  const inputRefs = Array(6)
+    .fill(null)
+    .map(() => useRef<TextInput>(null));
 
   const handleChangeCode = (text: string, index: number) => {
-    if (!/^\d*$/.test(text)) return; 
+    if (!/^\d*$/.test(text)) return;
 
     const newCode = [...codeOTP];
     newCode[index] = text;
@@ -37,7 +39,7 @@ const ConfirmAccountScreen = () => {
 
   const handleBackspace = (
     e: NativeSyntheticEvent<TextInputKeyPressEventData>,
-    index: number
+    index: number,
   ) => {
     if (e.nativeEvent.key === 'Backspace') {
       const newCode = [...codeOTP];
@@ -48,7 +50,7 @@ const ConfirmAccountScreen = () => {
         }
       }
 
-      newCode[index] = ''; 
+      newCode[index] = '';
       setCodeOTP(newCode);
     }
   };
@@ -65,13 +67,20 @@ const ConfirmAccountScreen = () => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={require('@/assets/logo_memobelc.jpg')} style={styles.logo} />
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 22 }}>Confirme o Código</Text>
+        <Image
+          source={require('@/assets/logo_memobelc.jpg')}
+          style={styles.logo}
+        />
+        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 22 }}>
+          Confirme o Código
+        </Text>
         <Text style={{ color: '#fff', fontSize: 13 }}>
           Enviamos um código de confirmação para seu E-mail
         </Text>
 
-        <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center' }}
+        >
           {codeOTP.map((digit, index) => (
             <TextInput
               key={index}
@@ -86,12 +95,12 @@ const ConfirmAccountScreen = () => {
                 marginHorizontal: 5,
                 borderRadius: 6,
               }}
-              keyboardType='number-pad'
+              keyboardType="number-pad"
               maxLength={1}
               value={digit}
               onChangeText={(text) => handleChangeCode(text, index)}
               onKeyPress={(e) => handleBackspace(e, index)}
-              autoFocus={index === 0} 
+              autoFocus={index === 0}
             />
           ))}
         </View>

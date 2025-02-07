@@ -52,8 +52,7 @@ function Toast({
 
   return (
     <Animated.View
-    className="rounded-lg"
-
+      className="rounded-lg"
       style={{
         opacity,
         backgroundColor: toastVariants[variant],
@@ -71,12 +70,14 @@ function Toast({
         justifyContent: 'center',
         alignItems: 'center',
         margin: 'auto',
-        width: "100%",
+        width: '100%',
         maxWidth: 500,
         height: 100,
       }}
     >
-      <Text className="font-[ComicSans] text-white font-semibold text-left text-background">{message}</Text>
+      <Text className="font-[ComicSans] text-white font-semibold text-left text-background">
+        {message}
+      </Text>
       {showProgress && (
         <View className="mt-2 rounded">
           <Animated.View
@@ -134,7 +135,7 @@ function ToastProvider({
     position = 'top',
     showProgress = true,
   }) => {
-    setMessages(prev => [
+    setMessages((prev) => [
       ...prev,
       {
         id: Date.now(),
@@ -148,7 +149,7 @@ function ToastProvider({
   };
 
   const removeToast = (id: number) => {
-    setMessages(prev => prev.filter(message => message.id !== id));
+    setMessages((prev) => prev.filter((message) => message.id !== id));
   };
 
   return (
@@ -160,7 +161,7 @@ function ToastProvider({
           'bottom-0': position === 'bottom',
         })}
       >
-        {messages.map(message => (
+        {messages.map((message) => (
           <Toast
             key={message.id}
             id={message.id}

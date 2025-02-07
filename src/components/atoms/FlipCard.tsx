@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 
 interface FlipCardProps {
-  frontSide: string,
-  backSide: string
+  frontSide: string;
+  backSide: string;
 }
-
 
 const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
@@ -61,7 +60,8 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
             transform: [{ rotateY: frontInterpolate }],
             opacity: frontOpacity,
           }}
-          className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg">
+          className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg"
+        >
           <Text className="text-xl font-bold">{frontSide}</Text>
           <View style={{ position: 'absolute', top: 0, right: 0 }}>
             <LinearGradient
@@ -76,9 +76,6 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
               }}
             />
           </View>
-
-
-
         </Animated.View>
 
         {/* Back of Card */}
@@ -87,9 +84,10 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
           style={{
             transform: [{ rotateY: backInterpolate }],
             opacity: backOpacity,
-            backgroundColor: colors.primary[500]
+            backgroundColor: colors.primary[500],
           }}
-          className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg">
+          className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg"
+        >
           <Text className="text-xl font-bold text-white">{backSide}</Text>
           <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
             <LinearGradient
@@ -101,7 +99,7 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
                 width: 40,
                 borderTopRightRadius: 16,
                 borderBottomLeftRadius: 16,
-                transform: [{ rotate: '90deg' }]
+                transform: [{ rotate: '90deg' }],
               }}
             />
           </View>

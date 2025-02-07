@@ -1,5 +1,11 @@
 import { cloneElement, createContext, useContext, useState } from 'react';
-import { Modal, TouchableOpacity, View,  StyleProp, ViewStyle } from 'react-native';
+import {
+  Modal,
+  TouchableOpacity,
+  View,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 
 import { cn } from '@/lib/utils';
 
@@ -33,13 +39,13 @@ function DialogContent({
 }: {
   className?: string;
   children: React.ReactNode;
-  style?:StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { open, setOpen } = useDialog();
 
   return (
     <Modal
-    transparent
+      transparent
       animationType="fade"
       visible={open}
       onRequestClose={() => setOpen(false)}
@@ -50,10 +56,10 @@ function DialogContent({
       >
         <View className="flex flex-1 justify-center items-center bg-black/75">
           <TouchableOpacity
-          style={style}
+            style={style}
             className={cn(
               'border border-border bg-background rounded-lg p-6 shadow-lg',
-              className
+              className,
             )}
             activeOpacity={1}
           >

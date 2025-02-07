@@ -14,12 +14,7 @@ import { useCollection } from '@/contexts/CollectionContext';
 
 export default function AllCollections() {
   const router = useRouter();
-  const {
-    collections,
-    setCollections,
-    currentCollection,
-    setCurrentCollection,
-  } = useCollection();
+  const { collections, setCurrentCollection } = useCollection();
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">

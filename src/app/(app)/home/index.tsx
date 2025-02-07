@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from '@/contexts/AuthContext';
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter, Link } from 'expo-router';
+import { Link } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getGreeting } from '@/utils/greeting';
@@ -13,13 +13,7 @@ import { MainDeckCard } from '@/components/atoms/MainDeckCard';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 
 import { storage } from '../../../../FirebaseConfig';
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-  listAll,
-  deleteObject,
-} from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useToast } from '@/components/Toast';
 import api from '@/services/api';
 import { useCollection } from '@/contexts/CollectionContext';

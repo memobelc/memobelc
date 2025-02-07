@@ -15,7 +15,7 @@ interface DropDownContextType {
 }
 
 const DropDownContext = createContext<DropDownContextType | undefined>(
-  undefined
+  undefined,
 );
 
 const DropDown = ({ children }: { children: React.ReactNode }) => {
@@ -31,7 +31,6 @@ const DropDownTrigger = ({ children }: any) => {
   const { setOpen } = useDropdown();
   return cloneElement(children, {
     onPress: () => setOpen((prev: any) => !prev),
-
   });
 };
 
@@ -48,7 +47,7 @@ const DropDownContent = ({ className, children }: DropDownContentTypes) => {
         <View
           className={cn(
             'min-w-[14rem] w-auto absolute right-5 flex gap-3 overflow-hidden rounded-md border border-border bg-background text-popover-foreground shadow-md  p-2 top-10 z-50 bg-white',
-            className
+            className,
           )}
         >
           {children}
@@ -74,11 +73,15 @@ type DropDownItemProps = {
   onPress?: () => void;
 };
 
-const DropDownItem = ({ children, className, onPress }: DropDownItemProps & { onPress?: () => void }) => {
+const DropDownItem = ({
+  children,
+  className,
+  onPress,
+}: DropDownItemProps & { onPress?: () => void }) => {
   return (
-    <TouchableOpacity 
-      onPress={onPress} 
-      activeOpacity={0.7} 
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
       className={cn('p-2', className)}
     >
       {children}
