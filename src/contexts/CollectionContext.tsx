@@ -1,52 +1,74 @@
-import { useContext, createContext, type PropsWithChildren, useState } from 'react';
+import {
+  useContext,
+  createContext,
+  type PropsWithChildren,
+  useState,
+} from 'react';
 
-type collection = {
-    _id: string,
-    created_at: Date,
-    decks: [],
-    image: string | null,
-    name: string,
-    pending_cards: number,
-    total_cards: number,
-    updated_at: Date
-}
+type DefaultDeck = {
+  _id: string;
+  created_at: Date;
+  image: string | null;
+  name: string;
+  pending_cards: number;
+  total_cards: number;
+  updated_at: Date;
+};
+
+type Deck = DefaultDeck & {
+  cards: any[];
+};
+
+type Collection = DefaultDeck & {
+  decks: Deck[];
+};
 
 const CollectionContext = createContext<{
-    collections: collection[] | null,
-    setCollections: React.Dispatch<React.SetStateAction<collection[] | null>>;
+  collections: Collection[] | null;
+  currentCollection: Collection | null;
+  setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
+  setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
 }>({
-    collections: null,
-    setCollections: () => {}
+  collections: null,
+  currentCollection: null,
+  setCollections: () => {},
+  setCurrentCollection: () => {},
 });
 
-
 export function useCollection() {
-    const value = useContext(CollectionContext);
-        if (process.env.NODE_ENV !== 'production') {
-            if (!value) {
-                throw new Error('useCollections must be wrapped in a <SessionProvider />');
-            }
-        }
-    
-        return value;
+  const value = useContext(CollectionContext);
+  if (process.env.NODE_ENV !== 'production') {
+    if (!value) {
+      throw new Error(
+        'useCollections must be wrapped in a <SessionProvider />',
+      );
+    }
+  }
+
+  return value;
 }
 
 export function CollectionProvider({ children }: PropsWithChildren) {
-    const [collections, setCollections] = useState<collection[] | null>(null);
+  const [collections, setCollections] = useState<Collection[] | null>(null);
+  const [currentCollection, setCurrentCollection] = useState<Collection | null>(
+    null,
+  );
 
+  // useEffect(() => {
 
-    // useEffect(() => {
-        
-    //     }
-    // }, []); 
+  //     }
+  // }, []);
 
-    return (
-        <CollectionContext.Provider
-            value={{
-                collections,
-                setCollections
-            }}>
-            {children}
-        </CollectionContext.Provider>
-    );
+  return (
+    <CollectionContext.Provider
+      value={{
+        collections,
+        setCollections,
+        currentCollection,
+        setCurrentCollection,
+      }}
+    >
+      {children}
+    </CollectionContext.Provider>
+  );
 }

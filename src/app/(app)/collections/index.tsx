@@ -1,5 +1,11 @@
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,55 +13,69 @@ import { colors } from '@/styles/colors';
 import { useCollection } from '@/contexts/CollectionContext';
 
 export default function AllCollections() {
-    const router = useRouter();
-    const { collections, setCollections } = useCollection();
+  const router = useRouter();
+  const {
+    collections,
+    setCollections,
+    currentCollection,
+    setCurrentCollection,
+  } = useCollection();
 
-    return (
-        <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-            <View className="absolute top-0 left-0 right-0 flex-col w-full  items-start
-             justify-between z-10 bg-gray-100 -mt-2">
-                <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-3 ml-3">
-                    <Ionicons name="arrow-back-circle" size={24} color={colors.primary[500]} />
-                    <Text style={{ color: colors.primary[500] }}>Back</Text>
-                </TouchableOpacity>
+  return (
+    <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
+      <View
+        className="absolute top-0 left-0 right-0 flex-col w-full  items-start
+             justify-between z-10 bg-gray-100 -mt-2"
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row items-center mb-3 ml-3"
+        >
+          <Ionicons
+            name="arrow-back-circle"
+            size={24}
+            color={colors.primary[500]}
+          />
+          <Text style={{ color: colors.primary[500] }}>Back</Text>
+        </TouchableOpacity>
 
-                <TextInput
-                    placeholder="Search decks..."
-                    placeholderTextColor="#888"
-                    className="h-14 w-full mb-3 border border-gray-300 rounded-lg pl-2 text-sm"
+        <TextInput
+          placeholder="Search decks..."
+          placeholderTextColor="#888"
+          className="h-14 w-full mb-3 border border-gray-300 rounded-lg pl-2 text-sm"
+        />
+      </View>
+      <View>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {collections && collections.length > 1 && (
+            <>
+              {collections.map((item) => (
+                <DeckCardSecondary
+                  key={item._id}
+                  name={item.name}
+                  image={
+                    item.image ||
+                    'https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress'
+                  }
+                  type="collection"
+                  pending_cards={item.pending_cards}
+                  total_cards={item.total_cards}
+                  onPress={() => setCurrentCollection(item)}
                 />
-            </View>
-            <View>
-                <ScrollView contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }} showsVerticalScrollIndicator={false}>
-                    {collections && collections.length > 1 && (
-                        <>
-                            {collections.map((item) => (
-                                <DeckCardSecondary
-                                    key={item._id}
-                                    name={item.name}
-                                    image={item.image || "https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress"}
-                                    type="collection"
-                                    pending_cards={item.pending_cards}
-                                    total_cards={item.total_cards}
-                                />
-                            ))}
-                        </>
-                    )
+              ))}
+            </>
+          )}
+        </ScrollView>
+      </View>
 
-                    }
-                </ScrollView>
-
-            </View>
-
-
-
-            <LinearGradient
-                colors={['transparent', 'white']}
-                className="absolute bottom-0 left-0 right-0 h-28"
-                pointerEvents="none"
-            />
-
-
-        </View>
-    );
+      <LinearGradient
+        colors={['transparent', 'white']}
+        className="absolute bottom-0 left-0 right-0 h-28"
+        pointerEvents="none"
+      />
+    </View>
+  );
 }
