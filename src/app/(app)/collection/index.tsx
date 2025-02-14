@@ -88,7 +88,7 @@ export default function Collection() {
         setCollections(response.data.collections);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoadingCollection(false);
     }
@@ -118,7 +118,7 @@ export default function Collection() {
       });
     } catch (error) {
       if (error instanceof Error) {
-        console.log(error.message);
+        console.error(error.message);
         toast({
           message: error.message,
           variant: 'destructive',

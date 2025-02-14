@@ -67,7 +67,7 @@ export default function Deck() {
         setCollections(response.data.collections);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoadingCollection(false);
     }
@@ -79,6 +79,7 @@ export default function Deck() {
         front: frontSide,
         back: backSide,
         deck_id: currentDeck?._id,
+        user_id: userInfo?.user_id,
       });
 
       toast({
@@ -88,7 +89,7 @@ export default function Deck() {
       });
     } catch (error) {
       if (error instanceof Error) {
-        console.log(error.message);
+        console.error(error.message);
         toast({
           message: error.message,
           variant: 'destructive',

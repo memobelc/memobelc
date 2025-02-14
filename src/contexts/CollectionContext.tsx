@@ -5,6 +5,14 @@ import {
   useState,
 } from 'react';
 
+type card = {
+  back: string,
+  card_id: string,
+  front: string,
+  last_reviewed: string,
+  next_review: string
+}
+
 type DefaultDeck = {
   _id: string;
   created_at: Date;
@@ -17,26 +25,41 @@ type DefaultDeck = {
 
 type Deck = DefaultDeck & {
   cards: any[];
+  review_cards: card[]
 };
 
 type Collection = DefaultDeck & {
   decks: Deck[];
+  review_collections_cards: card[]
 };
+
+type ProgressUpdate = {
+  user_id: string,
+  cards: {
+    card_id: string,
+    recall_level: "easy" | "good" | "difficult" | "i_dont_remember"
+  }[]
+}
 
 const CollectionContext = createContext<{
   collections: Collection[] | null;
   currentCollection: Collection | null;
   currentDeck: Deck | null;
+  progressUpdate: ProgressUpdate | null;
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
   setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
+  setProgressUpdate:React.Dispatch<React.SetStateAction<ProgressUpdate | null>>;
+  
 }>({
   collections: null,
   currentCollection: null,
   currentDeck: null,
+  progressUpdate: null,
   setCollections: () => {},
   setCurrentCollection: () => {},
   setCurrentDeck: () => {},
+  setProgressUpdate: () => {},
 });
 
 export function useCollection() {
@@ -60,10 +83,7 @@ export function CollectionProvider({ children }: PropsWithChildren) {
 
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
-  // useEffect(() => {
-
-  //     }
-  // }, []);
+  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null);
 
   return (
     <CollectionContext.Provider
@@ -74,6 +94,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         setCurrentCollection,
         currentDeck,
         setCurrentDeck,
+        progressUpdate,
+        setProgressUpdate
       }}
     >
       {children}

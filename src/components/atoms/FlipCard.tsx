@@ -1,19 +1,26 @@
 import { colors } from '@/styles/colors';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 
 interface FlipCardProps {
   frontSide: string;
   backSide: string;
+  onFlip?: () => void;
 }
 
-const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
+const FlipCard = ({ frontSide, backSide, onFlip = () => {} }: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
   const rotateAnim = useState(new Animated.Value(0))[0];
 
+  useEffect(() => {
+    rotateAnim.setValue(0);
+    setFlipped(false);
+  }, [frontSide]);
+
   const flipCard = () => {
     if (flipped) {
+      onFlip();
       Animated.timing(rotateAnim, {
         toValue: 0,
         duration: 300,
@@ -21,6 +28,7 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
       }).start();
       setFlipped(false);
     } else {
+      onFlip();
       Animated.timing(rotateAnim, {
         toValue: 1,
         duration: 300,
@@ -54,7 +62,6 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
     <View className="flex items-center justify-center py-5">
       <Pressable onPress={flipCard} className="w-64 h-96 relative">
         {/* Front of Card */}
-
         <Animated.View
           style={{
             transform: [{ rotateY: frontInterpolate }],
@@ -79,7 +86,6 @@ const FlipCard = ({ frontSide, backSide }: FlipCardProps) => {
         </Animated.View>
 
         {/* Back of Card */}
-
         <Animated.View
           style={{
             transform: [{ rotateY: backInterpolate }],
