@@ -186,18 +186,6 @@ export default function Home() {
             </TouchableOpacity>
           </Link>
         )}
-
-        <TouchableOpacity
-          className="w-full flex flex-row items-center justify-end"
-          onPress={signOut}
-        >
-          <Text style={{ color: colors.primary[500] }}>logout</Text>
-          <MaterialIcons
-            name="arrow-right-alt"
-            size={24}
-            color={colors.primary[500]}
-          />
-        </TouchableOpacity>
       </ScrollView>
 
       <LinearGradient

@@ -1,6 +1,5 @@
 import { forwardRef, useState } from 'react';
 import { Image, Text, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 
 import { cn } from '@/lib/utils';
 
@@ -11,7 +10,7 @@ const Avatar = forwardRef<
   <View
     ref={ref}
     className={cn(
-      'relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border-gray-100',
+      'relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full',
       className,
     )}
     {...props}
@@ -46,12 +45,14 @@ const AvatarFallback = forwardRef<
   <View
     ref={ref}
     className={cn(
-      'flex h-full w-full items-center justify-center rounded-full bg-gray',
+      'flex h-full w-full items-center justify-center rounded-full bg-muted',
       className,
     )}
     {...props}
   >
-    <MaterialIcons name="account-circle" size={40} color="#fff" />
+    <Text className={cn('text-lg text-primary', textClassname)}>
+      {children}
+    </Text>
   </View>
 ));
 AvatarFallback.displayName = 'AvatarFallback';
