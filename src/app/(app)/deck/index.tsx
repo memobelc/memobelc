@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Image, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,10 +15,21 @@ import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 
+interface IcardProps {
+  _id: string;
+  back: string;
+  created_at: string;
+  front: string;
+  media_type: any;
+  updated_at: string;
+}
+
 export default function Deck() {
   const router = useRouter();
 
   const { currentDeck, setCollections } = useCollection();
+
+  const [cards, setCards] = useState<IcardProps[] | []>([]);
 
   const { userInfo, signOut } = useSession();
   const { toast } = useToast();
@@ -73,6 +84,28 @@ export default function Deck() {
     }
   };
 
+  const fetchCardsData = async () => {
+    setLoadingCollection(true);
+    try {
+      const response = await api.get(
+        `/card/get_cards_by_deck/${currentDeck?._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${userInfo?.token}`,
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        setCards(response.data.cards);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingCollection(false);
+    }
+  };
+
   const HandleCreateCard = async () => {
     try {
       await api.post('/card', {
@@ -104,9 +137,13 @@ export default function Deck() {
     } finally {
       setOpen(false);
       HandleClose();
-      fetchData();
+      // fetchData();
     }
   };
+
+  useEffect(() => {
+    fetchCardsData();
+  }, []);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -132,7 +169,9 @@ export default function Deck() {
             color={colors.error[600]}
           />
           <Text className="text-xs color-red-700">
-            1000 out of 1200 to study
+            {currentDeck?.total_cards != 0
+              ? `${currentDeck?.pending_cards} out of ${currentDeck?.total_cards} to study`
+              : 'No cards added yet'}
           </Text>
         </View>
       </View>
@@ -162,14 +201,14 @@ export default function Deck() {
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
-        <CardDisplaying
-          front="No problem, do you have your passport with you?"
-          back="Sem problema, você tem seu passaporte com você?"
-        />
-        <CardDisplaying
-          front="No problem, do you have your passport with you?"
-          back="Sem problema, você tem seu passaporte com você?"
-        />
+        {cards &&
+          cards.map((item) => (
+            <CardDisplaying
+              key={item._id}
+              front={item.front}
+              back={item.back}
+            />
+          ))}
       </ScrollView>
 
       <LinearGradient
