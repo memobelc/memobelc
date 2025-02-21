@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSession } from '@/contexts/AuthContext';
-import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  ImageBackground,
+} from 'react-native';
+import { Image as ImageExpo } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -134,16 +142,26 @@ export default function Home() {
           </View>
           {loadingCollection ? (
             <Loading />
+          ) : collections && collections.length > 0 ? (
+            <MainDeckCard
+              name={collections[0].name}
+              image={collections[0].image ? collections[0].image : ''}
+              pending_cards={collections[0].pending_cards}
+              total_cards={collections[0].total_cards}
+              onPress={() => setCurrentCollection(collections[0])}
+            />
           ) : (
-            collections && (
-              <MainDeckCard
-                name={collections[0].name}
-                image={collections[0].image ? collections[0].image : ''}
-                pending_cards={collections[0].pending_cards}
-                total_cards={collections[0].total_cards}
-                onPress={() => setCurrentCollection(collections[0])}
+            <View className="flex  items-center justify-center py-10">
+              <Text className="font-[ComicSans] text-lg text-gray-500 text-center font-semibold">
+                "Every great journey begins with a single step. Start your first
+                collection today and take your learning to new heights!"
+              </Text>
+              <Image
+                className="w-60 h-60"
+                source={require('@/assets/1.png')}
+                resizeMode="cover"
               />
-            )
+            </View>
           )}
         </View>
 

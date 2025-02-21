@@ -24,21 +24,25 @@ const menuItems = [
     name: 'Home',
     path: '/',
     icon: <Octicons name="home" size={24} />,
+    disabled: false,
   },
   {
     name: 'Videos',
     path: '/videos',
     icon: <MaterialIcons name="video-library" size={24} />,
+    disabled: false,
   },
   {
     name: 'Books',
     path: '/books',
     icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
+    disabled: false,
   },
   {
     name: 'Collections',
     path: '/collections',
     icon: <MaterialIcons name="collections-bookmark" size={24} />,
+    disabled: false,
   },
 ];
 
@@ -110,6 +114,7 @@ const MenuExploreDrawer = () => {
                       className={`flex-row mb-3 -left-4 w-[70%] px-5 py-1 rounded-r-3xl ${
                         isActive ? 'bg-orange-400' : ''
                       }`}
+                      disabled={item.disabled}
                       onPress={() => {
                         router.push(item.path as `./${string}`);
                         handleClose();
@@ -119,7 +124,9 @@ const MenuExploreDrawer = () => {
                         : {})}
                     >
                       {item.icon}
-                      <Text className="font-[ComicSans] ml-3 text-primary-600">
+                      <Text
+                        className={`font-[ComicSans] ml-3 ${item.disabled ? 'text-gray-300' : 'text-primary-600'}`}
+                      >
                         {item.name}
                       </Text>
                     </Pressable>

@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { SessionProvider, useSession } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
 import { Menu, PaperProvider, Portal } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import '@/styles/global.css';
 import { Loading } from '@/components/Loading';
@@ -22,21 +23,23 @@ export default function Layout() {
     <Loading />;
   }
   return (
-    <ToastProvider>
-      <PaperProvider>
-        <SessionProvider>
-          <CollectionProvider>
-            <Dialog>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor },
-                }}
-              />
-            </Dialog>
-          </CollectionProvider>
-        </SessionProvider>
-      </PaperProvider>
-    </ToastProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
+        <PaperProvider>
+          <SessionProvider>
+            <CollectionProvider>
+              <Dialog>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor },
+                  }}
+                />
+              </Dialog>
+            </CollectionProvider>
+          </SessionProvider>
+        </PaperProvider>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }
