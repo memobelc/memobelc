@@ -8,10 +8,11 @@ import {
   Switch,
   Image,
 } from 'react-native';
-import { styles } from './styles';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
+import { FontAwesome } from '@expo/vector-icons';
+import { colors } from '@/styles/colors';
 
 export default function SignIn() {
   const router = useRouter();
@@ -20,7 +21,6 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   const handleLogin = () => {
     signIn(email, password);
@@ -29,23 +29,29 @@ export default function SignIn() {
   return isLoading ? (
     <Loading />
   ) : (
-    <View style={styles.container}>
+    <View className="flex-1 items-center justify-center p-5">
       <Image
         source={require('@/assets/logo_memobelc.jpg')}
-        style={styles.logo}
+        className="w-40 h-40 m-10"
       />
-      <View style={styles.inputContainer}>
+      <View
+        className="w-full rounded-[25px] flex-row items-center mb-5 px-4"
+        style={{ backgroundColor: colors.gray[100] }}
+      >
         <TextInput
-          style={styles.input}
+          className="flex-1 h-14"
           placeholder="E-mail"
           placeholderTextColor="#7A4F7F"
           value={email}
           onChangeText={setEmail}
         />
       </View>
-      <View style={styles.inputContainer}>
+      <View
+        className="w-full rounded-[25px] flex-row items-center mb-5 px-4"
+        style={{ backgroundColor: colors.gray[100] }}
+      >
         <TextInput
-          style={styles.input}
+          className="flex-1 h-14"
           placeholder="Senha"
           placeholderTextColor="#7A4F7F"
           secureTextEntry={!isPasswordVisible}
@@ -54,34 +60,46 @@ export default function SignIn() {
         />
         <TouchableOpacity
           onPress={() => setPasswordVisible(!isPasswordVisible)}
-          style={styles.eyeIcon}
+          className="p-3"
         >
-          <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
+          {isPasswordVisible ? (
+            <FontAwesome name="eye" size={24} color="black" />
+          ) : (
+            <FontAwesome name="eye-slash" size={24} color="black" />
+          )}
         </TouchableOpacity>
       </View>
-      <View style={styles.rememberMeContainer}>
-        <Switch
-          value={rememberMe}
-          onValueChange={setRememberMe}
-          thumbColor={rememberMe ? '#4285F4' : '#f4f3f4'}
-          trackColor={{ false: '#767577', true: '#4285F4' }}
-        />
-        <Text style={styles.rememberMeText}>Lembrar de mim</Text>
-      </View>
       <TouchableOpacity
-        style={styles.loginButton}
+        className="w-full py-4 rounded-[25px] flex-row justify-center items-center mb-5"
+        style={{ backgroundColor: colors.info[500] }}
         onPress={() => handleLogin()}
       >
-        <Text style={styles.loginButtonText}>Login</Text>
+        <Text
+          className="text-lg font-bold mr-3"
+          style={{ color: colors.gray[100] }}
+        >
+          Login
+        </Text>
+        <FontAwesome name="rocket" size={18} color={colors.gray[100]} />
       </TouchableOpacity>
-      <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>Não tem uma conta ainda?</Text>
+      <View className="flex-row items-center">
+        <Text style={{ color: colors.gray[100] }}>
+          Não tem uma conta ainda?
+        </Text>
         <TouchableOpacity onPress={() => router.push('./register')}>
-          <Text style={styles.footerLink}> Crie agora!</Text>
+          <Text className="font-bold" style={{ color: colors.primary[600] }}>
+            {' '}
+            Crie agora!
+          </Text>
         </TouchableOpacity>
       </View>
       <TouchableOpacity onPress={() => router.push('./forgot-password')}>
-        <Text style={styles.forgotPasswordLink}>Esqueceu a senha?</Text>
+        <Text
+          className="mt-3 text-right"
+          style={{ color: colors.primary[600] }}
+        >
+          Esqueceu a senha?
+        </Text>
       </TouchableOpacity>
     </View>
   );
