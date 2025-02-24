@@ -13,6 +13,7 @@ import {
   FontAwesome6,
   Octicons,
   MaterialCommunityIcons,
+  Entypo,
 } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { colors } from '@/styles/colors';
@@ -42,6 +43,12 @@ const menuItems = [
     name: 'Collections',
     path: '/collections',
     icon: <MaterialIcons name="collections-bookmark" size={24} />,
+    disabled: false,
+  },
+  {
+    name: 'Talk to me',
+    path: '/talk_to_me',
+    icon: <Entypo name="chat" size={24} color="black" />,
     disabled: false,
   },
 ];
@@ -111,7 +118,7 @@ const MenuExploreDrawer = () => {
                   return (
                     <Pressable
                       key={item.name}
-                      className={`flex-row mb-3 -left-4 w-[70%] px-5 py-1 rounded-r-3xl ${
+                      className={`flex-row mb-3 -left-4 w-[90%] px-5 py-1 rounded-r-3xl ${
                         isActive ? 'bg-orange-400' : ''
                       }`}
                       disabled={item.disabled}
