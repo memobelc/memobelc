@@ -2,110 +2,152 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useStorageStateLoading } from '@/storage/useStorageState';
-import { styles } from './styles';
 import api from '@/services/api';
 import { Loading } from '@/components/Loading';
+import { colors } from '@/styles/colors';
+import { FontAwesome } from '@expo/vector-icons';
+import { useToast } from '@/components/Toast';
+import * as yup from 'yup';
+
+const validationSchema = yup.object().shape({
+  name: yup.string().required('Name is required'),
+  email: yup
+    .string()
+    .email('Invalid email address')
+    .required('Email is required'),
+  password: yup
+    .string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('password'), undefined], 'Passwords do not match')
+    .required('Confirm password is required'),
+});
+
 export default function Register() {
   const router = useRouter();
+  const { toast } = useToast();
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [isPasswordVisible, setPasswordVisible] = useState(false);
-
   const [isLoading, setIsLoading] = useStorageStateLoading();
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
 
   const handleRegister = async () => {
     try {
+      setErrors({});
+      await validationSchema.validate(formData, { abortEarly: false });
+
       setIsLoading(true);
-      const response = await api.post('/auth/register', {
-        name,
-        email,
-        password,
-      });
+      const response = await api.post('/auth/register', formData);
 
       if (response.status === 201) {
         router.push({
           pathname: '/verify-code',
           params: { token: response.data.token },
         });
-        setIsLoading(false);
-        alert('Cadastro realizado com sucesso!');
       }
     } catch (error) {
-      alert(error);
+      if (error instanceof yup.ValidationError) {
+        const newErrors: Record<string, string> = {};
+
+        error.inner.forEach((err) => {
+          if (err.path) newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+        toast({
+          message: error.errors[0],
+          variant: 'destructive',
+          showProgress: true,
+        });
+      } else {
+        toast({
+          message: 'An unexpected error has occurred',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return isLoading ? (
     <Loading />
   ) : (
-    <View style={styles.container}>
+    <View className="flex-1 items-center justify-center p-5">
       <Image
         source={require('@/assets/logo_memobelc.jpg')}
-        style={styles.logo}
+        className="w-40 h-40 mb-10"
       />
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          placeholderTextColor="#7A4F7F"
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail"
-          placeholderTextColor="#7A4F7F"
-          value={email}
-          onChangeText={setEmail}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          placeholderTextColor="#7A4F7F"
-          secureTextEntry={!isPasswordVisible}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          onPress={() => setPasswordVisible(!isPasswordVisible)}
-          style={styles.eyeIcon}
-        >
-          <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="confirmar Senha"
-          placeholderTextColor="#7A4F7F"
-          secureTextEntry={!isPasswordVisible}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-        <TouchableOpacity
-          onPress={() => setPasswordVisible(!isPasswordVisible)}
-          style={styles.eyeIcon}
-        >
-          <Text>{isPasswordVisible ? '👁️' : '👁️‍🗨️'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.button} onPress={() => handleRegister()}>
-        <Text style={styles.buttonText}>Cadastrar</Text>
+      {['name', 'email', 'password', 'confirmPassword'].map((field) => (
+        <View key={field} className="w-full items-center">
+          <View
+            className="w-full rounded-[25] flex-row items-center mb-3 px-4"
+            style={{
+              backgroundColor: colors.gray[100],
+              borderWidth: 1,
+              borderColor: errors[field] ? colors.error[500] : colors.gray[300],
+            }}
+          >
+            <TextInput
+              className="flex-1 h-14"
+              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+              placeholderTextColor={colors.placeholder}
+              secureTextEntry={
+                ['password', 'confirmPassword'].includes(field) &&
+                !isPasswordVisible
+              }
+              value={formData[field]}
+              onChangeText={(value) => handleInputChange(field, value)}
+            />
+            {['password', 'confirmPassword'].includes(field) && (
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!isPasswordVisible)}
+                className="p-3"
+              >
+                <FontAwesome
+                  name={isPasswordVisible ? 'eye' : 'eye-slash'}
+                  size={24}
+                  color="black"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          {errors[field] && (
+            <Text className="-mt-3 mb-3" style={{ color: colors.error[500] }}>
+              {errors[field]}
+            </Text>
+          )}
+        </View>
+      ))}
+      <TouchableOpacity
+        className="w-full py-4 rounded-[25] items-center mb-5"
+        style={{ backgroundColor: colors.info[500] }}
+        onPress={handleRegister}
+      >
+        <Text style={{ color: colors.gray[100] }}>Register</Text>
       </TouchableOpacity>
-      <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>Já tem uma conta?</Text>
+      <View className="items-center text-lg font-bold">
+        <Text style={{ color: colors.gray[100] }}>
+          Already have an account?
+        </Text>
         <TouchableOpacity onPress={() => router.push('./login')}>
-          <Text style={styles.footerLink}> Faça login!</Text>
+          <Text className="font-bold" style={{ color: colors.primary[600] }}>
+            {' '}
+            Log in!
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

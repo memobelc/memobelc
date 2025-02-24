@@ -44,4 +44,6 @@ export const colors = {
     600: '#2563EB',
     700: '#1D4ED8',
   },
+
+  placeholder: '#7A4F7F',
 };

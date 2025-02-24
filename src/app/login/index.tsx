@@ -41,7 +41,7 @@ export default function SignIn() {
         <TextInput
           className="flex-1 h-14"
           placeholder="E-mail"
-          placeholderTextColor="#7A4F7F"
+          placeholderTextColor={colors.placeholder}
           value={email}
           onChangeText={setEmail}
         />
@@ -52,8 +52,8 @@ export default function SignIn() {
       >
         <TextInput
           className="flex-1 h-14"
-          placeholder="Senha"
-          placeholderTextColor="#7A4F7F"
+          placeholder="Password"
+          placeholderTextColor={colors.placeholder}
           secureTextEntry={!isPasswordVisible}
           value={password}
           onChangeText={setPassword}
@@ -84,12 +84,12 @@ export default function SignIn() {
       </TouchableOpacity>
       <View className="flex-row items-center">
         <Text style={{ color: colors.gray[100] }}>
-          Não tem uma conta ainda?
+          Don't have an account yet?
         </Text>
         <TouchableOpacity onPress={() => router.push('./register')}>
           <Text className="font-bold" style={{ color: colors.primary[600] }}>
             {' '}
-            Crie agora!
+            Create now!
           </Text>
         </TouchableOpacity>
       </View>
@@ -98,7 +98,7 @@ export default function SignIn() {
           className="mt-3 text-right"
           style={{ color: colors.primary[600] }}
         >
-          Esqueceu a senha?
+          Forgot your password?
         </Text>
       </TouchableOpacity>
     </View>
