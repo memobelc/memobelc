@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   TextInput,
@@ -12,9 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/colors';
 
-type Message = {
-  sender: 'user' | 'bot';
+type TextMessage = {
   text: string;
+};
+
+type Message = {
+  role: 'user' | 'model';
+  parts: TextMessage[];
 };
 
 type Settings = {
@@ -23,51 +27,67 @@ type Settings = {
 
 export default function ChatScreen() {
   const router = useRouter();
+  const flatListRef = useRef<FlatList<any> | null>(null);
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
 
   const [setting_language, setSetting_language] = useState('pt-br');
 
   const { userInfo } = useSession();
 
-  const sendMessage = async (current_message: string) => {
-    if (!current_message.trim()) return;
+  const sendMessage = async (newMessage: string) => {
+    if (!newMessage.trim()) return;
 
     const newMessages: Message[] = [
       ...messages,
-      { sender: 'user', text: current_message },
+      { role: 'user', parts: [{ text: newMessage }] },
     ];
+
     setMessages(newMessages);
 
     const settings = { language_conversation: setting_language };
 
     const response = await api.post(
       '/chat',
-      { messages, current_message, settings },
+      { history: newMessages, message: newMessage, settings, id: chatId },
       {
         headers: {
           Authorization: `Bearer ${userInfo?.token}`,
         },
       },
     );
-    setMessages([...newMessages, { sender: 'bot', text: response.data.reply }]);
-    setMessage('');
+    setMessages([
+      ...newMessages,
+      { role: 'model', parts: [{ text: response.data.reply }] },
+    ]);
+    setChatId(response.data.chat_id);
   };
 
   useEffect(() => {
     if (messages.length == 0) {
       setMessages([
         {
-          sender: 'bot',
-          text:
-            setting_language == 'pt-br'
-              ? `Oi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 Que tal aprender algo novo de um jeito super divertido? 🎉 O que você quer explorar hoje?`
-              : `Hi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 How about learning something new in a super fun way? 🎉 What do you want to explore today?`,
+          role: 'model',
+          parts: [
+            {
+              text:
+                setting_language == 'pt-br'
+                  ? `Oi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 Que tal aprender algo novo de um jeito super divertido? 🎉 O que você quer explorar hoje?`
+                  : `Hi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 How about learning something new in a super fun way? 🎉 What do you want to explore today?`,
+            },
+          ],
         },
       ]);
     }
   }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
 
   return (
     <View className="flex-1 bg-white">
@@ -86,20 +106,20 @@ export default function ChatScreen() {
       </View>
       <View className="flex-1  pt-0 p-4 bg-white">
         <FlatList
+          ref={flatListRef}
           data={messages}
           renderItem={({ item }) => (
             <View
-              className={`mb-2 flex-row ${item.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`mb-2 flex-row ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <View
                 className="relative max-w-[80%] p-3 rounded-lg"
                 style={{
-                  backgroundColor:
-                    item.sender === 'user' ? '#DCF8C6' : '#E5E5EA',
-                  alignSelf: item.sender === 'user' ? 'flex-end' : 'flex-start',
+                  backgroundColor: item.role === 'user' ? '#DCF8C6' : '#E5E5EA',
+                  alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start',
                 }}
               >
-                <Text className="text-black">{item.text}</Text>
+                <Text className="text-black">{item.parts[0].text}</Text>
                 <View
                   style={{
                     position: 'absolute',
@@ -113,12 +133,12 @@ export default function ChatScreen() {
                     borderLeftColor: 'transparent',
                     borderRightColor: 'transparent',
                     borderBottomColor:
-                      item.sender === 'user' ? '#DCF8C6' : '#E5E5EA',
+                      item.role === 'user' ? '#DCF8C6' : '#E5E5EA',
                     transform: [
-                      { rotate: item.sender === 'user' ? '45deg' : '-45deg' },
+                      { rotate: item.role === 'user' ? '45deg' : '-45deg' },
                     ],
-                    left: item.sender === 'user' ? 'auto' : -5,
-                    right: item.sender === 'user' ? -5 : 'auto',
+                    left: item.role === 'user' ? 'auto' : -5,
+                    right: item.role === 'user' ? -5 : 'auto',
                   }}
                 />
               </View>
@@ -139,8 +159,8 @@ export default function ChatScreen() {
           <TouchableOpacity
             className="ml-2 p-3 bg-blue-500 rounded-full"
             onPress={() => {
-              setMessage('');
               sendMessage(message);
+              setMessage('');
             }}
           >
             <Text className="text-white font-bold">
