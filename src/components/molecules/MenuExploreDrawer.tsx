@@ -31,13 +31,13 @@ const menuItems = [
     name: 'Videos',
     path: '/videos',
     icon: <MaterialIcons name="video-library" size={24} />,
-    disabled: false,
+    disabled: true,
   },
   {
     name: 'Books',
     path: '/books',
     icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
-    disabled: false,
+    disabled: true,
   },
   {
     name: 'Collections',
