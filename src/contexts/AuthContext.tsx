@@ -52,6 +52,7 @@ export function useSession() {
 
 export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useStorageStateSession('session');
+  const [dateSession, setDateSession] = useStorageStateSession('date_session');
   const [isLoading, setIsLoading] = useStorageStateLoading();
   const [userInfo, setUserInfo] = useState<User | null>(null);
   const router = useRouter();
@@ -59,31 +60,37 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (session) {
-      (async () => {
-        try {
-          setIsLoading(true);
-          const response = await api.post('/auth/refresh_token', {
-            token: session,
-          });
-          if (response.data) {
-            setSession(response.data.token);
-            setUserInfo({
-              email: response.data.email,
-              name: response.data.name,
-              token: response.data.token,
-              user_id: response.data.user_id,
-            });
+      const lastSessionDate = dateSession ? new Date(dateSession) : null;
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-            router.replace('/');
+      if (!lastSessionDate || lastSessionDate < twentyFourHoursAgo) {
+        (async () => {
+          try {
+            setIsLoading(true);
+            const response = await api.post('/auth/refresh_token', {
+              token: session,
+            });
+            if (response.data) {
+              setSession(response.data.token);
+              setDateSession(new Date().toISOString());
+              setUserInfo({
+                email: response.data.email,
+                name: response.data.name,
+                token: response.data.token,
+                user_id: response.data.user_id,
+              });
+
+              router.replace('/');
+            }
+          } catch (error) {
+            setSession(null);
+            setUserInfo(null);
+            router.replace('/login');
+          } finally {
+            setIsLoading(false);
           }
-        } catch (error) {
-          setSession(null);
-          setUserInfo(null);
-          router.replace('/login');
-        } finally {
-          setIsLoading(false);
-        }
-      })();
+        })();
+      }
     }
   }, [session]);
 
@@ -102,6 +109,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
               });
             } else {
               await setSession(response.data.token);
+              setDateSession(new Date().toISOString());
 
               setUserInfo({
                 email: response.data.email,
@@ -132,6 +140,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             setUserInfo(null);
             setSession(null);
+            setDateSession(null);
           } finally {
             setIsLoading(false);
           }
@@ -146,6 +155,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             });
             if (response.data) {
               setSession(response.data.token);
+              setDateSession(new Date().toISOString());
               setUserInfo({
                 email: response.data.email,
                 name: response.data.name,
@@ -159,6 +169,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             }
           } catch (error) {
             setSession(null);
+            setDateSession(null);
             setUserInfo(null);
             setTimeout(() => {
               router.replace('/login');
@@ -179,6 +190,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
           );
           if (response.status === 200) {
             await setSession(response.data.token);
+            setDateSession(new Date().toISOString());
 
             await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -191,6 +203,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
         signOut: () => {
           setSession(null);
+          setDateSession(null);
           setUserInfo(null);
           router.replace('/login');
         },
