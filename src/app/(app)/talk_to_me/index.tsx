@@ -50,7 +50,7 @@ export default function ChatScreen() {
     const settings = { language_conversation: setting_language };
 
     const response = await api.post(
-      '/chat',
+      '/chat/talk_to_me',
       { history: newMessages, message: newMessage, settings, id: chatId },
       {
         headers: {
