@@ -45,7 +45,7 @@ export default function AllCollections() {
           contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          {collections && collections.length > 1 && (
+          {collections && collections.length >= 1 && (
             <>
               {collections.map((item) => (
                 <DeckCardSecondary

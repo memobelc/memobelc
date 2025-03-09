@@ -28,7 +28,7 @@ export default function VideoScreen() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/video');
+      const response = await api.get('/video/get');
 
       if (response.status === 201) {
         setVideos(response.data);

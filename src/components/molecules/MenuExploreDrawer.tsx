@@ -31,7 +31,7 @@ const menuItems = [
     name: 'Videos',
     path: '/videos',
     icon: <MaterialIcons name="video-library" size={24} />,
-    disabled: true,
+    disabled: false,
   },
   {
     name: 'Books',
