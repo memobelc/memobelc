@@ -26,9 +26,11 @@ import { useToast } from '@/components/Toast';
 import api from '@/services/api';
 import { useCollection } from '@/contexts/CollectionContext';
 import { Loading } from '@/components/Loading';
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
   const { userInfo, signOut } = useSession();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { collections, setCollections, setCurrentCollection } = useCollection();
 
@@ -131,13 +133,13 @@ export default function Home() {
         <View>
           <View className="flex flex-col justify-center items-center py-5">
             <Text className="text-[15px] text-gray-600 mb-1 font-[ComicSans]">
-              {getGreeting()}, {userInfo?.name.toUpperCase()}!
+              {t(getGreeting())}, {userInfo?.name.toUpperCase()}!
             </Text>
             <Text
               style={{ color: colors.primary[500] }}
               className="text-2xl font-bold"
             >
-              New Day, New Strength!
+              {t('New Day, Stronger Memories!')}
             </Text>
           </View>
           {loadingCollection ? (
@@ -153,8 +155,9 @@ export default function Home() {
           ) : (
             <View className="flex  items-center justify-center py-10">
               <Text className="font-[ComicSans] text-lg text-gray-500 text-center font-semibold">
-                "Every great journey begins with a single step. Start your first
-                collection today and take your learning to new heights!"
+                {t(
+                  'Every great journey begins with a single step. Start your first collection today and take your learning to new heights!',
+                )}
               </Text>
               <Image
                 className="w-60 h-60"
@@ -171,7 +174,7 @@ export default function Home() {
               style={{ color: colors.primary[600] }}
               className="text-sm font-bold my-7"
             >
-              CHECK OUT OTHER MASTERDECKS
+              {t('CHECK OUT OTHER COLLECTIONS')}
             </Text>
 
             {collections.slice(1, 4).map((item) => (
@@ -194,7 +197,7 @@ export default function Home() {
           <Link href="./collections" asChild>
             <TouchableOpacity className="w-full flex flex-row items-center justify-end">
               <Text style={{ color: colors.primary[500] }}>
-                See all your decks
+                {t('See all your decks')}
               </Text>
               <MaterialIcons
                 name="arrow-right-alt"

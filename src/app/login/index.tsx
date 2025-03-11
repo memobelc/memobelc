@@ -13,8 +13,10 @@ import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
+import { useTranslation } from 'react-i18next';
 
 export default function SignIn() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const { signIn, isLoading } = useSession();
@@ -84,12 +86,11 @@ export default function SignIn() {
       </TouchableOpacity>
       <View className="flex-row items-center">
         <Text style={{ color: colors.gray[100] }}>
-          Don't have an account yet?
+          {t("Don't have an account yet? ")}
         </Text>
         <TouchableOpacity onPress={() => router.push('./register')}>
           <Text className="font-bold" style={{ color: colors.primary[600] }}>
-            {' '}
-            Create now!
+            {t('Create now!')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -98,7 +99,7 @@ export default function SignIn() {
           className="mt-3 text-right"
           style={{ color: colors.primary[600] }}
         >
-          Forgot your password?
+          {t('Forgot your password?')}
         </Text>
       </TouchableOpacity>
     </View>

@@ -11,6 +11,8 @@ import { Loading } from '@/components/Loading';
 import { Dialog } from '@/components/Dialog';
 import { ToastProvider } from '@/components/Toast';
 import { CollectionProvider } from '@/contexts/CollectionContext';
+import '@/locales/i18n';
+import { ProfileProvider } from '@/contexts/profileContext';
 
 export default function Layout() {
   const backgroundColor = colors.primary[500];
@@ -27,16 +29,18 @@ export default function Layout() {
       <ToastProvider>
         <PaperProvider>
           <SessionProvider>
-            <CollectionProvider>
-              <Dialog>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor },
-                  }}
-                />
-              </Dialog>
-            </CollectionProvider>
+            <ProfileProvider>
+              <CollectionProvider>
+                <Dialog>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor },
+                    }}
+                  />
+                </Dialog>
+              </CollectionProvider>
+            </ProfileProvider>
           </SessionProvider>
         </PaperProvider>
       </ToastProvider>

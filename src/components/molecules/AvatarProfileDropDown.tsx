@@ -13,6 +13,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { useSession } from '@/contexts/AuthContext';
 import { Avatar, AvatarImage } from '@/components/Avatar';
+import { useTranslation } from 'react-i18next';
+import { Picker } from '@react-native-picker/picker';
+import { useProfile } from '@/contexts/profileContext';
 
 type menuItem = {
   name: string;
@@ -25,6 +28,8 @@ const menuItems: menuItem[] | [] = [];
 
 const AvatarProfileDropDown = () => {
   const { userInfo, signOut } = useSession();
+  const { language, setLanguage } = useProfile();
+  const { t, i18n } = useTranslation();
 
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -51,6 +56,11 @@ const AvatarProfileDropDown = () => {
       }).start();
     }
   }, [open]);
+
+  useEffect(() => {
+    i18n.changeLanguage(language || 'en');
+  }, [language]);
+
   return (
     <View>
       <TouchableOpacity onPress={() => setOpen(true)}>
@@ -78,7 +88,7 @@ const AvatarProfileDropDown = () => {
               style={{
                 transform: [{ translateX }],
               }}
-              className="bg-white w-[50%]  absolute right-0 top-0 p-4 rounded-l-2xl"
+              className="bg-white w-[50%] absolute right-0 top-0 p-4 rounded-l-2xl"
             >
               <TouchableOpacity className="flex flex-row gap-2 items-center mb-3">
                 <Avatar>
@@ -128,12 +138,26 @@ const AvatarProfileDropDown = () => {
                     );
                   })}
               </View>
+              <View className="mb-3">
+                <Text className="font-bold text-primary mb-1">Language</Text>
+                <View className="border border-gray-200 rounded-lg overflow-hidden">
+                  <Picker
+                    selectedValue={language}
+                    onValueChange={(itemValue) =>
+                      setLanguage(itemValue || 'en')
+                    }
+                  >
+                    <Picker.Item label="English" value="en" />
+                    <Picker.Item label="Português" value="pt-BR" />
+                  </Picker>
+                </View>
+              </View>
               <TouchableOpacity
                 onPress={signOut}
                 className="flex flex-row gap-2 items-center cursor-pointer"
               >
                 <MaterialIcons name="logout" size={20} />
-                <Text className="text-primary text-xs">Log out</Text>
+                <Text className="text-primary text-xs">{t('Log out')}</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
