@@ -8,7 +8,7 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { useSession } from '@/contexts/AuthContext';
@@ -16,6 +16,8 @@ import { Avatar, AvatarImage } from '@/components/Avatar';
 import { useTranslation } from 'react-i18next';
 import { Picker } from '@react-native-picker/picker';
 import { useProfile } from '@/contexts/profileContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '@/styles/colors';
 
 type menuItem = {
   name: string;
@@ -109,6 +111,37 @@ const AvatarProfileDropDown = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
+              {!userInfo?.premium && (
+                <TouchableOpacity className="mb-3">
+                  <LinearGradient
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    colors={[colors.warning[500], colors.warning[100]]}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      borderRadius: 25,
+                      width: '100%',
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      className="px-3"
+                      name="crown-circle"
+                      size={20}
+                      color="black"
+                    />
+                    <Text
+                      className="text-sm font-bold"
+                      style={{ color: colors.gray[950] }}
+                    >
+                      {t('Go premium')}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
               <View>
                 {menuItems &&
                   menuItems.map((item) => {
@@ -139,7 +172,9 @@ const AvatarProfileDropDown = () => {
                   })}
               </View>
               <View className="mb-3">
-                <Text className="font-bold text-primary mb-1">Language</Text>
+                <Text className="font-bold text-primary mb-1">
+                  {t('Language')}
+                </Text>
                 <View className="border border-gray-200 rounded-lg overflow-hidden">
                   <Picker
                     selectedValue={language}
@@ -149,6 +184,9 @@ const AvatarProfileDropDown = () => {
                   >
                     <Picker.Item label="English" value="en" />
                     <Picker.Item label="Português" value="pt-BR" />
+                    <Picker.Item label="Español" value="es" />
+                    <Picker.Item label="Deutsch" value="de" />
+                    <Picker.Item label="中國人" value="zh" />
                   </Picker>
                 </View>
               </View>

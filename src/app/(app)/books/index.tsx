@@ -1,6 +1,7 @@
 import { colors } from '@/styles/colors';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   ScrollView,
@@ -35,6 +36,7 @@ const books = [
 ];
 
 export default function BooksScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -49,7 +51,7 @@ export default function BooksScreen() {
             size={24}
             color={colors.primary[500]}
           />
-          <Text style={{ color: colors.primary[500] }}>Back</Text>
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -66,9 +68,8 @@ export default function BooksScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
       <TextInput
-        placeholder="Search books..."
+        placeholder={t('Search books...')}
         placeholderTextColor="#888"
         className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
       />

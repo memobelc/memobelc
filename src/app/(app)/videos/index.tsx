@@ -3,6 +3,7 @@ import { colors } from '@/styles/colors';
 import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   ScrollView,
@@ -21,6 +22,7 @@ interface IVideosProps {
 }
 
 export default function VideoScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<IVideosProps[] | null>(null);
@@ -56,7 +58,7 @@ export default function VideoScreen() {
             size={24}
             color={colors.primary[500]}
           />
-          <Text style={{ color: colors.primary[500] }}>Back</Text>
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -74,7 +76,7 @@ export default function VideoScreen() {
       </View>
 
       <TextInput
-        placeholder="Search videos..."
+        placeholder={t('Search videos...')}
         placeholderTextColor="#888"
         className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
       />

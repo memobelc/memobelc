@@ -121,7 +121,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchData();
+    if (!collections) {
+      fetchData();
+    }
   }, []);
 
   return (
@@ -225,7 +227,7 @@ export default function Home() {
       <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-1/2 p-4">
         <View className="flex flex-row justify-between items-center mb-2 w-full">
           <Text className="font-semibold text-xl text-primary justify-center">
-            New deck collection
+            {t('New deck collection')}
           </Text>
           <TouchableOpacity onPress={() => setOpen(false)}>
             <MaterialIcons name="close" size={24} color={colors.gray[950]} />
@@ -257,12 +259,14 @@ export default function Home() {
           ) : (
             <View className="flex-col items-center justify-center ">
               <MaterialIcons name="cloud-upload" size={40} color="gray" />
-              <Text className="text-gray-500 mt-2 ">Tap to send an image</Text>
+              <Text className="text-gray-500 mt-2 ">
+                {t('Tap to send an image')}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
         <Input
-          placeholder="Enter your name deck collection"
+          placeholder={t('Enter name deck collection')}
           className="py-6 w-full"
           value={nameCollection}
           onChangeText={(text) => setNameCollection(text)}
@@ -273,7 +277,7 @@ export default function Home() {
           onPress={HandleCreateCollection}
         >
           <Text className="text-white text-base font-bold">
-            Create New deck collection
+            {t('Create New deck collection')}
           </Text>
         </TouchableOpacity>
       </DialogContent>

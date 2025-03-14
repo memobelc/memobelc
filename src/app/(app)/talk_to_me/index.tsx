@@ -6,11 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+
 import { colors } from '@/styles/colors';
+import { useProfile } from '@/contexts/profileContext';
 
 type TextMessage = {
   text: string;
@@ -26,6 +29,8 @@ type Settings = {
 };
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
+  const { language } = useProfile();
   const router = useRouter();
   const flatListRef = useRef<FlatList<any> | null>(null);
 
@@ -33,7 +38,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
 
-  const [setting_language, setSetting_language] = useState('pt-br');
+  const [setting_language, setSetting_language] = useState(language || 'en');
 
   const { userInfo } = useSession();
 
@@ -73,7 +78,7 @@ export default function ChatScreen() {
           parts: [
             {
               text:
-                setting_language == 'pt-br'
+                setting_language == 'pt-BR'
                   ? `Oi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 Que tal aprender algo novo de um jeito super divertido? 🎉 O que você quer explorar hoje?`
                   : `Hi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 How about learning something new in a super fun way? 🎉 What do you want to explore today?`,
             },
@@ -101,7 +106,7 @@ export default function ChatScreen() {
             size={24}
             color={colors.primary[500]}
           />
-          <Text style={{ color: colors.primary[500] }}>Back</Text>
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
       </View>
       <View className="flex-1  pt-0 p-4 bg-white">

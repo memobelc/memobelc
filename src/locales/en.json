@@ -4,6 +4,11 @@
     "Create now!": "Create now!",
     "Forgot your password?": "Forgot your password?",
 
+    "Back": "Back",
+    "Search books...": "Search books...",
+    "Search decks...": "Search decks...",
+    "Search videos...": "Search videos...",
+
     "GOOD MORNING": "GOOD MORNING",
     "GOOD AFTERNOON": "GOOD AFTERNOON",
     "GOOD EVENING": "GOOD EVENING",
@@ -12,6 +17,37 @@
     "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!": "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!",
     "CHECK OUT OTHER COLLECTIONS": "CHECK OUT OTHER COLLECTIONS",
     "See all your decks": "See all your decks",
-    "Log out": "Log out"
+
+    "New deck collection": "New deck collection",
+    "Tap to send an image": "Tap to send an image",
+    "Enter name deck collection": "Enter name deck collection",
+    "Create New deck collection": "Create New deck collection",
+
+    "New deck": "New deck",
+    "Enter name deck": "Enter name deck",
+    "Create New deck": "Create New deck",
+
+    "Study Now": "Study Now",
+    "Select your study goal now": "Select your study goal now",
+    "The more you study, the more you learn!": "The more you study, the more you learn!",
+    "Ideal": "Ideal",
+    "Study all of the cards from the deck": "Study all of the cards from the deck",
+    "Good": "Good",
+    "Up to 150 cards": "Up to 150 cards",
+    "Medium": "Medium",
+    "Up to 100 cards": "Up to 100 cards",
+    "Short": "Short",
+    "Up to 50 cards": "Up to 50 cards",
+
+    "Go premium": "Go premium",
+    "Language": "Language",
+    "Log out": "Log out",
+
+    "Explore": "Explore",
+    "Home": "Home",
+    "Videos": "Videos",
+    "Books": "Books",
+    "Collections": "Collections",
+    "Talk to me": "Talk to me"
   }
 }

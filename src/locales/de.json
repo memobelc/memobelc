@@ -1,0 +1,53 @@
+{
+  "translation": {
+    "Don't have an account yet?": "Haben Sie noch kein Konto?",
+    "Create now!": "Jetzt erstellen!",
+    "Forgot your password?": "Passwort vergessen?",
+
+    "Back": "Zurück",
+    "Search books...": "Bücher suchen...",
+    "Search decks...": "Decks suchen...",
+    "Search videos...": "Videos suchen...",
+
+    "GOOD MORNING": "GUTEN MORGEN",
+    "GOOD AFTERNOON": "GUTEN TAG",
+    "GOOD EVENING": "GUTEN ABEND",
+
+    "New Day, Stronger Memories!": "Neuer Tag, stärkere Erinnerungen!",
+    "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!": "Jede große Reise beginnt mit einem einzigen Schritt. Beginnen Sie noch heute Ihre erste Sammlung und bringen Sie Ihr Lernen auf ein neues Niveau!",
+    "CHECK OUT OTHER COLLECTIONS": "ANDERE SAMMLUNGEN ENTDECKEN",
+    "See all your decks": "Alle Ihre Decks ansehen",
+
+    "New deck collection": "Neue Deck-Sammlung",
+    "Tap to send an image": "Tippen, um ein Bild zu senden",
+    "Enter name deck collection": "Name der Deck-Sammlung eingeben",
+    "Create New deck collection": "Neue Deck-Sammlung erstellen",
+
+    "New deck": "Neues Deck",
+    "Enter name deck": "Name des Decks eingeben",
+    "Create New deck": "Neues Deck erstellen",
+
+    "Study Now": "Jetzt lernen",
+    "Select your study goal now": "Wählen Sie jetzt Ihr Lernziel",
+    "The more you study, the more you learn!": "Je mehr Sie lernen, desto mehr wissen Sie!",
+    "Ideal": "Ideal",
+    "Study all of the cards from the deck": "Lernen Sie alle Karten des Decks",
+    "Good": "Gut",
+    "Up to 150 cards": "Bis zu 150 Karten",
+    "Medium": "Mittel",
+    "Up to 100 cards": "Bis zu 100 Karten",
+    "Short": "Kurz",
+    "Up to 50 cards": "Bis zu 50 Karten",
+
+    "Go premium": "Premium werden",
+    "Language": "Sprache",
+    "Log out": "Abmelden",
+
+    "Explore": "Entdecken",
+    "Home": "Startseite",
+    "Videos": "Videos",
+    "Books": "Bücher",
+    "Collections": "Sammlungen",
+    "Talk to me": "Chat"
+  }
+}

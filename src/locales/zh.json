@@ -1,0 +1,53 @@
+{
+  "translation": {
+    "Don't have an account yet?": "还没有账户？",
+    "Create now!": "立即创建！",
+    "Forgot your password?": "忘记密码？",
+
+    "Back": "返回",
+    "Search books...": "搜索书籍...",
+    "Search decks...": "搜索牌组...",
+    "Search videos...": "搜索视频...",
+
+    "GOOD MORNING": "早上好",
+    "GOOD AFTERNOON": "下午好",
+    "GOOD EVENING": "晚上好",
+
+    "New Day, Stronger Memories!": "新的一天，更强的记忆！",
+    "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!": "每一次伟大的旅程都始于第一步。今天就开始你的第一个收藏，提高你的学习水平！",
+    "CHECK OUT OTHER COLLECTIONS": "查看其他收藏",
+    "See all your decks": "查看所有牌组",
+
+    "New deck collection": "新牌组收藏",
+    "Tap to send an image": "点击发送图片",
+    "Enter name deck collection": "输入牌组收藏名称",
+    "Create New deck collection": "创建新牌组收藏",
+
+    "New deck": "新牌组",
+    "Enter name deck": "输入牌组名称",
+    "Create New deck": "创建新牌组",
+
+    "Study Now": "立即学习",
+    "Select your study goal now": "选择你的学习目标",
+    "The more you study, the more you learn!": "学习越多，收获越大！",
+    "Ideal": "理想",
+    "Study all of the cards from the deck": "学习牌组中的所有卡片",
+    "Good": "好",
+    "Up to 150 cards": "最多150张卡片",
+    "Medium": "中等",
+    "Up to 100 cards": "最多100张卡片",
+    "Short": "短",
+    "Up to 50 cards": "最多50张卡片",
+
+    "Go premium": "升级为高级会员",
+    "Language": "语言",
+    "Log out": "退出登录",
+
+    "Explore": "探索",
+    "Home": "主页",
+    "Videos": "视频",
+    "Books": "书籍",
+    "Collections": "收藏",
+    "Talk to me": "聊天"
+  }
+}

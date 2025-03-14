@@ -1,0 +1,53 @@
+{
+  "translation": {
+    "Don't have an account yet?": "¿Aún no tienes una cuenta?",
+    "Create now!": "¡Crea ahora!",
+    "Forgot your password?": "¿Olvidaste tu contraseña?",
+
+    "Back": "Volver",
+    "Search books...": "Buscar libros...",
+    "Search decks...": "Buscar mazos...",
+    "Search videos...": "Buscar videos...",
+
+    "GOOD MORNING": "BUENOS DÍAS",
+    "GOOD AFTERNOON": "BUENAS TARDES",
+    "GOOD EVENING": "BUENAS NOCHES",
+
+    "New Day, Stronger Memories!": "¡Nuevo día, recuerdos más fuertes!",
+    "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!": "Cada gran viaje comienza con un solo paso. ¡Comienza tu primera colección hoy y lleva tu aprendizaje a nuevas alturas!",
+    "CHECK OUT OTHER COLLECTIONS": "DESCUBRE OTRAS COLECCIONES",
+    "See all your decks": "Ver todos tus mazos",
+
+    "New deck collection": "Nueva colección de mazos",
+    "Tap to send an image": "Toca para enviar una imagen",
+    "Enter name deck collection": "Ingresa el nombre de la colección de mazos",
+    "Create New deck collection": "Crear nueva colección de mazos",
+
+    "New deck": "Nuevo mazo",
+    "Enter name deck": "Ingresa el nombre del mazo",
+    "Create New deck": "Crear nuevo mazo",
+
+    "Study Now": "Estudia ahora",
+    "Select your study goal now": "Selecciona tu objetivo de estudio",
+    "The more you study, the more you learn!": "¡Cuanto más estudias, más aprendes!",
+    "Ideal": "Ideal",
+    "Study all of the cards from the deck": "Estudia todas las cartas del mazo",
+    "Good": "Bueno",
+    "Up to 150 cards": "Hasta 150 cartas",
+    "Medium": "Medio",
+    "Up to 100 cards": "Hasta 100 cartas",
+    "Short": "Corto",
+    "Up to 50 cards": "Hasta 50 cartas",
+
+    "Go premium": "Hazte premium",
+    "Language": "Idioma",
+    "Log out": "Cerrar sesión",
+
+    "Explore": "Explorar",
+    "Home": "Inicio",
+    "Videos": "Videos",
+    "Books": "Libros",
+    "Collections": "Colecciones",
+    "Talk to me": "Chat"
+  }
+}

@@ -4,6 +4,11 @@
     "Create now!": "Crie agora!",
     "Forgot your password?": "Esqueceu sua senha?",
 
+    "Back": "Voltar",
+    "Search books...": "Buscar Livros...",
+    "Search decks...": "Buscar decks...",
+    "Search videos...": "Buscar videos...",
+
     "GOOD MORNING": "BOM DIA",
     "GOOD AFTERNOON": "BOA TARDE",
     "GOOD EVENING": "BOA NOITE",
@@ -12,6 +17,37 @@
     "Every great journey begins with a single step. Start your first collection today and take your learning to new heights!": "Toda grande jornada começa com um único passo. Comece sua primeira coleção hoje e leve seu aprendizado a novos patamares!",
     "CHECK OUT OTHER COLLECTIONS": "CONFIRA OUTRAS COLEÇÕES",
     "See all your decks": "Veja todos os seus decks",
-    "Log out": "Sair"
+
+    "New deck collection": "Nova coleção de decks",
+    "Tap to send an image": "Toque para enviar uma imagem",
+    "Enter name deck collection": "Digite o nome da coleção de decks",
+    "Create New deck collection": "Criar nova coleção de decks",
+
+    "New deck": "Novo deck",
+    "Enter name deck": "Digite o nome do deck",
+    "Create New deck": "Criar novo deck",
+
+    "Study Now": "Estude Agora",
+    "Select your study goal now": "Selecione sua meta de estudo",
+    "The more you study, the more you learn!": "Quanto mais você estuda, mais você aprende!",
+    "Ideal": "Ideal",
+    "Study all of the cards from the deck": "Estude todas as cartas do baralho",
+    "Good": "Bom",
+    "Up to 150 cards": "Até 150 cartas",
+    "Medium": "Médio",
+    "Up to 100 cards": "Até 100 cartas",
+    "Short": "Curto",
+    "Up to 50 cards": "Até 50 cartas",
+
+    "Go premium": "Torne-se premium",
+    "Language": "Idioma",
+    "Log out": "Sair",
+
+    "Explore": "Explorar",
+    "Home": "Home",
+    "Videos": "Videos",
+    "Books": "Livros",
+    "Collections": "Coleções",
+    "Talk to me": "Bate Papo"
   }
 }

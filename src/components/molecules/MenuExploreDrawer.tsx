@@ -16,44 +16,51 @@ import {
   Entypo,
 } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { colors } from '@/styles/colors';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { usePathname, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
-const menuItems = [
-  {
-    name: 'Home',
-    path: '/',
-    icon: <Octicons name="home" size={24} />,
-    disabled: false,
-  },
-  {
-    name: 'Videos',
-    path: '/videos',
-    icon: <MaterialIcons name="video-library" size={24} />,
-    disabled: false,
-  },
-  {
-    name: 'Books',
-    path: '/books',
-    icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
-    disabled: true,
-  },
-  {
-    name: 'Collections',
-    path: '/collections',
-    icon: <MaterialIcons name="collections-bookmark" size={24} />,
-    disabled: false,
-  },
-  {
-    name: 'Talk to me',
-    path: '/talk_to_me',
-    icon: <Entypo name="chat" size={24} color="black" />,
-    disabled: false,
-  },
-];
+import { colors } from '@/styles/colors';
+import { usePathname, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSession } from '@/contexts/AuthContext';
 
 const MenuExploreDrawer = () => {
+  const { t } = useTranslation();
+
+  const menuItems = [
+    {
+      name: t('Home'),
+      path: '/',
+      icon: <Octicons name="home" size={24} />,
+      disabled: false,
+    },
+    {
+      name: t('Videos'),
+      path: '/videos',
+      icon: <MaterialIcons name="video-library" size={24} />,
+      disabled: false,
+    },
+    {
+      name: t('Books'),
+      path: '/books',
+      icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
+      disabled: true,
+    },
+    {
+      name: t('Collections'),
+      path: '/collections',
+      icon: <MaterialIcons name="collections-bookmark" size={24} />,
+      disabled: false,
+    },
+    {
+      name: t('Talk to me'),
+      path: '/talk_to_me',
+      icon: <Entypo name="chat" size={24} color="black" />,
+      disabled: false,
+    },
+  ];
+
+  const { userInfo, signOut } = useSession();
+
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -108,10 +115,39 @@ const MenuExploreDrawer = () => {
                   className="font-[ComicSans] font-bold ml-3"
                   style={{ color: colors.primary[600] }}
                 >
-                  {' '}
-                  Explore
+                  {t('Explore')}
                 </Text>
               </View>
+              {!userInfo?.premium && (
+                <TouchableOpacity className="mb-3">
+                  <LinearGradient
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    colors={[colors.warning[500], colors.warning[100]]}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      borderRadius: 25,
+                      width: '100%',
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      className="px-3"
+                      name="crown-circle"
+                      size={20}
+                      color="black"
+                    />
+                    <Text
+                      className="text-sm font-bold"
+                      style={{ color: colors.gray[950] }}
+                    >
+                      {t('Go premium')}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
               <View>
                 {menuItems.map((item) => {
                   const isActive = pathname === item.path;

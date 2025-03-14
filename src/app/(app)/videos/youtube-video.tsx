@@ -30,6 +30,7 @@ import { useSession } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import { storage } from '../../../../FirebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 interface ICardProps {
   _id: string;
@@ -41,6 +42,7 @@ interface ICardProps {
 }
 
 const YouTubeVideo = () => {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setOpen } = useDialog();
   const { collections } = useCollection();
@@ -224,7 +226,7 @@ const YouTubeVideo = () => {
           size={24}
           color={colors.primary[500]}
         />
-        <Text style={{ color: colors.primary[500] }}>Back</Text>
+        <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
       </TouchableOpacity>
       <View className="w-full h-[180]">
         <YoutubeIframe

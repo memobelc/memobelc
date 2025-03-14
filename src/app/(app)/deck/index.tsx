@@ -14,6 +14,7 @@ import { useCollection } from '@/contexts/CollectionContext';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { useTranslation } from 'react-i18next';
 
 interface IcardProps {
   _id: string;
@@ -25,6 +26,7 @@ interface IcardProps {
 }
 
 export default function Deck() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const { currentDeck, setCollections } = useCollection();
@@ -156,7 +158,7 @@ export default function Deck() {
           size={24}
           color={colors.primary[500]}
         />
-        <Text style={{ color: colors.primary[500] }}>Back</Text>
+        <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
       </TouchableOpacity>
 
       <View className="flex flex-row justify-between items-center mb-4">

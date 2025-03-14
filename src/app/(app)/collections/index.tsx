@@ -11,8 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
 import { useCollection } from '@/contexts/CollectionContext';
+import { useTranslation } from 'react-i18next';
 
 export default function AllCollections() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { collections, setCurrentCollection } = useCollection();
 
@@ -31,11 +33,11 @@ export default function AllCollections() {
             size={24}
             color={colors.primary[500]}
           />
-          <Text style={{ color: colors.primary[500] }}>Back</Text>
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
         <TextInput
-          placeholder="Search decks..."
+          placeholder={t('Search decks...')}
           placeholderTextColor="#888"
           className="h-14 w-full mb-3 border border-gray-300 rounded-lg pl-2 text-sm"
         />

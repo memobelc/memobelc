@@ -1,4 +1,5 @@
-import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
+import { useState } from 'react';
+
 import {
   View,
   Image,
@@ -12,29 +13,26 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/styles/colors';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { useTranslation } from 'react-i18next';
+
 import { DialogContent, useDialog } from '@/components/Dialog';
-import { useState } from 'react';
+import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { Input } from '@/components/Input';
 import { OpenStudy } from '@/components/atoms/openStudy';
-
-import { storage } from '../../../../FirebaseConfig';
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-  listAll,
-  deleteObject,
-} from 'firebase/storage';
 import { useToast } from '@/components/Toast';
 import api from '@/services/api';
 import { useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
+import { colors } from '@/styles/colors';
+
+import { storage } from '../../../../FirebaseConfig';
 
 export default function Collection() {
   const { setCollections, currentCollection, setCurrentDeck } = useCollection();
   const { userInfo, signOut } = useSession();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const router = useRouter();
   const { setOpen } = useDialog();
@@ -149,7 +147,7 @@ export default function Collection() {
           size={24}
           color={colors.primary[500]}
         />
-        <Text style={{ color: colors.primary[500] }}>Back</Text>
+        <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
       </TouchableOpacity>
 
       <View className="flex flex-row justify-between items-center mb-4">
@@ -187,13 +185,13 @@ export default function Collection() {
         className="flex flex-row items-center justify-center w-full  rounded-full p-2.5"
         onPress={HandleOpenStudy}
       >
-        <Text className="text-white font-bold text-2xl">Study Now</Text>
+        <Text className="text-white font-bold text-2xl">{t('Study Now')}</Text>
         <MaterialIcons name="arrow-right-alt" size={40} color="white" />
       </TouchableOpacity>
 
       <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
         <TextInput
-          placeholder="Search decks..."
+          placeholder={t('Search decks...')}
           placeholderTextColor="#888"
           className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
         />
@@ -235,7 +233,7 @@ export default function Collection() {
         className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
         onPress={HandleOpenAddDeck}
       >
-        <Text className="text-white font-bold text-2xl">Add deck</Text>
+        <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>
       </TouchableOpacity>
 
       {openStudy && <OpenStudy open={openStudy} />}
@@ -244,7 +242,7 @@ export default function Collection() {
         <DialogContent className="bg-white rounded-t-lg flex w-full absolute items-center bottom-0 h-1/2 p-4">
           <View className="flex flex-row justify-between items-center mb-2 w-full">
             <Text className="font-semibold text-xl text-primary justify-center">
-              New deck
+              {t('New deck')}
             </Text>
             <TouchableOpacity onPress={() => setOpen(false)}>
               <MaterialIcons name="close" size={24} color={colors.gray[950]} />
@@ -277,19 +275,19 @@ export default function Collection() {
               <View className="flex-col items-center justify-center ">
                 <MaterialIcons name="cloud-upload" size={40} color="gray" />
                 <Text className="text-gray-500 mt-2 ">
-                  Tap to send an image
+                  {t('Tap to send an image')}
                 </Text>
               </View>
             )}
           </TouchableOpacity>
-          <Input placeholder="Enter your name deck" className="py-6 w-full" />
+          <Input placeholder={t('Enter name deck')} className="py-6 w-full" />
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
             className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
             onPress={HandleCreateDeck}
           >
             <Text className="text-white text-base font-bold">
-              Create New deck
+              {t('Create New deck')}
             </Text>
           </TouchableOpacity>
         </DialogContent>

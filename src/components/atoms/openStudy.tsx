@@ -3,12 +3,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
+import { useTranslation } from 'react-i18next';
 
 interface OpenStudyProps {
   open: boolean;
 }
 
 export const OpenStudy = ({ open }: OpenStudyProps) => {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setOpen } = useDialog();
 
@@ -33,10 +35,10 @@ export const OpenStudy = ({ open }: OpenStudyProps) => {
 
       <View className="my-10">
         <Text className="text-white text-3xl font-bold">
-          Select your study goal now
+          {t('Select your study goal now')}
         </Text>
         <Text className="text-white text-xl">
-          The more you study, the more you learn!
+          {t('The more you study, the more you learn!')}
         </Text>
       </View>
 
@@ -50,9 +52,11 @@ export const OpenStudy = ({ open }: OpenStudyProps) => {
               color={colors.warning[500]}
             />
             <View>
-              <Text className="text-gray-700 font-bold text-2xl">Ideal</Text>
+              <Text className="text-gray-700 font-bold text-2xl">
+                {t('Ideal')}
+              </Text>
               <Text className="text-gray-700 font-bold text-1xs">
-                Study all of the cards from the deck
+                {t('Study all of the cards from the deck')}
               </Text>
             </View>
           </View>
@@ -66,9 +70,11 @@ export const OpenStudy = ({ open }: OpenStudyProps) => {
               color={colors.warning[500]}
             />
             <View>
-              <Text className="text-gray-700 font-bold text-2xl">Good</Text>
+              <Text className="text-gray-700 font-bold text-2xl">
+                {t('Good')}
+              </Text>
               <Text className="text-gray-700 font-bold text-1xs">
-                Up to 150 cards
+                {t('Up to 150 cards')}
               </Text>
             </View>
           </View>
@@ -82,9 +88,11 @@ export const OpenStudy = ({ open }: OpenStudyProps) => {
               color={colors.warning[500]}
             />
             <View>
-              <Text className="text-gray-700 font-bold text-2xl">Medium</Text>
+              <Text className="text-gray-700 font-bold text-2xl">
+                {t('Medium')}
+              </Text>
               <Text className="text-gray-700 font-bold text-1xs">
-                Up to 100 cards
+                {t('Up to 100 cards')}
               </Text>
             </View>
           </View>
@@ -98,9 +106,11 @@ export const OpenStudy = ({ open }: OpenStudyProps) => {
               color={colors.warning[500]}
             />
             <View>
-              <Text className="text-gray-700 font-bold text-2xl">Short</Text>
+              <Text className="text-gray-700 font-bold text-2xl">
+                {t('Short')}
+              </Text>
               <Text className="text-gray-700 font-bold text-1xs">
-                Up to 50 cards
+                {t('Up to 50 cards')}
               </Text>
             </View>
           </View>
