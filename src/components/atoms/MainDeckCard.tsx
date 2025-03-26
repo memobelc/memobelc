@@ -3,10 +3,11 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors } from '@/styles/colors';
 import { Link } from 'expo-router';
+import { imageSources } from '@/utils/imgSource';
 
 interface MainDeckCardProps {
   name: string;
-  image?: string;
+  image?: string | null;
   pending_cards: number;
   total_cards: number;
   onPress?: () => void;
@@ -19,6 +20,17 @@ export const MainDeckCard = ({
   total_cards,
   onPress,
 }: MainDeckCardProps) => {
+  let imgSource;
+
+  if (image && image.startsWith('ct_')) {
+    const id = Number(image.split('_')[1]);
+    imgSource =
+      imageSources.find((img) => img.id === id)?.uri || imageSources[0].uri;
+  } else if (image) {
+    imgSource = { uri: image };
+  } else {
+    imgSource = imageSources[0].uri;
+  }
   return (
     <Link
       href={{
@@ -32,7 +44,7 @@ export const MainDeckCard = ({
         className="w-full flex flex-row items-center justify-end"
       >
         <View className="w-[300px] h-[300px] bg-white rounded-[12px] overflow-hidden shadow-lg">
-          <Image source={{ uri: image }} className="w-full h-[65%]  top-0" />
+          <Image source={imgSource} className="w-full h-[65%]  top-0" />
 
           <View className="flex-1 justify-end p-3">
             <Text className="font-[ComicSans] text-xl font-bold pb-3">

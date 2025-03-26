@@ -34,10 +34,11 @@ export default function SignIn() {
     <View className="flex-1 items-center justify-center p-5">
       <Image
         source={require('@/assets/logo_memobelc.jpg')}
-        className="w-40 h-40 m-10"
+        style={{ width: 200, height: 200 }}
       />
+
       <View
-        className="w-full rounded-[25px] flex-row items-center mb-5 px-4"
+        className="w-full md:w-80 rounded-[25px] flex-row items-center mb-5 px-4"
         style={{ backgroundColor: colors.gray[100] }}
       >
         <TextInput
@@ -49,7 +50,7 @@ export default function SignIn() {
         />
       </View>
       <View
-        className="w-full rounded-[25px] flex-row items-center mb-5 px-4"
+        className="w-full md:w-80 rounded-[25px] flex-row items-center mb-5 px-4"
         style={{ backgroundColor: colors.gray[100] }}
       >
         <TextInput
@@ -72,7 +73,7 @@ export default function SignIn() {
         </TouchableOpacity>
       </View>
       <TouchableOpacity
-        className="w-full py-4 rounded-[25px] flex-row justify-center items-center mb-5"
+        className="w-full md:w-80 py-4 rounded-[25px] flex-row justify-center items-center mb-5"
         style={{ backgroundColor: colors.info[500] }}
         onPress={() => handleLogin()}
       >

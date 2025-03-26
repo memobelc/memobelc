@@ -53,10 +53,7 @@ export default function AllCollections() {
                 <DeckCardSecondary
                   key={item._id}
                   name={item.name}
-                  image={
-                    item.image ||
-                    'https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress'
-                  }
+                  image={item.image}
                   type="collection"
                   pending_cards={item.pending_cards}
                   total_cards={item.total_cards}
