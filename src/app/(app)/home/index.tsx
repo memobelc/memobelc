@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  FlatList,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Image as ImageExpo } from 'expo-image';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -41,8 +44,10 @@ export default function Home() {
     string | null
   >(null);
   const [nameCollection, setNameCollection] = useState('');
-  const [loadingCollection, setLoadingCollection] = useState(false);
+  const [loadingCollection, setLoadingCollection] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 768;
 
   const pickImage = async () => {
     setSelectedImageFromGallery(null);
@@ -134,19 +139,25 @@ export default function Home() {
   }, []);
 
   return (
-    <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-12 relative">
+    <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View>
-          <View className="flex flex-col justify-center items-center py-5">
-            <Text className="text-[15px] text-gray-600 mb-1 font-[ComicSans]">
-              {t(getGreeting())}, {userInfo?.name.toUpperCase()}!
+        <View
+          className={` flex  ${
+            !collections || collections.length == 0
+              ? 'flex-col'
+              : 'flex-col md:flex-row '
+          }  justify-center md:justify-between`}
+        >
+          <View className="flex flex-col md:w-[60%] justify-start md:justify-center items-start py-5">
+            <Text className="text-lg md:text-2xl text-gray-600 mb-1 font-[ComicSans]">
+              {t(getGreeting())}, {userInfo?.name.split(' ')[0].toUpperCase()}!
             </Text>
             <Text
               style={{ color: colors.primary[500] }}
-              className="text-2xl font-bold"
+              className="text-sm md:text-4xl font-bold"
             >
               {t('New Day, Stronger Memories!')}
             </Text>
@@ -154,16 +165,18 @@ export default function Home() {
           {loadingCollection ? (
             <Loading />
           ) : collections && collections.length > 0 ? (
-            <MainDeckCard
-              name={collections[0].name}
-              image={collections[0].image}
-              pending_cards={collections[0].pending_cards}
-              total_cards={collections[0].total_cards}
-              onPress={() => setCurrentCollection(collections[0])}
-            />
+            <View className="flex items-center md:items-end md:w-[30%]">
+              <MainDeckCard
+                name={collections[0].name}
+                image={collections[0].image}
+                pending_cards={collections[0].pending_cards}
+                total_cards={collections[0].total_cards}
+                onPress={() => setCurrentCollection(collections[0])}
+              />
+            </View>
           ) : (
             <View className="flex  items-center justify-center py-10">
-              <Text className="font-[ComicSans] text-lg text-gray-500 text-center font-semibold">
+              <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
                 {t(
                   'Every great journey begins with a single step. Start your first collection today and take your learning to new heights!',
                 )}
@@ -177,7 +190,6 @@ export default function Home() {
             </View>
           )}
         </View>
-
         {collections && collections.length > 1 && (
           <>
             <Text
@@ -187,20 +199,45 @@ export default function Home() {
               {t('CHECK OUT OTHER COLLECTIONS')}
             </Text>
 
-            {collections.slice(1, 4).map((item) => (
-              <DeckCardSecondary
-                key={item._id}
-                name={item.name}
-                image={item.image}
-                type="collection"
-                pending_cards={item.pending_cards}
-                total_cards={item.total_cards}
-                onPress={() => setCurrentCollection(item)}
+            {!isSmallScreen ? (
+              <FlatList
+                key={width < 1024 ? 'two-columns' : 'three-columns'}
+                data={collections}
+                keyExtractor={(item) => item._id}
+                numColumns={width < 1024 ? 2 : 3}
+                columnWrapperStyle={{ justifyContent: 'flex-start' }}
+                renderItem={({ item }) => (
+                  <View className="w-[48%] lg:w-[31%] mx-[1%] p-[1%]">
+                    <DeckCardSecondary
+                      name={item.name}
+                      image={item.image}
+                      type="collection"
+                      pending_cards={item.pending_cards}
+                      total_cards={item.total_cards}
+                      onPress={() => setCurrentCollection(item)}
+                    />
+                  </View>
+                )}
               />
-            ))}
+            ) : (
+              collections
+                .slice(1, 4)
+                .map((item) => (
+                  <DeckCardSecondary
+                    key={item._id}
+                    name={item.name}
+                    image={item.image}
+                    type="collection"
+                    pending_cards={item.pending_cards}
+                    total_cards={item.total_cards}
+                    onPress={() => setCurrentCollection(item)}
+                  />
+                ))
+            )}
           </>
         )}
-        {collections && collections.length > 4 && (
+
+        {isSmallScreen && collections && collections.length > 4 && (
           <Link href="./collections" asChild>
             <TouchableOpacity className="w-full flex flex-row items-center justify-end">
               <Text style={{ color: colors.primary[500] }}>
@@ -311,7 +348,11 @@ export default function Home() {
                     }}
                     className="border rounded-lg overflow-hidden"
                   >
-                    <Image source={item.uri} className="w-24 h-24" />
+                    <Image
+                      style={{ width: 100, height: 100 }}
+                      source={item.uri}
+                      className="w-24 h-24"
+                    />
                   </TouchableOpacity>
                 ))}
               </ScrollView>

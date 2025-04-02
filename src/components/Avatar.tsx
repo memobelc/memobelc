@@ -29,6 +29,7 @@ const AvatarImage = forwardRef<
   }
   return (
     <Image
+      style={{ width: '100%', height: '100%' }}
       ref={ref}
       onError={() => setHasError(true)}
       className={cn('aspect-square h-full w-full', className)}

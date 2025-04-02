@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import {
   View,
   Image,
@@ -7,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Platform,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,13 +27,13 @@ import { useSession } from '@/contexts/AuthContext';
 import { colors } from '@/styles/colors';
 
 import { storage } from '../../../../FirebaseConfig';
+import { setImageUrl } from '@/utils/imgSource';
 
 export default function Collection() {
   const { setCollections, currentCollection, setCurrentDeck } = useCollection();
-  const { userInfo, signOut } = useSession();
+  const { userInfo } = useSession();
   const { toast } = useToast();
   const { t } = useTranslation();
-
   const router = useRouter();
   const { setOpen } = useDialog();
   const [openAddDeck, setOpenAddDeck] = useState(false);
@@ -138,87 +138,93 @@ export default function Collection() {
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="flex-row items-center mb-3 mr-5"
-      >
-        <Ionicons
-          name="arrow-back-circle"
-          size={24}
-          color={colors.primary[500]}
-        />
-        <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
-      </TouchableOpacity>
-
-      <View className="flex flex-row justify-between items-center mb-4">
-        <MaterialIcons name="language" size={24} color="#000" />
-        <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row">
-          <MaterialCommunityIcons
-            className="pr-2"
-            name="cards"
-            size={24}
-            color={colors.error[600]}
-          />
-          <Text className="text-xs color-red-700">
-            {currentCollection?.total_cards != 0
-              ? `${currentCollection?.pending_cards} out of ${currentCollection?.total_cards} to study`
-              : 'No cards added yet'}
-          </Text>
-        </View>
-      </View>
-
-      <Text className="w-full text-gray-800 text-2xl font-bold">{name}</Text>
-
-      <View className="my-6 w-full h-40 bg-white rounded-[12px] overflow-hidden shadow-lg">
-        <Image
-          source={{
-            uri: currentCollection?.image
-              ? currentCollection?.image
-              : 'https://images.prismic.io/website-b2c/Zu2_orVsGrYSvo18_ingles-britanico-2-.jpg?auto=format,compress',
-          }}
-          className="w-full h-full top-0"
-        />
-      </View>
-
-      <TouchableOpacity
-        style={{ backgroundColor: colors.warning[500] }}
-        className="flex flex-row items-center justify-center w-full  rounded-full p-2.5"
-        onPress={HandleOpenStudy}
-      >
-        <Text className="text-white font-bold text-2xl">{t('Study Now')}</Text>
-        <MaterialIcons name="arrow-right-alt" size={40} color="white" />
-      </TouchableOpacity>
-
-      <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
-        <TextInput
-          placeholder={t('Search decks...')}
-          placeholderTextColor="#888"
-          className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
-        />
-      </View>
-
       <ScrollView
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
-        className="flex-1"
       >
-        {currentCollection && (
-          <>
-            {currentCollection.decks.map((item) => (
-              <DeckCardSecondary
-                key={item._id}
-                name={item.name}
-                image={item.image}
-                type="deck"
-                pending_cards={item.pending_cards}
-                total_cards={item.total_cards}
-                onPress={() => setCurrentDeck(item)}
-              />
-            ))}
-          </>
-        )}
-      </ScrollView>
+        <View className="">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="flex-row items-center mb-3 mr-5"
+          >
+            <Ionicons
+              name="arrow-back-circle"
+              size={24}
+              color={colors.primary[500]}
+            />
+            <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
+          </TouchableOpacity>
 
+          <View className="flex flex-row justify-between items-center mb-4">
+            <MaterialIcons name="language" size={24} color="#000" />
+            <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row">
+              <MaterialCommunityIcons
+                className="pr-2"
+                name="cards"
+                size={24}
+                color={colors.error[600]}
+              />
+              <Text className="text-xs color-red-700">
+                {currentCollection?.total_cards !== 0
+                  ? `${currentCollection?.pending_cards} out of ${currentCollection?.total_cards} to study`
+                  : 'No cards added yet'}
+              </Text>
+            </View>
+          </View>
+
+          <Text className="w-full text-gray-800 text-2xl font-bold">
+            {name}
+          </Text>
+
+          <View className="my-6 w-full h-44 md:h-[500px] bg-white rounded-[12px] overflow-hidden shadow-lg">
+            <Image
+              source={setImageUrl({ image: currentCollection?.image })}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+              className="w-full h-full top-0"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={{ backgroundColor: colors.warning[500] }}
+            className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
+            onPress={HandleOpenStudy}
+          >
+            <Text className="text-white font-bold text-2xl">
+              {t('Study Now')}
+            </Text>
+            <MaterialIcons name="arrow-right-alt" size={40} color="white" />
+          </TouchableOpacity>
+
+          <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
+            <TextInput
+              placeholder={t('Search decks...')}
+              placeholderTextColor="#888"
+              className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
+            />
+          </View>
+          <View>
+            {currentCollection && (
+              <>
+                {currentCollection.decks.map((item) => (
+                  <DeckCardSecondary
+                    key={item._id}
+                    name={item.name}
+                    image={item.image}
+                    type="deck"
+                    pending_cards={item.pending_cards}
+                    total_cards={item.total_cards}
+                    onPress={() => setCurrentDeck(item)}
+                  />
+                ))}
+              </>
+            )}
+          </View>
+        </View>
+      </ScrollView>
       <LinearGradient
         colors={['transparent', 'white']}
         className="absolute bottom-0 left-0 right-0 h-60"
@@ -227,7 +233,7 @@ export default function Collection() {
 
       <TouchableOpacity
         style={{ backgroundColor: colors.primary[500] }}
-        className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
+        className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"
         onPress={HandleOpenAddDeck}
       >
         <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>

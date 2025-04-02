@@ -11,13 +11,16 @@ import {
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+// import { useStripe } from '@stripe/stripe-react-native';
+import { Picker } from '@react-native-picker/picker';
+import { useTranslation } from 'react-i18next';
+
 import { useSession } from '@/contexts/AuthContext';
 import { Avatar, AvatarImage } from '@/components/Avatar';
-import { useTranslation } from 'react-i18next';
-import { Picker } from '@react-native-picker/picker';
 import { useProfile } from '@/contexts/profileContext';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
+import api from '@/services/api';
 
 type menuItem = {
   name: string;
@@ -36,6 +39,53 @@ const AvatarProfileDropDown = () => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  // const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [loading, setLoading] = useState(false);
+
+  // const handleSubscribe = async () => {
+  //   setLoading(true);
+  //   // const response = await api.post(
+  //   //   '/payment/payment_intent',
+  //   //   {},
+  //   //   {
+  //   //     headers: {
+  //   //       Authorization: `Bearer ${userInfo?.token}`,
+  //   //     },
+  //   //   },
+  //   // );
+
+  //   const client_secret =
+  //     'pi_3R7zeRHGJ1Rp3sOw0El7bZu3_secret_PDVpF20WqUvK9Llq2pmKqGtqm';
+  //   console.log(client_secret);
+
+  //   if (!client_secret) {
+  //     console.error('Erro: client_secret não foi retornado.');
+  //     return;
+  //   }
+
+  //   // Inicializar a tela de pagamento corretamente
+  //   const { error } = await initPaymentSheet({
+  //     merchantDisplayName: 'Memobelc',
+  //     paymentIntentClientSecret: client_secret,
+  //     // allowsDelayedPaymentMethods: true,
+  //   });
+
+  //   if (error) {
+  //     console.error('Erro ao inicializar o PaymentSheet:', error);
+  //     return;
+  //   }
+
+  //   // Exibir a tela de pagamento para o usuário
+  //   const { error: paymentError } = await presentPaymentSheet();
+
+  //   if (paymentError) {
+  //     console.error('Erro ao exibir o PaymentSheet:', paymentError);
+  //   } else {
+  //     console.log('Pagamento realizado com sucesso!');
+  //   }
+
+  //   setLoading(false);
+  // };
 
   const handleClose = () => {
     setOpen(false);
@@ -84,13 +134,25 @@ const AvatarProfileDropDown = () => {
         visible={open}
         onRequestClose={handleClose}
       >
-        <TouchableWithoutFeedback onPress={handleClose}>
-          <View className="flex-1 justify-center relative items-center">
+        <TouchableWithoutFeedback
+          onPress={(e) => {
+            if (e.target === e.currentTarget) {
+              handleClose();
+            }
+          }}
+        >
+          <View className="flex-1 relative">
             <Animated.View
               style={{
+                position: 'absolute',
+                right: 0,
+                padding: 20,
+                backgroundColor: 'white',
                 transform: [{ translateX }],
+                width: 300,
+                height: '100%',
               }}
-              className="bg-white w-[50%] absolute right-0 top-0 p-4 rounded-l-2xl"
+              className="bg-white  h-full w-[300px] absolute right-0 top-0 p-4 rounded-l-2xl shadow-lg"
             >
               <TouchableOpacity className="flex flex-row gap-2 items-center mb-3">
                 <Avatar>
@@ -112,7 +174,7 @@ const AvatarProfileDropDown = () => {
                 </View>
               </TouchableOpacity>
               {!userInfo?.premium && (
-                <TouchableOpacity className="mb-3">
+                <TouchableOpacity className="mb-3" disabled={loading}>
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
                     end={{ x: 0, y: 1 }}

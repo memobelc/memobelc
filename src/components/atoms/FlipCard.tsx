@@ -1,7 +1,7 @@
 import { colors } from '@/styles/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, Animated } from 'react-native';
+import { View, Text, Pressable, Animated, Platform } from 'react-native';
 
 interface FlipCardProps {
   frontSide: string;
@@ -9,7 +9,11 @@ interface FlipCardProps {
   onFlip?: () => void;
 }
 
-const FlipCard = ({ frontSide, backSide, onFlip = () => {} }: FlipCardProps) => {
+const FlipCard = ({
+  frontSide,
+  backSide,
+  onFlip = () => {},
+}: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
   const rotateAnim = useState(new Animated.Value(0))[0];
 
@@ -59,56 +63,77 @@ const FlipCard = ({ frontSide, backSide, onFlip = () => {} }: FlipCardProps) => 
   });
 
   return (
-    <View className="flex items-center justify-center py-5">
-      <Pressable onPress={flipCard} className="w-64 h-96 relative">
+    <View className="flex  w-full items-center justify-start py-5 ">
+      <Pressable
+        onPress={flipCard}
+        className={`w-[80%] ${Platform.OS == 'web' ? 'h-[350]' : 'h-[70%]'} relative`}
+      >
         {/* Front of Card */}
+
         <Animated.View
           style={{
+            width: '100%',
+            height: '100%',
+            display: !flipped ? 'flex' : 'none',
+            justifyContent: 'center',
+            alignItems: 'center',
             transform: [{ rotateY: frontInterpolate }],
             opacity: frontOpacity,
+            backgroundColor: 'white',
+            borderRadius: Platform.OS === 'web' ? '16px' : 16,
           }}
           className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg"
         >
           <Text className="text-xl font-bold">{frontSide}</Text>
-          <View style={{ position: 'absolute', top: 0, right: 0 }}>
-            <LinearGradient
-              colors={[colors.gray[100], colors.primary[500]]}
-              start={{ x: 0.01, y: 0 }}
-              end={{ x: 0, y: 0.01 }}
-              style={{
-                height: 40,
-                width: 40,
-                borderTopRightRadius: 16,
-                borderBottomLeftRadius: 16,
-              }}
-            />
-          </View>
+          {Platform.OS !== 'web' && (
+            <View style={{ position: 'absolute', top: -1, right: -1 }}>
+              <LinearGradient
+                colors={[colors.gray[200], colors.primary[500]]}
+                start={{ x: 0.01, y: 0 }}
+                end={{ x: 0, y: 0.01 }}
+                style={{
+                  height: 40,
+                  width: 40,
+                  borderTopRightRadius: 16,
+                  borderBottomLeftRadius: 16,
+                }}
+              />
+            </View>
+          )}
         </Animated.View>
 
         {/* Back of Card */}
         <Animated.View
           style={{
+            width: '100%',
+            height: '100%',
+            display: flipped ? 'flex' : 'none',
+            justifyContent: 'center',
+            alignItems: 'center',
             transform: [{ rotateY: backInterpolate }],
             opacity: backOpacity,
             backgroundColor: colors.primary[500],
+            borderRadius: Platform.OS === 'web' ? '16px' : 16,
           }}
           className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg"
         >
           <Text className="text-xl font-bold text-white">{backSide}</Text>
-          <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
-            <LinearGradient
-              colors={['white', colors.gray[100]]}
-              start={{ x: 0.01, y: 0 }}
-              end={{ x: 0, y: 0.01 }}
-              style={{
-                height: 40,
-                width: 40,
-                borderTopRightRadius: 16,
-                borderBottomLeftRadius: 16,
-                transform: [{ rotate: '90deg' }],
-              }}
-            />
-          </View>
+          {Platform.OS !== 'web' && (
+            <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
+              <LinearGradient
+                colors={['white', colors.gray[100]]}
+                start={{ x: 0.01, y: 0 }}
+                end={{ x: 0, y: 0.01 }}
+                style={{
+                  height: 40,
+                  width: 40,
+                  borderTopRightRadius: 16,
+                  borderBottomLeftRadius: 16,
+                  transform: [{ rotate: '90deg' }],
+                }}
+              />
+            </View>
+          )}
         </Animated.View>
       </Pressable>
     </View>

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ export default function AllCollections() {
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View
-        className="absolute top-0 left-0 right-0 flex-col w-full  items-start
+        className="absolute top-0 left-0 right-0 flex-col w-full items-start
              justify-between z-10 bg-gray-100 -mt-2"
       >
         <TouchableOpacity
@@ -42,9 +43,16 @@ export default function AllCollections() {
           className="h-14 w-full mb-3 border border-gray-300 rounded-lg pl-2 text-sm"
         />
       </View>
-      <View>
+      <View
+        style={
+          Platform.OS === 'web' ? { flex: 1, height: '100%' } : { flex: 1 }
+        }
+      >
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }}
+          contentContainerStyle={{
+            paddingTop: 100,
+            paddingBottom: 200,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {collections && collections.length >= 1 && (

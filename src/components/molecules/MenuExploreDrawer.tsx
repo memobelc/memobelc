@@ -98,12 +98,16 @@ const MenuExploreDrawer = () => {
         onRequestClose={handleClose}
       >
         <TouchableWithoutFeedback onPress={handleClose}>
-          <View className="flex-1 justify-center relative items-center">
+          <View className="flex-1 relative">
             <Animated.View
               style={{
+                backgroundColor: 'white',
+                width: 300,
+                padding: 20,
+                height: '100%',
                 transform: [{ translateX }],
               }}
-              className="bg-white w-[50%] h-[50%] absolute left-0 top-0 p-4 rounded-r-2xl"
+              className="bg-white h-full w-[300px] absolute left-0 top-0 p-4 rounded-r-2xl shadow-lg"
             >
               <View className="flex-row mb-6">
                 <FontAwesome6
@@ -168,7 +172,9 @@ const MenuExploreDrawer = () => {
                     >
                       {item.icon}
                       <Text
-                        className={`font-[ComicSans] ml-3 ${item.disabled ? 'text-gray-300' : 'text-primary-600'}`}
+                        className={`font-[ComicSans] ml-3 ${
+                          item.disabled ? 'text-gray-300' : 'text-primary-600'
+                        }`}
                       >
                         {item.name}
                       </Text>

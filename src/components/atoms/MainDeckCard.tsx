@@ -1,4 +1,4 @@
-import { View, Image, Text, TouchableOpacity } from 'react-native';
+import { View, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors } from '@/styles/colors';
@@ -12,6 +12,8 @@ interface MainDeckCardProps {
   total_cards: number;
   onPress?: () => void;
 }
+
+const { width } = Dimensions.get('window');
 
 export const MainDeckCard = ({
   name,
@@ -31,8 +33,10 @@ export const MainDeckCard = ({
   } else {
     imgSource = imageSources[0].uri;
   }
+
   return (
     <Link
+      className="flex items-center justify-center md:justify-end"
       href={{
         pathname: './collection',
         params: { name },
@@ -43,7 +47,7 @@ export const MainDeckCard = ({
         onPress={onPress}
         className="w-full flex flex-row items-center justify-end"
       >
-        <View className="w-[300px] h-[300px] bg-white rounded-[12px] overflow-hidden shadow-lg">
+        <View className="bg-white m-3 w-64 h-64 sm:w-72 sm:h-72  lg:w-80 lg:h-80  rounded-[12px] overflow-hidden shadow-lg">
           <Image source={imgSource} className="w-full h-[65%]  top-0" />
 
           <View className="flex-1 justify-end p-3">

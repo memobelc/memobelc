@@ -5,7 +5,6 @@ import { SessionProvider, useSession } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
 import { Menu, PaperProvider, Portal } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
 import '@/styles/global.css';
 import { Loading } from '@/components/Loading';
 import { Dialog } from '@/components/Dialog';
@@ -13,6 +12,7 @@ import { ToastProvider } from '@/components/Toast';
 import { CollectionProvider } from '@/contexts/CollectionContext';
 import '@/locales/i18n';
 import { ProfileProvider } from '@/contexts/profileContext';
+// import StripeWrapper from '@/components/molecules/StripeWrapper';
 
 export default function Layout() {
   const backgroundColor = colors.primary[500];
@@ -29,6 +29,7 @@ export default function Layout() {
       <ToastProvider>
         <PaperProvider>
           <SessionProvider>
+            {/* <StripeWrapper> */}
             <ProfileProvider>
               <CollectionProvider>
                 <Dialog>
@@ -41,6 +42,7 @@ export default function Layout() {
                 </Dialog>
               </CollectionProvider>
             </ProfileProvider>
+            {/* </StripeWrapper> */}
           </SessionProvider>
         </PaperProvider>
       </ToastProvider>

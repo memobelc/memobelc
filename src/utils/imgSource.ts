@@ -12,3 +12,23 @@ export const imageSources = [
   { id: 11, uri: require('@/assets/collection_themes/11.jpg') },
   { id: 12, uri: require('@/assets/collection_themes/12.jpg') },
 ];
+
+interface ISetImageprops {
+  image?: string | null;
+}
+
+export const setImageUrl = ({ image }: ISetImageprops) => {
+  let imgSource;
+
+  if (image && image.startsWith('ct_')) {
+    const id = Number(image.split('_')[1]);
+    imgSource =
+      imageSources.find((img) => img.id === id)?.uri || imageSources[0].uri;
+  } else if (image) {
+    imgSource = { uri: image };
+  } else {
+    imgSource = imageSources[0].uri;
+  }
+
+  return imgSource;
+};

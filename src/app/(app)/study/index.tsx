@@ -12,7 +12,8 @@ import { useToast } from '@/components/Toast';
 
 export default function Study() {
   const router = useRouter();
-  const { currentCollection, setProgressUpdate, progressUpdate } = useCollection();
+  const { currentCollection, setProgressUpdate, progressUpdate } =
+    useCollection();
   const { userInfo } = useSession();
   const { toast } = useToast();
   const { q } = useLocalSearchParams();
@@ -23,7 +24,6 @@ export default function Study() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
-
   const sendCardsStudied = () => {
     if (progressUpdate && progressUpdate.cards.length > 0) {
       try {
@@ -32,6 +32,7 @@ export default function Study() {
           message: `Awesome, you reviewed all ${progressUpdate.cards.length} cards today!`,
           variant: 'success',
         });
+        setProgressUpdate(null);
       } catch (error) {
         console.error(error);
       } finally {
@@ -40,60 +41,65 @@ export default function Study() {
     }
   };
 
-
   const setIndexOrClose = () => {
     if (currentIndex + 1 < range) {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(currentIndex + 1);
     } else {
       handleCloseStudy();
     }
-  }
-
+  };
 
   const handleCloseStudy = () => {
+    setCurrentIndex(0);
     sendCardsStudied();
     setOpen(false);
+
     router.push('./');
   };
 
   useEffect(() => {
     let newRange = q === 'all' ? 999 : Number(q) || 0;
     if (currentCollection?.review_collections_cards) {
-      newRange = Math.min(newRange, currentCollection.review_collections_cards.length);
+      newRange = Math.min(
+        newRange,
+        currentCollection.review_collections_cards.length,
+      );
     }
     setRange(newRange);
   }, [q, currentCollection]);
 
   const handleRecallLevel = (recall_level: any) => {
-    const cardId = currentCollection?.review_collections_cards[currentIndex]?.card_id;
+    const cardId =
+      currentCollection?.review_collections_cards[currentIndex]?.card_id;
     if (!cardId) return;
-  
+
     setValueProgress((prev) => prev + 1);
     setFlipped(false);
-  
+
     setProgressUpdate((prev) => {
       const updatedProgress = prev
         ? [...prev.cards, { card_id: cardId, recall_level }]
         : [{ card_id: cardId, recall_level }];
-  
-      const newProgress = { user_id: userInfo!.user_id, cards: updatedProgress };
-  
+
+      const newProgress = {
+        user_id: userInfo!.user_id,
+        cards: updatedProgress,
+      };
+
       return newProgress;
     });
   };
-  
 
   useEffect(() => {
     if (progressUpdate) {
       setIndexOrClose();
     }
   }, [progressUpdate]);
-  
 
   const currentCard = currentCollection?.review_collections_cards[currentIndex];
 
   return (
-    <Modal transparent animationType="fade" visible={open} onRequestClose={handleCloseStudy}>
+    <Modal transparent animationType="fade" visible={open}>
       <View className="w-full h-full flex flex-1 items-center bg-gray-200">
         <View className="flex-col mb-2 w-full p-10 gap-5">
           <View className="flex flex-row items-center">
@@ -101,31 +107,44 @@ export default function Study() {
               <MaterialCommunityIcons name="close" size={30} color="black" />
             </TouchableOpacity>
             <View className="flex-row w-[80%] items-center justify-center">
-              <Text className="font-semibold text-3xl text-black">{currentCollection?.name}</Text>
+              <Text className="font-semibold text-3xl text-black">
+                {currentCollection?.name}
+              </Text>
             </View>
           </View>
           <Progress value={valueProgress} range={range} />
         </View>
-        {currentCard && <FlipCard frontSide={currentCard.front} backSide={currentCard.back} onFlip={() => setFlipped(true)} />}
+        {currentCard && (
+          <FlipCard
+            frontSide={currentCard.front}
+            backSide={currentCard.back}
+            onFlip={() => setFlipped(true)}
+          />
+        )}
         {flipped && (
-          <View className="flex-row justify-between p-4">
-            {["easy", "good", "difficult", "i_dont_remember"].map((level) => (
+          <View className="flex-row justify-between p-4 md:w-[50%]">
+            {['easy', 'good', 'difficult', "I don't remember"].map((level) => (
               <TouchableOpacity
                 key={level}
                 className={`flex-1 items-center p-2 mx-1 bg-${level}-500 rounded-lg`}
                 onPress={() => handleRecallLevel(level)}
               >
-                <MaterialCommunityIcons name={
-                  level === 'easy'
-                    ? 'emoticon-excited-outline'
-                    : level === 'good'
-                      ? 'emoticon-happy-outline'
-                      : level === 'difficult'
-                        ? 'emoticon-neutral-outline'
-                        : 'emoticon-sad-outline'
-                } size={24}
-                  color={colors.error[600]} />
-                <Text className="text-blue text-xs mt-1">{level.replace('_', ' ')}</Text>
+                <MaterialCommunityIcons
+                  name={
+                    level === 'easy'
+                      ? 'emoticon-excited-outline'
+                      : level === 'good'
+                        ? 'emoticon-happy-outline'
+                        : level === 'difficult'
+                          ? 'emoticon-neutral-outline'
+                          : 'emoticon-sad-outline'
+                  }
+                  size={24}
+                  color={colors.error[600]}
+                />
+                <Text className="text-blue text-center text-xs mt-1">
+                  {level.replace('_', ' ')}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
