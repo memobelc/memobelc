@@ -278,7 +278,7 @@ const YouTubeVideo = () => {
       </ScrollView>
 
       <LinearGradient
-        colors={['transparent', 'white']}
+        colors={['transparent', `${colors.gray[100]}`]}
         className="absolute bottom-0 left-0 right-0 h-60"
         pointerEvents="none"
       />

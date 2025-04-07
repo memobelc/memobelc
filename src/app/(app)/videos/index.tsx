@@ -66,6 +66,7 @@ export default function VideoScreen() {
           className="flex-row items-center"
         >
           <Image
+            style={{ width: 24, height: 24 }}
             source={require('@/assets/flags/flag-uk.png')}
             className="w-6 h-6"
           />

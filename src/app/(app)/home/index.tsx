@@ -254,7 +254,7 @@ export default function Home() {
       </ScrollView>
 
       <LinearGradient
-        colors={['transparent', 'white']}
+        colors={['transparent', `${colors.gray[100]}`]}
         className="absolute bottom-0 left-0 right-0 h-28"
         pointerEvents="none"
       />
@@ -266,7 +266,7 @@ export default function Home() {
         <MaterialIcons name="add" size={40} color={colors.gray[100]} />
       </TouchableOpacity>
 
-      <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-1/2 p-4">
+      <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
         <View className="flex flex-row justify-between items-center mb-2 w-full">
           <Text className="font-semibold text-xl text-primary justify-center">
             {t('New deck collection')}
@@ -287,7 +287,12 @@ export default function Home() {
               {selectedImage ? (
                 <View className="relative">
                   <Image
-                    source={{ uri: selectedImage }}
+                    style={{ width: 128, height: 128 }}
+                    source={
+                      typeof selectedImage === 'string'
+                        ? { uri: selectedImage }
+                        : selectedImage
+                    }
                     className="w-32 h-32 rounded-lg"
                   />
                   <View className="bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md">
@@ -342,7 +347,7 @@ export default function Home() {
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => {
-                      setSelectedImage(Image.resolveAssetSource(item.uri).uri);
+                      setSelectedImage(item.uri);
                       setSelectedImageFromGallery(`ct_${item.id}`);
                       setModalVisible(false);
                     }}

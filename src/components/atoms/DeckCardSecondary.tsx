@@ -3,7 +3,7 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors } from '@/styles/colors';
 import { Link } from 'expo-router';
-import { imageSources, setImageUrl } from '@/utils/imgSource';
+import { imageSources, setImageUrl, setImageUrlDeck } from '@/utils/imgSource';
 
 interface CardSecondaryProps {
   image?: string | null;
@@ -32,12 +32,16 @@ export const DeckCardSecondary = ({
     >
       <TouchableOpacity
         onPress={onPress}
-        className="w-full flex flex-row items-center justify-end"
+        className="w-full flex flex-row items-center justify-center p-2"
       >
         <View className="w-full h-[100px] bg-white rounded-[12px] overflow-hidden relative shadow-lg m-3">
           <Image
             style={{ width: '30%', height: '100%' }}
-            source={setImageUrl({ image })}
+            source={
+              type == 'collection'
+                ? setImageUrl({ image })
+                : setImageUrlDeck({ image })
+            }
             className="w-[30%] h-full absolute top-0"
           />
 
