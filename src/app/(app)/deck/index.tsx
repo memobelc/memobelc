@@ -112,7 +112,7 @@ export default function Deck() {
 
   const HandleCreateCard = async () => {
     try {
-      await api.post('/card', {
+      await api.post('/card/create', {
         front: frontSide,
         back: backSide,
         deck_id: currentDeck?._id,
