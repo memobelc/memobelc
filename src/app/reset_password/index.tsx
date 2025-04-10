@@ -1,5 +1,9 @@
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import {
+  useLocalSearchParams,
+  useRootNavigationState,
+  useRouter,
+} from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
@@ -8,13 +12,9 @@ import { colors } from '@/styles/colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useToast } from '@/components/Toast';
 import * as yup from 'yup';
+import { isTokenExpired } from '@/utils/isTokenExpired';
 
 const validationSchema = yup.object().shape({
-  name: yup.string().required('Name is required'),
-  email: yup
-    .string()
-    .email('Invalid email address')
-    .required('Email is required'),
   password: yup
     .string()
     .min(6, 'Password must be at least 6 characters')
@@ -27,11 +27,12 @@ const validationSchema = yup.object().shape({
 
 export default function Register() {
   const router = useRouter();
+  const navigationState = useRootNavigationState();
   const { toast } = useToast();
 
+  const { token } = useLocalSearchParams();
+
   const [formData, setFormData] = useState<Record<string, string>>({
-    name: '',
-    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -45,18 +46,33 @@ export default function Register() {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const handleRegister = async () => {
+  const handleSubmit = async () => {
+    if (!token || isTokenExpired(token as string)) {
+      toast({
+        message: 'Session expired. Please try again.',
+        variant: 'destructive',
+        showProgress: true,
+      });
+      router.push('./login');
+    }
     try {
       setErrors({});
       await validationSchema.validate(formData, { abortEarly: false });
 
       setIsLoading(true);
-      const response = await api.post('/auth/register', formData);
+      const response = await api.put('/auth/reset_password', {
+        ...formData,
+        token,
+      });
 
-      if (response.status === 201) {
+      if (response.status === 200) {
+        toast({
+          message: 'Senha atualizada com sucesso!',
+          variant: 'success',
+          showProgress: true,
+        });
         router.push({
-          pathname: '/verify-code',
-          params: { token: response.data.token },
+          pathname: '/login',
         });
       }
     } catch (error) {
@@ -83,6 +99,18 @@ export default function Register() {
     }
   };
 
+  useEffect(() => {
+    if (!navigationState?.key) return;
+    if (!token || isTokenExpired(token as string)) {
+      toast({
+        message: 'Session expired. Please try again.',
+        variant: 'destructive',
+        showProgress: true,
+      });
+      router.push('./login');
+    }
+  }, [navigationState?.key, token]);
+
   return isLoading ? (
     <Loading />
   ) : (
@@ -91,7 +119,7 @@ export default function Register() {
         source={require('@/assets/logo_memobelc.jpg')}
         style={{ width: 200, height: 200 }}
       />
-      {['name', 'email', 'password', 'confirmPassword'].map((field) => (
+      {['password', 'confirmPassword'].map((field) => (
         <View key={field} className="w-full items-center">
           <View
             className="w-full md:w-80 rounded-[25] flex-row items-center mb-3 px-4"
@@ -135,21 +163,10 @@ export default function Register() {
       <TouchableOpacity
         className="w-full md:w-80 py-4 rounded-[25] items-center mb-5"
         style={{ backgroundColor: colors.info[500] }}
-        onPress={handleRegister}
+        onPress={handleSubmit}
       >
-        <Text style={{ color: colors.gray[100] }}>Register</Text>
+        <Text style={{ color: colors.gray[100] }}>Reset Password</Text>
       </TouchableOpacity>
-      <View className="items-center text-lg font-bold">
-        <Text style={{ color: colors.gray[100] }}>
-          Already have an account?
-        </Text>
-        <TouchableOpacity onPress={() => router.push('./login')}>
-          <Text className="font-bold" style={{ color: colors.primary[600] }}>
-            {' '}
-            Log in!
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
