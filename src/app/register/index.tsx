@@ -45,6 +45,17 @@ export default function Register() {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
+  const isAxiosError = (
+    error: unknown,
+  ): error is { response: { status: number } } => {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof (error as any).response?.status === 'number'
+    );
+  };
+
   const handleRegister = async () => {
     try {
       setErrors({});
@@ -58,8 +69,13 @@ export default function Register() {
           pathname: '/verify-code',
           params: { token: response.data.token },
         });
+        toast({
+          message: 'Usuário criado com sucesso!',
+          variant: 'success',
+          showProgress: true,
+        });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof yup.ValidationError) {
         const newErrors: Record<string, string> = {};
 
@@ -72,9 +88,15 @@ export default function Register() {
           variant: 'destructive',
           showProgress: true,
         });
+      } else if (isAxiosError(error) && error.response.status === 409) {
+        toast({
+          message: 'Este e-mail já está em uso. Por favor, tente outro.',
+          variant: 'destructive',
+          showProgress: true,
+        });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: 'Ocorreu um erro inesperado.',
           variant: 'destructive',
         });
       }

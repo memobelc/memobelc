@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSession } from '@/contexts/AuthContext';
-import styles from './styles';
+import { colors } from '@/styles/colors';
 
 const ConfirmAccountScreen = () => {
   const { verify_code } = useSession();
@@ -69,12 +69,17 @@ const ConfirmAccountScreen = () => {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Image
           source={require('@/assets/logo_memobelc.jpg')}
-          style={styles.logo}
+          style={{
+            width: 150,
+            height: 150,
+          }}
         />
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 22 }}>
+        <Text
+          style={{ color: colors.gray[100], fontWeight: 'bold', fontSize: 22 }}
+        >
           Confirme o Código
         </Text>
-        <Text style={{ color: '#fff', fontSize: 13 }}>
+        <Text style={{ color: colors.gray[100], fontSize: 13 }}>
           Enviamos um código de confirmação para seu E-mail
         </Text>
 
@@ -89,13 +94,15 @@ const ConfirmAccountScreen = () => {
                 width: 40,
                 height: 50,
                 borderWidth: 1,
-                borderColor: '#eee',
+                borderColor: colors.gray[100],
                 textAlign: 'center',
                 fontSize: 20,
                 marginHorizontal: 5,
                 borderRadius: 6,
               }}
               keyboardType="number-pad"
+              inputMode="numeric"
+              textContentType="oneTimeCode"
               maxLength={1}
               value={digit}
               onChangeText={(text) => handleChangeCode(text, index)}
@@ -105,8 +112,25 @@ const ConfirmAccountScreen = () => {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleValidateCode}>
-          <Text style={styles.buttonText}>Confirmar</Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            backgroundColor: colors.info[500],
+            paddingVertical: 12,
+            paddingHorizontal: 32,
+            borderRadius: 8,
+          }}
+          onPress={handleValidateCode}
+        >
+          <Text
+            style={{
+              color: colors.gray[100],
+              fontSize: 16,
+              fontWeight: 'bold',
+            }}
+          >
+            Confirmar
+          </Text>
         </TouchableOpacity>
       </View>
     </TouchableWithoutFeedback>
