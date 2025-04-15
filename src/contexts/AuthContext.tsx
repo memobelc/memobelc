@@ -189,9 +189,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             await new Promise((resolve) => setTimeout(resolve, 100));
 
+            toast({
+              message: `Conta verificada com sucesso!`,
+              variant: 'success',
+            });
+
             router.replace('/');
+          } else if (response.status === 401) {
+            toast({
+              message: `Codigo de verificação incorreto!`,
+              variant: 'destructive',
+            });
           } else {
-            alert(response.data.message);
+            toast({
+              message: `An unexpected error has occurred`,
+              variant: 'destructive',
+            });
             router.replace('/');
           }
         },
