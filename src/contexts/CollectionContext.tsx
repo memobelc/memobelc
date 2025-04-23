@@ -6,12 +6,12 @@ import {
 } from 'react';
 
 type card = {
-  back: string,
-  card_id: string,
-  front: string,
-  last_reviewed: string,
-  next_review: string
-}
+  back: string;
+  card_id: string;
+  front: string;
+  last_reviewed: string;
+  next_review: string;
+};
 
 type DefaultDeck = {
   _id: string;
@@ -25,21 +25,22 @@ type DefaultDeck = {
 
 type Deck = DefaultDeck & {
   cards: any[];
-  review_cards: card[]
+  review_cards: card[];
 };
 
 type Collection = DefaultDeck & {
   decks: Deck[];
-  review_collections_cards: card[]
+  review_collections_cards: card[];
+  classroom?: string | null;
 };
 
 type ProgressUpdate = {
-  user_id: string,
+  user_id: string;
   cards: {
-    card_id: string,
-    recall_level: "easy" | "good" | "difficult" | "i_dont_remember"
-  }[]
-}
+    card_id: string;
+    recall_level: 'easy' | 'good' | 'difficult' | 'i_dont_remember';
+  }[];
+};
 
 const CollectionContext = createContext<{
   collections: Collection[] | null;
@@ -49,8 +50,9 @@ const CollectionContext = createContext<{
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
   setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
-  setProgressUpdate:React.Dispatch<React.SetStateAction<ProgressUpdate | null>>;
-  
+  setProgressUpdate: React.Dispatch<
+    React.SetStateAction<ProgressUpdate | null>
+  >;
 }>({
   collections: null,
   currentCollection: null,
@@ -83,7 +85,9 @@ export function CollectionProvider({ children }: PropsWithChildren) {
 
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
-  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null);
+  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(
+    null,
+  );
 
   return (
     <CollectionContext.Provider
@@ -95,7 +99,7 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         currentDeck,
         setCurrentDeck,
         progressUpdate,
-        setProgressUpdate
+        setProgressUpdate,
       }}
     >
       {children}

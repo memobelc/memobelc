@@ -32,7 +32,12 @@ import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
 
 export default function Collection() {
-  const { setCollections, currentCollection, setCurrentDeck } = useCollection();
+  const {
+    setCollections,
+    currentCollection,
+    setCurrentDeck,
+    setCurrentCollection,
+  } = useCollection();
   const { userInfo } = useSession();
   const { toast } = useToast();
   const { t } = useTranslation();

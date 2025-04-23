@@ -25,6 +25,7 @@ import { useSession } from '@/contexts/AuthContext';
 
 const MenuExploreDrawer = () => {
   const { t } = useTranslation();
+  const { userInfo } = useSession();
 
   const menuItems = [
     {
@@ -59,7 +60,20 @@ const MenuExploreDrawer = () => {
     },
   ];
 
-  const { userInfo, signOut } = useSession();
+  if (userInfo?.role === 'teacher') {
+    menuItems.push({
+      name: t('Classrooms'),
+      path: '/classrooms',
+      icon: (
+        <MaterialCommunityIcons
+          name="google-classroom"
+          size={24}
+          color="black"
+        />
+      ),
+      disabled: false,
+    });
+  }
 
   const [open, setOpen] = useState(false);
   const router = useRouter();

@@ -20,6 +20,7 @@ type User = {
   user_id: string;
   premium: boolean;
   image?: string;
+  role?: string;
 };
 
 const AuthContext = createContext<{
@@ -75,6 +76,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
               token: response.data.token,
               user_id: response.data.user_id,
               premium: response.data.premium || false,
+              role: response.data.role || 'user',
             });
 
             router.replace('/');
@@ -112,6 +114,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 token: response.data.token,
                 user_id: response.data.user_id,
                 premium: response.data.premium || false,
+                role: response.data.role || 'teacher',
               });
 
               router.replace('/');
@@ -157,6 +160,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 token: response.data.token,
                 user_id: response.data.user_id,
                 premium: response.data.premium || false,
+                role: response.data.role || 'teacher',
               });
 
               setTimeout(() => {
@@ -175,40 +179,44 @@ export function SessionProvider({ children }: PropsWithChildren) {
           }
         },
         verify_code: async (token: string, code: string) => {
-          const response = await api.post(
-            '/auth/verify_code',
-            { code },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
+          try {
+            const response = await api.post(
+              '/auth/verify_code',
+              { code },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
               },
-            },
-          );
-          if (response.status === 200) {
-            await setSession(response.data.token);
+            );
 
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            if (response.status === 200) {
+              await setSession(response.data.token);
 
-            toast({
-              message: `Conta verificada com sucesso!`,
-              variant: 'success',
-            });
+              await new Promise((resolve) => setTimeout(resolve, 100));
 
-            router.replace('/');
-          } else if (response.status === 401) {
-            toast({
-              message: `Codigo de verificação incorreto!`,
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              message: `An unexpected error has occurred`,
-              variant: 'destructive',
-            });
-            router.replace('/');
+              toast({
+                message: `Conta verificada com sucesso!`,
+                variant: 'success',
+              });
+
+              router.replace('/');
+            }
+          } catch (error: any) {
+            if (error.response?.status === 401) {
+              toast({
+                message: `Código de verificação incorreto!`,
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                message: `Ocorreu um erro inesperado.`,
+                variant: 'destructive',
+              });
+              router.replace('/');
+            }
           }
         },
-
         signOut: () => {
           setSession(null);
 

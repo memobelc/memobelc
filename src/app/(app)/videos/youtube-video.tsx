@@ -31,6 +31,7 @@ import api from '@/services/api';
 import { storage } from '../../../../FirebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { setImageUrl } from '@/utils/imgSource';
 
 interface ICardProps {
   _id: string;
@@ -298,14 +299,15 @@ const YouTubeVideo = () => {
                         HandleSaveDeck(item._id);
                       }}
                     >
-                      <View className="w-full h-[100px] bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3">
+                      <View className="w-full md:w-[50%] h-[100px] mx-auto bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3">
                         <Image
-                          source={{ uri: item.image || '' }}
+                          style={{ width: '30%', height: '100%' }}
+                          source={setImageUrl({ image: item.image })}
                           className="w-[30%] h-full absolute  top-0"
                         />
 
                         <View className="w-[70%] h-full justify-center items-center left-[30%]">
-                          <Text className="font-[ComicSans] text-xl font-bold pb-3 text-start w-full px-6">
+                          <Text className="font-[ComicSans] text-xl font-bold  text-start w-full pl-3">
                             {item.name}
                           </Text>
                           <View className="flex flex-row justify-between items-center  w-[80%]"></View>

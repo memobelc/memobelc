@@ -170,6 +170,7 @@ export default function Home() {
                 name={collections[0].name}
                 image={collections[0].image}
                 pending_cards={collections[0].pending_cards}
+                type={'collection'}
                 total_cards={collections[0].total_cards}
                 onPress={() => setCurrentCollection(collections[0])}
               />
