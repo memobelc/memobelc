@@ -19,7 +19,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
-import { useCollection } from '@/contexts/CollectionContext';
+import { IClassroom, useCollection } from '@/contexts/CollectionContext';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { OpenDialogInput } from '@/components/atoms/DialogInput';
@@ -35,16 +35,14 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
 
-interface IClassroomProps {
-  _id: string;
-  name: string;
-  image: string;
-  students: string[];
-}
-
 export default function Classrooms() {
   const { userInfo } = useSession();
-  const { collections, setCollections, setCurrentCollection } = useCollection();
+  const {
+    collections,
+    setCollections,
+    setCurrentCollection,
+    setCurrentClassroom,
+  } = useCollection();
   const { setOpen } = useDialog();
   const { t } = useTranslation();
   const router = useRouter();
@@ -52,7 +50,7 @@ export default function Classrooms() {
 
   const [openStudy, setOpenStudy] = useState(true);
   const [loadingClassroom, setLoadingClassroom] = useState(false);
-  const [classrooms, setClassrooms] = useState<IClassroomProps[] | []>([]);
+  const [classrooms, setClassrooms] = useState<IClassroom[] | []>([]);
   const [selectedCollection, setSelectedCollection] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
@@ -252,14 +250,17 @@ export default function Classrooms() {
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row flex-wrap justify-center gap-4 px-4">
-          {classrooms.map((deck, index) => (
+          {classrooms.map((classroom, index) => (
             <View key={index} className="w-[47%] md:w-[30%]">
               <MainDeckCard
-                name={deck.name}
-                image={deck.image}
+                name={classroom.name}
+                image={classroom.image}
                 type="class"
-                students={deck.students.length}
-                onPress={() => handleSetClassroom(deck._id)}
+                students={classroom.students.length}
+                onPress={() => {
+                  handleSetClassroom(classroom._id);
+                  setCurrentClassroom(classroom);
+                }}
               />
             </View>
           ))}

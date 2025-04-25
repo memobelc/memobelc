@@ -8,6 +8,7 @@ import { imageSources, setImageUrl, setImageUrlDeck } from '@/utils/imgSource';
 interface CardSecondaryProps {
   image?: string | null;
   type: 'collection' | 'deck';
+  classroom?: string;
   name: string;
   pending_cards: number;
   total_cards: number;
@@ -18,6 +19,7 @@ export const DeckCardSecondary = ({
   image,
   name,
   type,
+  classroom,
   pending_cards,
   total_cards,
   onPress,
@@ -25,8 +27,8 @@ export const DeckCardSecondary = ({
   return (
     <Link
       href={{
-        pathname: type == 'deck' ? './deck' : './collection',
-        params: { name },
+        pathname: type === 'deck' ? '/(app)/deck' : '/collection',
+        params: { name, classroom },
       }}
       asChild
     >

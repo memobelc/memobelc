@@ -6,31 +6,53 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  Pressable,
+  FlatList,
+  TextInput,
 } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Menu } from 'lucide-react-native';
+import {
+  MaterialIcons,
+  MaterialCommunityIcons,
+  Feather,
+} from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { useTranslation } from 'react-i18next';
+import Tooltip from 'react-native-walkthrough-tooltip';
+
 import { storage } from '../../../../../FirebaseConfig';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
 import { Input } from '@/components/Input';
 import { OpenStudy } from '@/components/atoms/openStudy';
-import { useCollection } from '@/contexts/CollectionContext';
+import { IClassroom, useCollection } from '@/contexts/CollectionContext';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { useTranslation } from 'react-i18next';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 
+type Student = {
+  name?: string;
+  email: string;
+};
+
 export default function Classroom() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { setCollections, currentCollection, setCurrentDeck } = useCollection();
+  const {
+    setCollections,
+    currentCollection,
+    setCurrentDeck,
+    currentClassroom,
+    setCurrentClassroom,
+  } = useCollection();
+
   const { userInfo } = useSession();
   const { toast } = useToast();
   const { name } = useLocalSearchParams();
@@ -46,9 +68,29 @@ export default function Classroom() {
   >(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [tab, setTab] = useState<'content' | 'people'>('content');
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const fetchData = async () => {
-    setLoadingCollection(true);
+    try {
+      const response = await api.get('/classroom/get_classrooms', {
+        headers: {
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setCurrentClassroom(
+          response.data.classrooms.find(
+            (item: IClassroom) => item._id == currentClassroom!._id,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchCollectionData = async () => {
     try {
       const response = await api.get('/collections/get_by_user', {
         headers: {
@@ -61,8 +103,6 @@ export default function Classroom() {
       }
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoadingCollection(false);
     }
   };
 
@@ -137,6 +177,40 @@ export default function Classroom() {
       fetchData();
     }
   };
+
+  const [email, setEmail] = useState('');
+
+  const handleAddUser = async () => {
+    try {
+      const response = await api.post(
+        '/classroom/add_user_in_classroom',
+        {
+          classroom_id: currentClassroom?._id,
+          email_user: email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userInfo?.token}`,
+          },
+        },
+      );
+      setEmail('');
+
+      if (response.status == 200) {
+        toast({
+          message: 'Invitation sent successfully',
+          variant: 'success',
+          showProgress: true,
+        });
+        fetchData();
+        fetchCollectionData();
+      }
+    } catch (error) {}
+  };
+
+  useEffect(() => {
+    console.log(currentClassroom);
+  }, []);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -226,6 +300,7 @@ export default function Classroom() {
                         name={item.name}
                         image={item.image}
                         type="deck"
+                        classroom={item._id}
                         pending_cards={item.pending_cards}
                         total_cards={item.total_cards}
                         onPress={() => setCurrentDeck(item)}
@@ -391,8 +466,94 @@ export default function Classroom() {
             )}
           </View>
         ) : (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">{t('No people added yet.')}</Text>
+          <View className="flex-1 p-5 bg-white">
+            <Text className="text-2xl font-bold mb-5">Add New User</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg px-4 py-2 mb-3"
+              placeholder="Enter user email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+            <Pressable
+              onPress={handleAddUser}
+              className="bg-blue-500 px-4 py-2 rounded-lg mb-5 self-start"
+            >
+              <Text className="text-white font-medium">Add User</Text>
+            </Pressable>
+
+            {currentClassroom && currentClassroom?.guests.length > 0 && (
+              <>
+                <View className="flex-row items-center mb-2">
+                  <Text className="text-xl font-semibold mr-2">Guests</Text>
+                  <Tooltip
+                    isVisible={showTooltip}
+                    content={
+                      <Text className="text-sm">
+                        Users not registered on the platform yet.
+                      </Text>
+                    }
+                    placement="top"
+                    onClose={() => setShowTooltip(false)}
+                  >
+                    <Pressable onPress={() => setShowTooltip(true)}>
+                      <View
+                        // @ts-ignore
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                      >
+                        <Feather
+                          name="info"
+                          size={16}
+                          color={colors.primary[500]}
+                        />
+                      </View>
+                    </Pressable>
+                  </Tooltip>
+                </View>
+                <FlatList
+                  data={currentClassroom.guests}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }: any) => (
+                    <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <View>
+                        <Text className="text-sm text-gray-600">{item}</Text>
+                      </View>
+                      <Pressable className="p-2 rounded-full hover:bg-gray-100">
+                        <Menu size={20} color="#6b7280" />
+                      </Pressable>
+                    </View>
+                  )}
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                />
+              </>
+            )}
+
+            <Text className="text-xl font-semibold mb-2">Users</Text>
+            <FlatList
+              data={currentClassroom!.students}
+              keyExtractor={(item) => item.email}
+              renderItem={({ item }: any) => (
+                <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                  <View>
+                    <Text className="text-base font-semibold">{item.name}</Text>
+
+                    <Text className="text-sm text-gray-600">{item.email}</Text>
+                  </View>
+                  <Pressable className="p-2 rounded-full hover:bg-gray-100">
+                    <Menu size={20} color="#6b7280" />
+                  </Pressable>
+                </View>
+              )}
+              ListEmptyComponent={
+                <View className="items-center justify-center p-5">
+                  <Text className="text-gray-500">
+                    {t('No people added yet.')}
+                  </Text>
+                </View>
+              }
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
           </View>
         )}
         <LinearGradient

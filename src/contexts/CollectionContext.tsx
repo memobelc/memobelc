@@ -42,26 +42,43 @@ type ProgressUpdate = {
   }[];
 };
 
+export type IClassroom = {
+  _id: string;
+  collection: string;
+  created_at: Date;
+  decks: string[];
+  guests: [];
+  image: string;
+  name: string;
+  students: { name: string; email: string }[];
+  teacher: string;
+  updated_at: Date;
+};
+
 const CollectionContext = createContext<{
   collections: Collection[] | null;
   currentCollection: Collection | null;
   currentDeck: Deck | null;
   progressUpdate: ProgressUpdate | null;
+  currentClassroom: IClassroom | null;
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
   setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
   setProgressUpdate: React.Dispatch<
     React.SetStateAction<ProgressUpdate | null>
   >;
+  setCurrentClassroom: React.Dispatch<React.SetStateAction<IClassroom | null>>;
 }>({
   collections: null,
   currentCollection: null,
   currentDeck: null,
   progressUpdate: null,
+  currentClassroom: null,
   setCollections: () => {},
   setCurrentCollection: () => {},
   setCurrentDeck: () => {},
   setProgressUpdate: () => {},
+  setCurrentClassroom: () => {},
 });
 
 export function useCollection() {
@@ -89,6 +106,10 @@ export function CollectionProvider({ children }: PropsWithChildren) {
     null,
   );
 
+  const [currentClassroom, setCurrentClassroom] = useState<IClassroom | null>(
+    null,
+  );
+
   return (
     <CollectionContext.Provider
       value={{
@@ -100,6 +121,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         setCurrentDeck,
         progressUpdate,
         setProgressUpdate,
+        currentClassroom,
+        setCurrentClassroom,
       }}
     >
       {children}
