@@ -31,7 +31,7 @@ export default function Deck() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { currentDeck, setCollections } = useCollection();
+  const { currentDeck, setCollections, currentCollection } = useCollection();
 
   const [cards, setCards] = useState<IcardProps[] | []>([]);
 
@@ -256,13 +256,15 @@ export default function Deck() {
         pointerEvents="none"
       />
 
-      <TouchableOpacity
-        style={{ backgroundColor: colors.primary[500] }}
-        className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
-        onPress={HandleOpenAddCard}
-      >
-        <Text className="text-white font-bold text-2xl">Add cards</Text>
-      </TouchableOpacity>
+      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+        <TouchableOpacity
+          style={{ backgroundColor: colors.primary[500] }}
+          className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
+          onPress={HandleOpenAddCard}
+        >
+          <Text className="text-white font-bold text-2xl">Add cards</Text>
+        </TouchableOpacity>
+      )}
 
       {openStudy && <OpenStudy open={openStudy} />}
 

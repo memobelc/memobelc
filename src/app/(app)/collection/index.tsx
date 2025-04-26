@@ -277,13 +277,15 @@ export default function Collection() {
         pointerEvents="none"
       />
 
-      <TouchableOpacity
-        style={{ backgroundColor: colors.primary[500] }}
-        className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"
-        onPress={HandleOpenAddDeck}
-      >
-        <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>
-      </TouchableOpacity>
+      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+        <TouchableOpacity
+          style={{ backgroundColor: colors.primary[500] }}
+          className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"
+          onPress={HandleOpenAddDeck}
+        >
+          <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>
+        </TouchableOpacity>
+      )}
 
       {openStudy && <OpenStudy open={openStudy} />}
 
