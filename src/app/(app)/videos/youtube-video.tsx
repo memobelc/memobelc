@@ -285,9 +285,9 @@ const YouTubeVideo = () => {
       />
       {openStudy && (
         <OpenDialogInput open={openStudy} title="Select the desired collection">
-          <View className="w-full">
+          <View className="w-full max-h-[80vh]">
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }}
+              contentContainerStyle={{ paddingBottom: 200, paddingTop: 25 }}
               showsVerticalScrollIndicator={false}
             >
               {collections && collections.length >= 1 && (
