@@ -136,7 +136,7 @@ const MenuExploreDrawer = () => {
                   {t('Explore')}
                 </Text>
               </View>
-              {!userInfo?.premium && (
+              {/* {!userInfo?.premium && (
                 <TouchableOpacity className="mb-3">
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
@@ -165,7 +165,7 @@ const MenuExploreDrawer = () => {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              )}
+              )} */}
               <View>
                 {menuItems.map((item) => {
                   const isActive = pathname === item.path;

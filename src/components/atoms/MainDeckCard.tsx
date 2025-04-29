@@ -42,7 +42,10 @@ export const MainDeckCard = ({
 
   return (
     <Link
-      className="flex items-center justify-center md:justify-end"
+      className="flex items-center justify-center md:justify-end p-3"
+      style={{
+        padding: 12,
+      }}
       href={{
         pathname: type == 'class' ? './classrooms/class' : './collection',
         params: { name },
@@ -53,7 +56,7 @@ export const MainDeckCard = ({
         onPress={onPress}
         className="w-full flex flex-row items-center justify-end"
       >
-        <View className="bg-white m-3 w-64 h-64 sm:w-72 sm:h-72  lg:w-80 lg:h-80  rounded-[12px] overflow-hidden shadow-lg">
+        <View className="bg-white m-3 w-60 h-60 lg:w-80 lg:h-80  rounded-[12px] overflow-hidden shadow-lg">
           <Image
             style={{ width: '100%', height: '65%' }}
             source={imgSource}

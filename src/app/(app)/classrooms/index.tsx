@@ -1,11 +1,8 @@
-import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  TextInput,
-  Platform,
   Image,
   Modal,
 } from 'react-native';
@@ -17,7 +14,6 @@ import {
   MaterialIcons,
 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
 import { IClassroom, useCollection } from '@/contexts/CollectionContext';
 import { useTranslation } from 'react-i18next';
@@ -249,9 +245,9 @@ export default function Classrooms() {
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 50 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-row flex-wrap justify-center gap-4 px-4">
+        <View className="flex-row flex-wrap justify-center gap-4 px-2">
           {classrooms.map((classroom, index) => (
-            <View key={index} className="w-[47%] md:w-[30%]">
+            <View key={index}>
               <MainDeckCard
                 name={classroom.name}
                 image={classroom.image}
@@ -329,7 +325,7 @@ export default function Classrooms() {
           <View className="border-b border-gray-300 mb-4 w-full" />
 
           <View>
-            <View className="flex flex-row items-center justify-betweenS">
+            <View className="flex flex-row items-center justify-between">
               <TouchableOpacity
                 onPress={pickImage}
                 className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-[80%]"
@@ -388,6 +384,8 @@ export default function Classrooms() {
                 </Text>
                 <ScrollView
                   contentContainerStyle={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
                     flexDirection: 'row',
                     flexWrap: 'wrap',
                     gap: 10,

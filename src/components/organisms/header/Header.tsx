@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import AvatarProfileDropDown from '@/components/molecules/AvatarProfileDropDown';
+import AvatarProfileDrawer from '@/components/molecules/AvatarProfileDrawer';
 import MenuExploreDrawer from '@/components/molecules/MenuExploreDrawer';
 import { colors } from '@/styles/colors';
 
@@ -12,7 +12,7 @@ const Header = () => {
     >
       <View className="flex-row justify-between items-center w-[80%] md:w-full  m-auto mt-0">
         <MenuExploreDrawer />
-        <AvatarProfileDropDown />
+        <AvatarProfileDrawer />
       </View>
     </View>
   );

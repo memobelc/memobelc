@@ -31,7 +31,7 @@ type menuItem = {
 
 const menuItems: menuItem[] | [] = [];
 
-const AvatarProfileDropDown = () => {
+const AvatarProfileDrawer = () => {
   const { userInfo, signOut } = useSession();
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
@@ -173,7 +173,7 @@ const AvatarProfileDropDown = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
-              {!userInfo?.premium && (
+              {/* {!userInfo?.premium && (
                 <TouchableOpacity className="mb-3" disabled={loading}>
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
@@ -202,7 +202,7 @@ const AvatarProfileDropDown = () => {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              )}
+              )} */}
 
               <View>
                 {menuItems &&
@@ -267,4 +267,4 @@ const AvatarProfileDropDown = () => {
   );
 };
 
-export default AvatarProfileDropDown;
+export default AvatarProfileDrawer;
