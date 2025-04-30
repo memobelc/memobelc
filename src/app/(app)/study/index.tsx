@@ -118,6 +118,7 @@ export default function Study() {
           <FlipCard
             frontSide={currentCard.front}
             backSide={currentCard.back}
+            audio={currentCard.audio}
             onFlip={() => setFlipped(true)}
           />
         )}

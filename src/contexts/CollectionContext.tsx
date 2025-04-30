@@ -9,6 +9,7 @@ type card = {
   back: string;
   card_id: string;
   front: string;
+  audio: string;
   last_reviewed: string;
   next_review: string;
 };

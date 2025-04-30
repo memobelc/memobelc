@@ -1,13 +1,15 @@
 import { View, Text } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
+import AudioPlayer from '@/components/atoms/AudioPlayer';
 
 interface CardDisplayingProps {
   front: string;
   back: string;
+  audio?: string | null;
 }
 
-export const CardDisplaying = ({ front, back }: CardDisplayingProps) => {
+export const CardDisplaying = ({ front, back, audio }: CardDisplayingProps) => {
   return (
     <View className="w-full min-h-[140px] flex-col justify-center bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3 p-5">
       <View className="flex flex-row items-center justify-start ">
@@ -38,6 +40,11 @@ export const CardDisplaying = ({ front, back }: CardDisplayingProps) => {
           {back}
         </Text>
       </View>
+      {audio && (
+        <View className="absolute right-5 bottom-5">
+          <AudioPlayer audioUri={audio} autoPlay={false} />
+        </View>
+      )}
     </View>
   );
 };

@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Image, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  MaterialIcons,
+  MaterialCommunityIcons,
+  FontAwesome,
+} from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import * as DocumentPicker from 'expo-document-picker';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
@@ -18,11 +25,14 @@ import { useTranslation } from 'react-i18next';
 import { setImageUrlDeck } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
 
+import { storage } from '../../../../FirebaseConfig';
+
 interface IcardProps {
   _id: string;
   back: string;
   created_at: string;
   front: string;
+  audio?: string;
   media_type: any;
   updated_at: string;
 }
@@ -47,8 +57,20 @@ export default function Deck() {
 
   const [frontSide, setFrontSide] = useState('');
   const [backSide, setBackSide] = useState('');
+  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
 
   const [viewCArd, setViewCArd] = useState(false);
+
+  const pickAndUploadAudio = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'audio/*',
+      copyToCacheDirectory: true,
+    });
+
+    if (result.assets) {
+      setSelectedAudio(result.assets[0].uri);
+    }
+  };
 
   const HandleOpenAddCard = () => {
     setOpenAddCard(true);
@@ -111,12 +133,22 @@ export default function Deck() {
   };
 
   const HandleCreateCard = async () => {
+    let urlAudio = '';
+    if (selectedAudio) {
+      const response = await fetch(selectedAudio);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `audios/cards/${Date.now()}`);
+
+      await uploadBytes(storageRef, blob);
+      urlAudio = await getDownloadURL(storageRef);
+    }
     try {
       await api.post('/card/create', {
         front: frontSide,
         back: backSide,
         deck_id: currentDeck?._id,
         user_id: userInfo?.user_id,
+        audio: urlAudio,
       });
 
       toast({
@@ -246,6 +278,7 @@ export default function Deck() {
                 key={item._id}
                 front={item.front}
                 back={item.back}
+                audio={item.audio}
               />
             ))}
         </View>
@@ -302,7 +335,7 @@ export default function Deck() {
 
           <View className="border-b border-gray-300 mb-4 w-full" />
           {!viewCArd ? (
-            <>
+            <ScrollView className="w-full" showsVerticalScrollIndicator={false}>
               <Input
                 label="Front Side"
                 className="py-6 w-full"
@@ -317,9 +350,22 @@ export default function Deck() {
                 value={backSide}
                 onChangeText={(text) => setBackSide(text)}
               />
-            </>
+              <TouchableOpacity
+                onPress={pickAndUploadAudio}
+                className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
+              >
+                <FontAwesome name="file-audio-o" size={24} color="black" />
+                <Text className="text-gray-500 mt-2">
+                  {t('Tap to attach audio')}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           ) : (
-            <FlipCard frontSide={frontSide} backSide={backSide} />
+            <FlipCard
+              frontSide={frontSide}
+              backSide={backSide}
+              audio={selectedAudio}
+            />
           )}
         </DialogContent>
       )}
