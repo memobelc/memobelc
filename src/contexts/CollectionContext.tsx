@@ -56,6 +56,21 @@ export type IClassroom = {
   updated_at: Date;
 };
 
+export type Chats = {
+  _id: string;
+  created_at: string;
+  user_id: string;
+  settings: {
+    language_conversation: string;
+  };
+  history: {
+    role: string;
+    parts: {
+      text: string;
+    }[];
+  }[];
+};
+
 const CollectionContext = createContext<{
   collections: Collection[] | null;
   currentCollection: Collection | null;

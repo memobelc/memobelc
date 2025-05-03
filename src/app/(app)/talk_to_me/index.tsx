@@ -14,13 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '@/styles/colors';
 import { useProfile } from '@/contexts/profileContext';
+import ChatExploreDrawer from '@/components/molecules/ChatExploreDrawer';
+import { Chats } from '@/contexts/CollectionContext';
 
 type TextMessage = {
   text: string;
 };
 
 type Message = {
-  role: 'user' | 'model';
+  role: string;
   parts: TextMessage[];
 };
 
@@ -39,8 +41,26 @@ export default function ChatScreen() {
   const [chatId, setChatId] = useState<string | null>(null);
 
   const [setting_language, setSetting_language] = useState(language || 'en');
+  const [menuItems, setMenuItems] = useState<Chats[] | null>();
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
   const { userInfo } = useSession();
+
+  const fetchDataChats = async () => {
+    try {
+      const response = await api.get('/chat/get_chats_by_user', {
+        headers: {
+          Authorization: `Bearer ${userInfo?.token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setMenuItems(response.data.chats);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const sendMessage = async (newMessage: string) => {
     if (!newMessage.trim()) return;
@@ -71,6 +91,7 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
+    fetchDataChats();
     if (messages.length == 0) {
       setMessages([
         {
@@ -87,6 +108,12 @@ export default function ChatScreen() {
       ]);
     }
   }, []);
+  useEffect(() => {
+    if (selectedChatId) {
+      const selected = menuItems?.find((item) => item._id === selectedChatId);
+      setMessages(selected?.history ?? []);
+    }
+  }, [selectedChatId]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -108,8 +135,16 @@ export default function ChatScreen() {
           />
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
+        {menuItems && menuItems.length > 0 && (
+          <View className="">
+            <ChatExploreDrawer
+              menuItems={menuItems}
+              onSelectChat={setSelectedChatId}
+            />
+          </View>
+        )}
       </View>
-      <View className="flex-1  pt-0 p-4 bg-white">
+      <View className="flex-1  pt-0 p-4">
         <FlatList
           ref={flatListRef}
           data={messages}
