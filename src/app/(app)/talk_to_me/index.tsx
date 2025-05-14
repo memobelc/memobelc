@@ -39,10 +39,10 @@ export default function ChatScreen() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<boolean>(false);
 
   const [setting_language, setSetting_language] = useState(language || 'en');
   const [menuItems, setMenuItems] = useState<Chats[] | null>();
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
   const { userInfo } = useSession();
 
@@ -83,11 +83,17 @@ export default function ChatScreen() {
         },
       },
     );
+    setSelectedChatId(false);
     setMessages([
       ...newMessages,
       { role: 'model', parts: [{ text: response.data.reply }] },
     ]);
     setChatId(response.data.chat_id);
+  };
+
+  const handleSetChat = async (id: string) => {
+    setChatId(id);
+    setSelectedChatId(true);
   };
 
   useEffect(() => {
@@ -109,11 +115,11 @@ export default function ChatScreen() {
     }
   }, []);
   useEffect(() => {
-    if (selectedChatId) {
-      const selected = menuItems?.find((item) => item._id === selectedChatId);
+    if (chatId && selectedChatId) {
+      const selected = menuItems?.find((item) => item._id === chatId);
       setMessages(selected?.history ?? []);
     }
-  }, [selectedChatId]);
+  }, [chatId]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -139,7 +145,7 @@ export default function ChatScreen() {
           <View className="">
             <ChatExploreDrawer
               menuItems={menuItems}
-              onSelectChat={setSelectedChatId}
+              onSelectChat={handleSetChat}
             />
           </View>
         )}
