@@ -76,11 +76,11 @@ export default function VideoScreen() {
         </TouchableOpacity>
       </View>
 
-      <TextInput
+      {/* <TextInput
         placeholder={t('Search videos...')}
         placeholderTextColor="#888"
         className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
-      />
+      /> */}
 
       <View>
         <ScrollView

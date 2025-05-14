@@ -110,7 +110,7 @@ const AvatarProfileDrawer = () => {
   }, [open]);
 
   useEffect(() => {
-    i18n.changeLanguage(language || 'en');
+    i18n.changeLanguage(language || 'pt-BR');
   }, [language]);
 
   return (

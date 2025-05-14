@@ -16,7 +16,7 @@ const translations = {
 };
 
 i18n.use(initReactI18next).init({
-  lng: 'en',
+  lng: 'pt-BR',
   resources: translations,
   react: {
     useSuspense: false,

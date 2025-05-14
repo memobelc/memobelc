@@ -68,11 +68,11 @@ export default function BooksScreen() {
         </TouchableOpacity>
       </View>
 
-      <TextInput
+      {/* <TextInput
         placeholder={t('Search books...')}
         placeholderTextColor="#888"
         className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
-      />
+      /> */}
 
       <View>
         <ScrollView

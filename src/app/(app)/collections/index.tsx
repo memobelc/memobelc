@@ -37,11 +37,11 @@ export default function AllCollections() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        <TextInput
+        {/* <TextInput
           placeholder={t('Search decks...')}
           placeholderTextColor="#888"
           className="h-14 w-full mb-3 border border-gray-300 rounded-lg pl-2 text-sm"
-        />
+        /> */}
       </View>
       <View
         style={

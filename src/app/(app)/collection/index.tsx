@@ -230,13 +230,13 @@ export default function Collection() {
                 </Text>
                 <MaterialIcons name="arrow-right-alt" size={40} color="white" />
               </TouchableOpacity>
-              <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
+              {/* <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
                 <TextInput
                   placeholder={t('Search decks...')}
                   placeholderTextColor="#888"
                   className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
                 />
-              </View>
+              </View> */}
             </>
           ) : (
             <View className="flex  items-center justify-center py-10">
