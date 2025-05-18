@@ -1,8 +1,15 @@
 {
   "translation": {
-    "Don't have an account yet?": "Don't have an account yet?",
+    "E-mail": "E-mail",
+    "Password": "Password",
+    "Login": "Login",
+    "Don't have an account yet? ": "Don't have an account yet? ",
     "Create now!": "Create now!",
     "Forgot your password?": "Forgot your password?",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
 
     "Back": "Back",
     "Search books...": "Search books...",
@@ -19,6 +26,7 @@
     "See all your decks": "See all your decks",
 
     "New deck collection": "New deck collection",
+    "Your collection is empty, add a deck to your collection": "Your collection is empty, add a deck to your collection",
     "Tap to send an image": "Tap to send an image",
     "Enter name deck collection": "Enter name deck collection",
     "Create New deck collection": "Create New deck collection",
@@ -42,6 +50,13 @@
     "Go premium": "Go premium",
     "Language": "Language",
     "Log out": "Log out",
+
+    "Type your message": "Type your message",
+
+    "Today": "Today",
+    "Last 7 days": "Last 7 days",
+    "Last 30 days": "Last 30 days",
+    "Oldest": "Oldest",
 
     "Explore": "Explore",
     "Home": "Home",

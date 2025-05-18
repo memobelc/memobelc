@@ -1,8 +1,28 @@
 {
   "translation": {
-    "Don't have an account yet?": "Ainda não tem uma conta?",
+    "Name is required": "Nome é obrigatório",
+    "Invalid email address": "Endereço de e-mail inválido",
+    "Email is required": "E-mail é obrigatório",
+    "Password must be at least 6 characters": "A senha deve ter pelo menos 6 caracteres",
+    "Password is required": "Senha é obrigatória",
+    "Passwords do not match": "As senhas não coincidem",
+    "Confirm password is required": "Confirmação de senha é obrigatória",
+    "User created successfully!": "Usuário criado com sucesso!",
+    "This email is already in use. Please try another one.": "Este e-mail já está em uso. Por favor, tente outro.",
+    "An unexpected error has occurred.": "Ocorreu um erro inesperado.",
+
+    "E-mail": "E-mail",
+    "Password": "Senha",
+    "Login": "Entrar",
+    "Don't have an account yet? ": "Ainda não tem uma conta? ",
     "Create now!": "Crie agora!",
     "Forgot your password?": "Esqueceu sua senha?",
+    "name": "Nome",
+    "email": "E-mail",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha",
+    "Register": "Criar Conta",
+    "Already have an account?": "Já tem uma conta? ",
 
     "Back": "Voltar",
     "Search books...": "Buscar Livros...",
@@ -19,6 +39,7 @@
     "See all your decks": "Veja todos os seus decks",
 
     "New deck collection": "Nova coleção de decks",
+    "Your collection is empty, add a deck to your collection": "Sua coleção está vazia, adicione um deck a sua coleção",
     "Tap to send an image": "Toque para enviar uma imagem",
     "Enter name deck collection": "Digite o nome da coleção de decks",
     "Create New deck collection": "Criar nova coleção de decks",
@@ -42,6 +63,13 @@
     "Go premium": "Torne-se premium",
     "Language": "Idioma",
     "Log out": "Sair",
+
+    "Type your message": "",
+
+    "Today": "Hoje",
+    "Last 7 days": "Últimos 7 dias",
+    "Last 30 days": "Últimos 30 dias",
+    "Oldest": "Mais antigo",
 
     "Explore": "Explorar",
     "Home": "Home",

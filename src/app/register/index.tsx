@@ -8,26 +8,28 @@ import { colors } from '@/styles/colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useToast } from '@/components/Toast';
 import * as yup from 'yup';
-
-const validationSchema = yup.object().shape({
-  name: yup.string().required('Name is required'),
-  email: yup
-    .string()
-    .email('Invalid email address')
-    .required('Email is required'),
-  password: yup
-    .string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref('password'), undefined], 'Passwords do not match')
-    .required('Confirm password is required'),
-});
+import { useTranslation } from 'react-i18next';
 
 export default function Register() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { toast } = useToast();
+
+  const validationSchema = yup.object().shape({
+    name: yup.string().required(t('Name is required')),
+    email: yup
+      .string()
+      .email(t('Invalid email address'))
+      .required(t('Email is required')),
+    password: yup
+      .string()
+      .min(6, t('Password must be at least 6 characters'))
+      .required(t('Password is required')),
+    confirmPassword: yup
+      .string()
+      .oneOf([yup.ref('password'), undefined], t('Passwords do not match'))
+      .required(t('Confirm password is required')),
+  });
 
   const [formData, setFormData] = useState<Record<string, string>>({
     name: '',
@@ -70,7 +72,7 @@ export default function Register() {
           params: { token: response.data.token },
         });
         toast({
-          message: 'Usuário criado com sucesso!',
+          message: t('User created successfully!'),
           variant: 'success',
           showProgress: true,
         });
@@ -90,13 +92,13 @@ export default function Register() {
         });
       } else if (isAxiosError(error) && error.response.status === 409) {
         toast({
-          message: 'Este e-mail já está em uso. Por favor, tente outro.',
+          message: t('This email is already in use. Please try another one.'),
           variant: 'destructive',
           showProgress: true,
         });
       } else {
         toast({
-          message: 'Ocorreu um erro inesperado.',
+          message: t('An unexpected error has occurred.'),
           variant: 'destructive',
         });
       }
@@ -125,7 +127,7 @@ export default function Register() {
           >
             <TextInput
               className="flex-1 h-14"
-              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+              placeholder={t(field)}
               placeholderTextColor={colors.placeholder}
               secureTextEntry={
                 ['password', 'confirmPassword'].includes(field) &&
@@ -159,16 +161,15 @@ export default function Register() {
         style={{ backgroundColor: colors.info[500] }}
         onPress={handleRegister}
       >
-        <Text style={{ color: colors.gray[100] }}>Register</Text>
+        <Text style={{ color: colors.gray[100] }}>{t('Register')}</Text>
       </TouchableOpacity>
       <View className="items-center text-lg font-bold">
         <Text style={{ color: colors.gray[100] }}>
-          Already have an account?
+          {t('Already have an account?')}
         </Text>
         <TouchableOpacity onPress={() => router.push('./login')}>
           <Text className="font-bold" style={{ color: colors.primary[600] }}>
-            {' '}
-            Log in!
+            {t('Login')}
           </Text>
         </TouchableOpacity>
       </View>

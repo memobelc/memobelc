@@ -197,7 +197,7 @@ export default function ChatScreen() {
             className="flex-1 p-2 bg-gray-100 rounded-lg"
             value={message}
             onChangeText={setMessage}
-            placeholder="Digite sua mensagem"
+            placeholder={t('Type your message')}
             autoCorrect={false}
             spellCheck={false}
             autoCapitalize="none"

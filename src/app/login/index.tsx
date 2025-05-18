@@ -1,31 +1,58 @@
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Switch,
-  Image,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
+import * as yup from 'yup';
 
 export default function SignIn() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const validationSchema = yup.object().shape({
+    email: yup
+      .string()
+      .email(t('Invalid email address'))
+      .required(t('Email is required')),
+    password: yup
+      .string()
+      .min(6, t('Password must be at least 6 characters'))
+      .required(t('Password is required')),
+  });
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    email: '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
   const { signIn, isLoading } = useSession();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
-  const handleLogin = () => {
-    signIn(email, password);
+  const handleLogin = async () => {
+    try {
+      setErrors({});
+      await validationSchema.validate(formData, { abortEarly: false });
+      signIn(formData.email, formData.password);
+    } catch (error) {
+      if (error instanceof yup.ValidationError) {
+        const newErrors: Record<string, string> = {};
+
+        error.inner.forEach((err) => {
+          if (err.path) newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+      }
+    }
   };
 
   return isLoading ? (
@@ -43,23 +70,28 @@ export default function SignIn() {
       >
         <TextInput
           className="flex-1 h-14"
-          placeholder="E-mail"
+          placeholder={t('E-mail')}
           placeholderTextColor={colors.placeholder}
-          value={email}
-          onChangeText={setEmail}
+          value={formData.email}
+          onChangeText={(value) => handleInputChange('email', value)}
         />
       </View>
+      {errors['email'] && (
+        <Text className="-mt-3 mb-3" style={{ color: colors.error[500] }}>
+          {errors['email']}
+        </Text>
+      )}
       <View
         className="w-full md:w-80 rounded-[25px] flex-row items-center mb-5 px-4"
         style={{ backgroundColor: colors.gray[100] }}
       >
         <TextInput
           className="flex-1 h-14"
-          placeholder="Password"
+          placeholder={t('Password')}
           placeholderTextColor={colors.placeholder}
           secureTextEntry={!isPasswordVisible}
-          value={password}
-          onChangeText={setPassword}
+          value={formData.password}
+          onChangeText={(value) => handleInputChange('password', value)}
         />
         <TouchableOpacity
           onPress={() => setPasswordVisible(!isPasswordVisible)}
@@ -72,6 +104,11 @@ export default function SignIn() {
           )}
         </TouchableOpacity>
       </View>
+      {errors['password'] && (
+        <Text className="-mt-3 mb-3" style={{ color: colors.error[500] }}>
+          {errors['password']}
+        </Text>
+      )}
       <TouchableOpacity
         className="w-full md:w-80 py-4 rounded-[25px] flex-row justify-center items-center mb-5"
         style={{ backgroundColor: colors.info[500] }}
@@ -81,7 +118,7 @@ export default function SignIn() {
           className="text-lg font-bold mr-3"
           style={{ color: colors.gray[100] }}
         >
-          Login
+          {t('Login')}
         </Text>
         <FontAwesome name="rocket" size={18} color={colors.gray[100]} />
       </TouchableOpacity>
