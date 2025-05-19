@@ -241,7 +241,7 @@ const AvatarProfileDrawer = () => {
                   <Picker
                     selectedValue={language}
                     onValueChange={(itemValue) =>
-                      setLanguage(itemValue || 'en')
+                      setLanguage(itemValue || 'pt-BR')
                     }
                   >
                     <Picker.Item label="English" value="en" />

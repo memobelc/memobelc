@@ -9,6 +9,7 @@ import { colors } from '@/styles/colors';
 import { useSession } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import { useToast } from '@/components/Toast';
+import { useTranslation } from 'react-i18next';
 
 export default function Study() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function Study() {
     useCollection();
   const { userInfo } = useSession();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { q } = useLocalSearchParams();
 
   const [range, setRange] = useState(0);
@@ -123,8 +125,8 @@ export default function Study() {
           />
         )}
         {flipped && (
-          <View className="flex-row justify-between p-4 md:w-[50%]">
-            {['easy', 'good', 'difficult', "I don't remember"].map((level) => (
+          <View className="flex-row justify-between p-4 mb-10 md:w-[50%]">
+            {['Easy', 'Good', 'Difficult', "I don't remember"].map((level) => (
               <TouchableOpacity
                 key={level}
                 className={`flex-1 items-center p-2 mx-1 bg-${level}-500 rounded-lg`}
@@ -132,19 +134,27 @@ export default function Study() {
               >
                 <MaterialCommunityIcons
                   name={
-                    level === 'easy'
+                    level === 'Easy'
                       ? 'emoticon-excited-outline'
-                      : level === 'good'
+                      : level === 'Good'
                         ? 'emoticon-happy-outline'
-                        : level === 'difficult'
+                        : level === 'Difficult'
                           ? 'emoticon-neutral-outline'
                           : 'emoticon-sad-outline'
                   }
-                  size={24}
-                  color={colors.error[600]}
+                  size={38}
+                  color={
+                    level === 'Easy'
+                      ? colors.success[700]
+                      : level === 'Good'
+                        ? colors.success[500]
+                        : level === 'Difficult'
+                          ? colors.warning[500]
+                          : colors.error[500]
+                  }
                 />
-                <Text className="text-blue text-center text-xs mt-1">
-                  {level.replace('_', ' ')}
+                <Text className="text-blue font-bold text-center text-xs mt-1">
+                  {t(level)}
                 </Text>
               </TouchableOpacity>
             ))}

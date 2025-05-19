@@ -66,10 +66,10 @@ const FlipCard = ({
   });
 
   return (
-    <View className="flex  w-full items-center justify-start py-5">
+    <View className="flex  w-full h-[60%] items-center justify-start py-5 ">
       <Pressable
         onPress={flipCard}
-        className={`w-[80%] ${Platform.OS == 'web' ? 'h-[350]' : 'h-[70%]'} relative`}
+        className={`w-[80%] ${Platform.OS == 'web' ? 'h-[350]' : 'h-[90%]'} relative`}
       >
         {/* Front of Card */}
 
