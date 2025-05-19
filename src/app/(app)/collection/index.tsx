@@ -94,7 +94,16 @@ export default function Collection() {
       });
 
       if (response.status === 200) {
-        setCollections(response.data.collections);
+        const updatedCollections = response.data.collections;
+        setCollections(updatedCollections);
+
+        const updated = updatedCollections.find(
+          (e: any) => e._id === currentCollection?._id,
+        );
+
+        if (updated) {
+          setCurrentCollection(updated);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -128,7 +137,6 @@ export default function Collection() {
         variant: 'success',
         showProgress: true,
       });
-      fetchData();
     } catch (error) {
       if (error instanceof Error) {
         console.error(error.message);
