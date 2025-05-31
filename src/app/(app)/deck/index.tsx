@@ -4,6 +4,7 @@ import {
   MaterialIcons,
   MaterialCommunityIcons,
   FontAwesome,
+  Feather,
 } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -249,14 +250,20 @@ export default function Deck() {
           <Loading color={colors.primary[500]} />
         ) : cards.length !== 0 ? (
           <TouchableOpacity
-            style={{ backgroundColor: colors.warning[500] }}
+            style={{
+              backgroundColor:
+                currentDeck?.pending_cards == 0
+                  ? colors.warning[100]
+                  : colors.warning[500],
+            }}
             className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
             onPress={HandleOpenStudy}
+            disabled={currentDeck?.pending_cards == 0}
           >
             <Text className="text-white font-bold text-2xl">
               {t('Study Now')}
             </Text>
-            <MaterialIcons name="arrow-right-alt" size={40} color="white" />
+            <Feather name="arrow-right" size={40} color="white" />
           </TouchableOpacity>
         ) : (
           <View className="flex  items-center justify-center py-10">

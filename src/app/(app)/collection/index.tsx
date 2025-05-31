@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -9,7 +9,11 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  MaterialIcons,
+  MaterialCommunityIcons,
+  Feather,
+} from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +34,7 @@ import { colors } from '@/styles/colors';
 import { storage } from '../../../../FirebaseConfig';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
+import * as yup from 'yup';
 
 export default function Collection() {
   const {
@@ -42,14 +47,24 @@ export default function Collection() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const router = useRouter();
-  const { setOpen } = useDialog();
+
+  const validationSchema = yup.object().shape({
+    name: yup.string().required(t('Name is required')),
+  });
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { setOpen, open } = useDialog();
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
     string | null
   >(null);
-  const [nameDeck, setNameDeck] = useState('');
+  // const [nameDeck, setNameDeck] = useState('');
   const [loadingCollection, setLoadingCollection] = useState(false);
   const { name } = useLocalSearchParams();
   const [modalVisible, setModalVisible] = useState(false);
@@ -113,32 +128,54 @@ export default function Collection() {
   };
 
   const HandleCreateDeck = async () => {
+    setErrors({});
     let url = '';
-    if (selectedImage && !selectedImageFromGallery) {
-      const response = await fetch(selectedImage);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `images/decks/${Date.now()}`);
 
-      await uploadBytes(storageRef, blob);
-      url = await getDownloadURL(storageRef);
-    } else {
-      url = selectedImageFromGallery!;
-    }
+    const validateForm = async () => {
+      await validationSchema.validate(formData, { abortEarly: false });
+    };
 
-    try {
+    const uploadImageIfNeeded = async (): Promise<string> => {
+      if (selectedImage && !selectedImageFromGallery) {
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `images/decks/${Date.now()}`);
+
+        await uploadBytes(storageRef, blob);
+        return await getDownloadURL(storageRef);
+      }
+
+      return selectedImageFromGallery!;
+    };
+
+    const createDeck = async (imageUrl: string) => {
       await api.post('/deck/create', {
-        name: nameDeck,
-        image: url,
+        name: formData.name,
+        image: imageUrl,
         collection_id: currentCollection?._id,
       });
 
       toast({
-        message: 'Deck  created successfully',
+        message: t('Deck created successfully'),
         variant: 'success',
         showProgress: true,
       });
+    };
+
+    try {
+      await validateForm();
+      url = await uploadImageIfNeeded();
+      await createDeck(url);
+      setOpen(false);
+      setSelectedImage(null);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof yup.ValidationError) {
+        const newErrors: Record<string, string> = {};
+        error.inner.forEach((err) => {
+          if (err.path) newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+      } else if (error instanceof Error) {
         console.error(error.message);
         toast({
           message: error.message,
@@ -147,17 +184,31 @@ export default function Collection() {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: 'An unexpected error has occurred',
           variant: 'destructive',
         });
       }
     } finally {
-      setOpen(false);
-      setNameDeck('');
-      setSelectedImage(null);
       fetchData();
     }
   };
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const closeAddDeck = async () => {
+    handleInputChange('name', '');
+    setOpenAddDeck(false);
+    setOpen(false);
+    setSelectedImage(null);
+  };
+
+  useEffect(() => {
+    if (!open) {
+      closeAddDeck();
+    }
+  }, [open]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -229,14 +280,20 @@ export default function Collection() {
           ) : currentCollection?.decks.length !== 0 ? (
             <>
               <TouchableOpacity
-                style={{ backgroundColor: colors.warning[500] }}
+                style={{
+                  backgroundColor:
+                    currentCollection?.pending_cards == 0
+                      ? colors.warning[100]
+                      : colors.warning[500],
+                }}
                 className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
                 onPress={HandleOpenStudy}
+                disabled={currentCollection?.pending_cards == 0}
               >
                 <Text className="text-white font-bold text-2xl">
                   {t('Study Now')}
                 </Text>
-                <MaterialIcons name="arrow-right-alt" size={40} color="white" />
+                <Feather name="arrow-right" size={40} color="white" />
               </TouchableOpacity>
               {/* <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
                 <TextInput
@@ -303,7 +360,7 @@ export default function Collection() {
             <Text className="font-semibold text-xl text-primary justify-center">
               {t('New deck')}
             </Text>
-            <TouchableOpacity onPress={() => setOpen(false)}>
+            <TouchableOpacity onPress={() => closeAddDeck()}>
               <MaterialIcons name="close" size={24} color={colors.gray[950]} />
             </TouchableOpacity>
           </View>
@@ -405,10 +462,22 @@ export default function Collection() {
           </View>
           <Input
             placeholder={t('Enter name deck collection')}
-            className="py-6 w-full"
-            value={nameDeck}
-            onChangeText={(text) => setNameDeck(text)}
+            className="my-6 w-full"
+            style={[
+              {
+                borderWidth: 1,
+                borderColor: errors['name'] ? 'red' : '#ccc',
+                borderRadius: 8,
+              },
+            ]}
+            value={formData.name}
+            onChangeText={(value) => handleInputChange('name', value)}
           />
+
+          <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
+            {errors['name']}
+          </Text>
+
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
             className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
