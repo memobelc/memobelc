@@ -44,7 +44,7 @@ export default function Classrooms() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [openStudy, setOpenStudy] = useState(true);
+  const [addNewClass, setAddNewClass] = useState(false);
   const [loadingClassroom, setLoadingClassroom] = useState(false);
   const [classrooms, setClassrooms] = useState<IClassroom[] | []>([]);
   const [selectedCollection, setSelectedCollection] = useState('');
@@ -110,15 +110,15 @@ export default function Classrooms() {
     }
   };
 
-  const handleOpenStudy = () => {
-    setOpenStudy(true);
+  const handleAddNewClass = () => {
+    setAddNewClass(true);
     setOpenCreateCollection(false);
     setOpen(true);
   };
 
   const setOpenCreateClassroom = () => {
     setOpenCreateCollection(true);
-    setOpenStudy(false);
+    setAddNewClass(false);
     setOpen(true);
   };
 
@@ -150,7 +150,7 @@ export default function Classrooms() {
         });
       } finally {
         setOpenCreateCollection(false);
-        setOpenStudy(false);
+        setAddNewClass(false);
         setOpen(false);
         fetchCollectionData();
         fetchData();
@@ -197,7 +197,7 @@ export default function Classrooms() {
         }
       } finally {
         setOpenCreateCollection(false);
-        setOpenStudy(false);
+        setAddNewClass(false);
         setOpen(false);
         fetchCollectionData();
         fetchData();
@@ -235,7 +235,7 @@ export default function Classrooms() {
 
         <Text>{t('My classrooms')}</Text>
 
-        <TouchableOpacity onPress={() => handleOpenStudy()}>
+        <TouchableOpacity onPress={() => handleAddNewClass()}>
           <View className=" bg-white p-2 rounded-[12px] shadow-lg flex-row justify-center items-center">
             <AntDesign name="pluscircleo" size={24} color="black" />
           </View>
@@ -263,8 +263,11 @@ export default function Classrooms() {
         </View>
       </ScrollView>
 
-      {openStudy && (
-        <OpenDialogInput open={openStudy} title="Select the desired collection">
+      {addNewClass && (
+        <OpenDialogInput
+          open={addNewClass}
+          title="Select the desired collection"
+        >
           <View className="w-full max-h-[80vh]">
             <ScrollView
               contentContainerStyle={{ paddingBottom: 200, paddingTop: 25 }}

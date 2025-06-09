@@ -59,7 +59,7 @@ const YouTubeVideo = () => {
   const [loading, setLoading] = useState(true);
   const [userAlreadyHasDeck, setUserAlreadyHasDeck] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  const [openStudy, setOpenStudy] = useState(false);
+  const [openAddVideo, setOpenAddVideo] = useState(false);
   const [openCreateCollection, setOpenCreateCollection] = useState(false);
   const [cards, setCards] = useState<ICardProps[]>([]);
 
@@ -84,8 +84,8 @@ const YouTubeVideo = () => {
     }
   };
 
-  const HandleOpenStudy = () => {
-    setOpenStudy(true);
+  const HandleOpenAddVideo = () => {
+    setOpenAddVideo(true);
     setOpen(true);
   };
 
@@ -149,7 +149,7 @@ const YouTubeVideo = () => {
       }
     } finally {
       setOpen(false);
-      setOpenStudy(false);
+      setOpenAddVideo(false);
       setNameCollection('');
       setSelectedImage(null);
     }
@@ -248,7 +248,7 @@ const YouTubeVideo = () => {
           }}
           disabled={userAlreadyHasDeck}
           className=" mt-10 flex flex-row items-center justify-center w-full  rounded-full p-2.5"
-          onPress={HandleOpenStudy}
+          onPress={HandleOpenAddVideo}
         >
           <Text className="text-white font-bold text-2xl">
             {!userAlreadyHasDeck ? 'Save Deck' : 'Deck is already saved'}
@@ -283,8 +283,11 @@ const YouTubeVideo = () => {
         className="absolute bottom-0 left-0 right-0 h-60"
         pointerEvents="none"
       />
-      {openStudy && (
-        <OpenDialogInput open={openStudy} title="Select the desired collection">
+      {openAddVideo && (
+        <OpenDialogInput
+          open={openAddVideo}
+          title="Select the desired collection"
+        >
           <View className="w-full max-h-[80vh]">
             <ScrollView
               contentContainerStyle={{ paddingBottom: 200, paddingTop: 25 }}

@@ -28,7 +28,6 @@ import { storage } from '../../../../../FirebaseConfig';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
 import { Input } from '@/components/Input';
-import { OpenStudy } from '@/components/atoms/openStudy';
 import { IClassroom, useCollection } from '@/contexts/CollectionContext';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
@@ -36,11 +35,18 @@ import { useToast } from '@/components/Toast';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
+import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
 
 type Student = {
   name?: string;
   email: string;
 };
+
+interface ICardProps {
+  _id: number;
+  front: string;
+  back: string;
+}
 
 export default function Classroom() {
   const { t } = useTranslation();
@@ -58,8 +64,8 @@ export default function Classroom() {
   const { name } = useLocalSearchParams();
   const { setOpen } = useDialog();
 
+  const [generatedCards, setGeneratedCards] = useState<ICardProps[] | []>([]);
   const [loadingCollection, setLoadingCollection] = useState(false);
-  const [openStudy, setOpenStudy] = useState(false);
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [nameDeck, setNameDeck] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -69,6 +75,7 @@ export default function Classroom() {
   const [modalVisible, setModalVisible] = useState(false);
   const [tab, setTab] = useState<'content' | 'people'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
+  const [openCardGenerator, setOpenCardGenerator] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -126,7 +133,6 @@ export default function Classroom() {
 
   const HandleOpenAddDeck = () => {
     setOpenAddDeck(true);
-    setOpenStudy(false);
     setOpen(true);
   };
 
@@ -148,6 +154,7 @@ export default function Classroom() {
         name: nameDeck,
         image: url,
         collection_id: currentCollection?._id,
+        cards: generatedCards.map(({ _id, ...rest }) => rest),
       });
 
       toast({
@@ -208,32 +215,28 @@ export default function Classroom() {
     } catch (error) {}
   };
 
-  useEffect(() => {
-    console.log(currentClassroom);
-  }, []);
-
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
+      <View className="flex-row w-full  items-center mb-4">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row items-center"
+        >
+          <Ionicons
+            name="arrow-back-circle"
+            size={24}
+            color={colors.primary[500]}
+          />
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
+        </TouchableOpacity>
+        <Text className="w-[70%] text-center text-gray-800 text-2xl font-bold">
+          {name}
+        </Text>
+      </View>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex flex-row justify-center items-center mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="flex-row items-center mr-5"
-          >
-            <Ionicons
-              name="arrow-back-circle"
-              size={24}
-              color={colors.primary[500]}
-            />
-            <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
-          </TouchableOpacity>
-          <Text className="w-full text-center text-gray-800 text-2xl font-bold">
-            {name}
-          </Text>
-        </View>
         <View className="flex-row mb-4 border-b border-gray-300">
           <TouchableOpacity
             onPress={() => setTab('content')}
@@ -324,8 +327,6 @@ export default function Classroom() {
                 )}
               </View>
             </View>
-
-            {openStudy && <OpenStudy open={openStudy} />}
 
             {openAddDeck && (
               <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
@@ -454,6 +455,41 @@ export default function Classroom() {
                   onChangeText={(text) => setNameDeck(text)}
                 />
                 <TouchableOpacity
+                  style={{
+                    borderColor:
+                      generatedCards.length > 0 ? colors.primary[500] : 'gray',
+                  }}
+                  className="border border-dashed rounded-lg flex items-center justify-center w-full mb-4"
+                  onPress={() => setOpenCardGenerator(true)}
+                >
+                  <View className="flex-row items-center justify-center">
+                    <MaterialCommunityIcons
+                      name={
+                        generatedCards.length > 0
+                          ? 'cards'
+                          : 'star-check-outline'
+                      }
+                      size={24}
+                      color={
+                        generatedCards.length > 0 ? colors.primary[500] : 'gray'
+                      }
+                      className="mx-3 my-2"
+                    />
+                    <Text
+                      style={{
+                        color:
+                          generatedCards.length > 0
+                            ? colors.primary[500]
+                            : 'gray',
+                      }}
+                    >
+                      {generatedCards.length > 0
+                        ? t(`${generatedCards.length} cards generated`)
+                        : t('Generate cards with AI')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={{ backgroundColor: colors.primary[500] }}
                   className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
                   onPress={HandleCreateDeck}
@@ -462,6 +498,11 @@ export default function Classroom() {
                     {t('Create New deck')}
                   </Text>
                 </TouchableOpacity>
+                <ModalGenerateCards
+                  open={openCardGenerator}
+                  setOpen={setOpenCardGenerator}
+                  setGeneratedCards={setGeneratedCards}
+                />
               </DialogContent>
             )}
           </View>
@@ -562,6 +603,7 @@ export default function Classroom() {
           pointerEvents="none"
         />
       </ScrollView>
+
       {tab === 'content' && (
         <TouchableOpacity
           className="absolute bottom-7 right-7 bg-[#007AFF] rounded-full p-2.5"
