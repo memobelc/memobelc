@@ -68,6 +68,7 @@ export default function Collection() {
   const [loadingCollection, setLoadingCollection] = useState(false);
   const { name } = useLocalSearchParams();
   const [modalVisible, setModalVisible] = useState(false);
+  const [characterCounter, setCharacterCounter] = useState(0);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -195,6 +196,8 @@ export default function Collection() {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setCharacterCounter(value.length);
   };
 
   const closeAddDeck = async () => {
@@ -460,19 +463,25 @@ export default function Collection() {
               </View>
             </Modal>
           </View>
-          <Input
-            placeholder={t('Enter name deck collection')}
-            className="my-6 w-full"
-            style={[
-              {
-                borderWidth: 1,
-                borderColor: errors['name'] ? 'red' : '#ccc',
-                borderRadius: 8,
-              },
-            ]}
-            value={formData.name}
-            onChangeText={(value) => handleInputChange('name', value)}
-          />
+          <View className="flex-row relative">
+            <Input
+              placeholder={t('Enter name deck')}
+              maxLength={25}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: errors['name'] ? 'red' : '#ccc',
+                  borderRadius: 8,
+                },
+              ]}
+              className={`my-6 w-full`}
+              value={formData.name}
+              onChangeText={(value) => handleInputChange('name', value)}
+            />
+            <Text className="absolute top-9 right-1 text-xs text-gray-400">
+              {characterCounter}/25
+            </Text>
+          </View>
 
           <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
             {errors['name']}

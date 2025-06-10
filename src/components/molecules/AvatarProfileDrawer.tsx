@@ -248,9 +248,9 @@ const AvatarProfileDrawer = () => {
                   >
                     <Picker.Item label="English" value="en" />
                     <Picker.Item label="Português" value="pt-BR" />
-                    <Picker.Item label="Español" value="es" />
+                    {/* <Picker.Item label="Español" value="es" />
                     <Picker.Item label="Deutsch" value="de" />
-                    <Picker.Item label="中國人" value="zh" />
+                    <Picker.Item label="中國人" value="zh" /> */}
                   </Picker>
                 </View>
               </View>

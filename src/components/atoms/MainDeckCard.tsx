@@ -56,7 +56,7 @@ export const MainDeckCard = ({
         onPress={onPress}
         className="w-full flex flex-row items-center justify-end"
       >
-        <View className="bg-white m-3 w-60 h-60 lg:w-80 lg:h-80  rounded-[12px] overflow-hidden shadow-lg">
+        <View className="bg-white m-3 w-64 h-64 lg:w-80 lg:h-80  rounded-[12px] overflow-hidden shadow-lg">
           <Image
             style={{ width: '100%', height: '65%' }}
             source={imgSource}
@@ -64,7 +64,7 @@ export const MainDeckCard = ({
           />
 
           <View className="flex-1 justify-end p-3">
-            <Text className="font-[ComicSans] text-xl font-bold pb-3">
+            <Text className="font-[ComicSans] text-base font-bold mb-3">
               {name}
             </Text>
             <View className="flex flex-row justify-between items-center">
@@ -83,21 +83,8 @@ export const MainDeckCard = ({
                   </Text>
                 </View>
               )}
-              {type == 'class' && students && students > 0 && (
-                <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row">
-                  <MaterialIcons
-                    className="pr-2"
-                    name="people"
-                    size={24}
-                    color={colors.error[600]}
-                  />
-                  <Text className="font-[ComicSans] text-xs  color-red-700">
-                    {total_cards != 0 && `${students} ${t('students')}`}
-                  </Text>
-                </View>
-              )}
 
-              <MaterialIcons name="language" size={24} color="#000" />
+              {/* <MaterialIcons name="language" size={24} color="#000" /> */}
             </View>
           </View>
         </View>

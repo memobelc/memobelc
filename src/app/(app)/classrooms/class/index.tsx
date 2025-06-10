@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Image,
@@ -7,40 +7,38 @@ import {
   ScrollView,
   Modal,
   Pressable,
-  FlatList,
   TextInput,
+  Animated,
 } from 'react-native';
 import { Menu } from 'lucide-react-native';
 import {
   MaterialIcons,
   MaterialCommunityIcons,
   Feather,
+  Ionicons,
 } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useTranslation } from 'react-i18next';
 import Tooltip from 'react-native-walkthrough-tooltip';
+import * as ImagePicker from 'expo-image-picker';
+import * as yup from 'yup';
 
-import { storage } from '../../../../../FirebaseConfig';
+import api from '@/services/api';
 import { colors } from '@/styles/colors';
+import { IClassroom, useCollection } from '@/contexts/CollectionContext';
+import { useSession } from '@/contexts/AuthContext';
+import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
+
 import { DialogContent, useDialog } from '@/components/Dialog';
 import { Input } from '@/components/Input';
-import { IClassroom, useCollection } from '@/contexts/CollectionContext';
-import api from '@/services/api';
-import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
 
-type Student = {
-  name?: string;
-  email: string;
-};
+import { storage } from '../../../../../FirebaseConfig';
 
 interface ICardProps {
   _id: number;
@@ -64,10 +62,18 @@ export default function Classroom() {
   const { name } = useLocalSearchParams();
   const { setOpen } = useDialog();
 
+  const validationSchema = yup.object().shape({
+    name: yup.string().required(t('Name is required')),
+  });
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [generatedCards, setGeneratedCards] = useState<ICardProps[] | []>([]);
   const [loadingCollection, setLoadingCollection] = useState(false);
   const [openAddDeck, setOpenAddDeck] = useState(false);
-  const [nameDeck, setNameDeck] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
     string | null
@@ -76,6 +82,10 @@ export default function Classroom() {
   const [tab, setTab] = useState<'content' | 'people'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
   const [openCardGenerator, setOpenCardGenerator] = useState(false);
+  const [characterCounter, setCharacterCounter] = useState(0);
+
+  const [contentHeight, setContentHeight] = useState(0);
+  const animation = useRef(new Animated.Value(0)).current;
 
   const fetchData = async () => {
     try {
@@ -137,7 +147,13 @@ export default function Classroom() {
   };
 
   const HandleCreateDeck = async () => {
+    setErrors({});
     let url = '';
+
+    const validateForm = async () => {
+      await validationSchema.validate(formData, { abortEarly: false });
+    };
+
     if (selectedImage && !selectedImageFromGallery) {
       const response = await fetch(selectedImage);
       const blob = await response.blob();
@@ -150,8 +166,9 @@ export default function Classroom() {
     }
 
     try {
+      await validateForm();
       await api.post('/deck/create', {
-        name: nameDeck,
+        name: formData.name,
         image: url,
         collection_id: currentCollection?._id,
         cards: generatedCards.map(({ _id, ...rest }) => rest),
@@ -162,9 +179,16 @@ export default function Classroom() {
         variant: 'success',
         showProgress: true,
       });
-      fetchData();
+      setOpen(false);
+      setSelectedImage(null);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof yup.ValidationError) {
+        const newErrors: Record<string, string> = {};
+        error.inner.forEach((err) => {
+          if (err.path) newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+      } else if (error instanceof Error) {
         console.error(error.message);
         toast({
           message: error.message,
@@ -178,11 +202,15 @@ export default function Classroom() {
         });
       }
     } finally {
-      setOpen(false);
-      setNameDeck('');
-      setSelectedImage(null);
       fetchData();
     }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setCharacterCounter(value.length);
   };
 
   const [email, setEmail] = useState('');
@@ -215,9 +243,26 @@ export default function Classroom() {
     } catch (error) {}
   };
 
+  const closeAddDeck = async () => {
+    handleInputChange('name', '');
+    setOpen(false);
+    setSelectedImage(null);
+  };
+
+  const [showGuests, setShowGuests] = useState(true);
+  const [showStudents, setShowStudents] = useState(true);
+
+  const toggleGuests = () => {
+    setShowGuests((prev) => !prev);
+  };
+
+  const toggleStudents = () => {
+    setShowStudents((prev) => !prev);
+  };
+
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-      <View className="flex-row w-full  items-center mb-4">
+      <View className="flex-row w-full justify-between  items-center mb-4">
         <TouchableOpacity
           onPress={() => router.back()}
           className="flex-row items-center"
@@ -229,7 +274,7 @@ export default function Classroom() {
           />
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
-        <Text className="w-[70%] text-center text-gray-800 text-2xl font-bold">
+        <Text className="w-[70%] text-center text-gray-800 text-lg font-bold">
           {name}
         </Text>
       </View>
@@ -259,7 +304,7 @@ export default function Classroom() {
             <Text
               className={`text-lg font-bold ${tab === 'people' ? 'text-primary-500' : 'text-gray-500'}`}
             >
-              {t('people')}
+              {t('People')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -334,7 +379,7 @@ export default function Classroom() {
                   <Text className="font-semibold text-xl text-primary justify-center">
                     {t('New deck')}
                   </Text>
-                  <TouchableOpacity onPress={() => setOpen(false)}>
+                  <TouchableOpacity onPress={closeAddDeck}>
                     <MaterialIcons
                       name="close"
                       size={24}
@@ -448,12 +493,34 @@ export default function Classroom() {
                     </View>
                   </Modal>
                 </View>
-                <Input
-                  placeholder={t('Enter name deck collection')}
-                  className="py-6 w-full"
-                  value={nameDeck}
-                  onChangeText={(text) => setNameDeck(text)}
-                />
+
+                <View className="flex-row relative">
+                  <Input
+                    placeholder={t('Enter name deck')}
+                    maxLength={25}
+                    style={[
+                      {
+                        borderWidth: 1,
+                        borderColor: errors['name'] ? 'red' : '#ccc',
+                        borderRadius: 8,
+                      },
+                    ]}
+                    className={`my-6 w-full`}
+                    value={formData.name}
+                    onChangeText={(value) => handleInputChange('name', value)}
+                  />
+                  <Text className="absolute top-9 right-1 text-xs text-gray-400">
+                    {characterCounter}/25
+                  </Text>
+                </View>
+
+                <Text
+                  className="-mt-6 mb-2 text-xs"
+                  style={{ color: colors.error[500] }}
+                >
+                  {errors['name']}
+                </Text>
+
                 <TouchableOpacity
                   style={{
                     borderColor:
@@ -508,10 +575,10 @@ export default function Classroom() {
           </View>
         ) : (
           <View className="flex-1 p-5 bg-white">
-            <Text className="text-2xl font-bold mb-5">Add New User</Text>
+            <Text className="text-2xl font-bold mb-5">{t('Add New User')}</Text>
             <TextInput
               className="border border-gray-300 rounded-lg px-4 py-2 mb-3"
-              placeholder="Enter user email"
+              placeholder={t('Enter user email')}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -520,81 +587,78 @@ export default function Classroom() {
               onPress={handleAddUser}
               className="bg-blue-500 px-4 py-2 rounded-lg mb-5 self-start"
             >
-              <Text className="text-white font-medium">Add User</Text>
+              <Text className="text-white font-medium">{t('Add User')}</Text>
             </Pressable>
 
             {currentClassroom && currentClassroom?.guests.length > 0 && (
               <>
-                <View className="flex-row items-center mb-2">
-                  <Text className="text-xl font-semibold mr-2">Guests</Text>
-                  <Tooltip
-                    isVisible={showTooltip}
-                    content={
-                      <Text className="text-sm">
-                        Users not registered on the platform yet.
-                      </Text>
-                    }
-                    placement="top"
-                    onClose={() => setShowTooltip(false)}
-                  >
-                    <Pressable onPress={() => setShowTooltip(true)}>
-                      <View
-                        // @ts-ignore
-                        onMouseEnter={() => setShowTooltip(true)}
-                        onMouseLeave={() => setShowTooltip(false)}
-                      >
-                        <Feather
-                          name="info"
-                          size={16}
-                          color={colors.primary[500]}
-                        />
-                      </View>
-                    </Pressable>
-                  </Tooltip>
-                </View>
-                <FlatList
-                  data={currentClassroom.guests}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }: any) => (
-                    <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
-                      <View>
-                        <Text className="text-sm text-gray-600">{item}</Text>
-                      </View>
+                <Pressable onPress={toggleGuests}>
+                  <View className="flex-row items-center mb-2">
+                    <Text className="text-xl font-semibold mr-2">
+                      {t('Guests')}
+                    </Text>
+                    <Tooltip
+                      isVisible={showTooltip}
+                      content={
+                        <Text className="text-sm">
+                          {t('Users not registered on the platform yet.')}
+                        </Text>
+                      }
+                      placement="top"
+                      onClose={() => setShowTooltip(false)}
+                    >
+                      <Pressable onPress={() => setShowTooltip(true)}>
+                        <View
+                          // @ts-ignore
+                          onMouseEnter={() => setShowTooltip(true)}
+                          onMouseLeave={() => setShowTooltip(false)}
+                        >
+                          <Feather
+                            name="info"
+                            size={16}
+                            color={colors.primary[500]}
+                          />
+                        </View>
+                      </Pressable>
+                    </Tooltip>
+                  </View>
+                </Pressable>
+
+                {showGuests &&
+                  currentClassroom.guests.map((item: string, index: number) => (
+                    <View
+                      key={item + index}
+                      className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200"
+                    >
+                      <Text className="text-sm text-gray-600">{item}</Text>
                       <Pressable className="p-2 rounded-full hover:bg-gray-100">
                         <Menu size={20} color="#6b7280" />
                       </Pressable>
                     </View>
-                  )}
-                  contentContainerStyle={{ paddingBottom: 20 }}
-                />
+                  ))}
               </>
             )}
 
-            <Text className="text-xl font-semibold mb-2">Users</Text>
-            <FlatList
-              data={currentClassroom!.students}
-              keyExtractor={(item) => item.email}
-              renderItem={({ item }: any) => (
-                <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+            <Pressable onPress={toggleStudents}>
+              <Text className="text-xl font-semibold mb-2">{t('Users')}</Text>
+            </Pressable>
+
+            {showStudents &&
+              currentClassroom &&
+              currentClassroom.students.map((item: any, index: number) => (
+                <View
+                  key={item.email + index}
+                  className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200"
+                >
                   <View>
                     <Text className="text-base font-semibold">{item.name}</Text>
-
                     <Text className="text-sm text-gray-600">{item.email}</Text>
                   </View>
                   <Pressable className="p-2 rounded-full hover:bg-gray-100">
                     <Menu size={20} color="#6b7280" />
                   </Pressable>
                 </View>
-              )}
-              ListEmptyComponent={
-                <View className="items-center justify-center p-5">
-                  <Text className="text-gray-500">
-                    {t('No people added yet.')}
-                  </Text>
-                </View>
-              }
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
+              ))}
           </View>
         )}
         <LinearGradient

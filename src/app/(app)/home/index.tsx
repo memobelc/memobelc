@@ -56,6 +56,8 @@ export default function Home() {
   >(null);
   const [loadingCollection, setLoadingCollection] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const [characterCounter, setCharacterCounter] = useState(0);
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 768;
 
@@ -147,6 +149,8 @@ export default function Home() {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setCharacterCounter(value.length);
   };
 
   const fetchData = async () => {
@@ -427,19 +431,25 @@ export default function Home() {
               </View>
             </Modal>
           </View>
-          <Input
-            placeholder={t('Enter name deck collection')}
-            style={[
-              {
-                borderWidth: 1,
-                borderColor: errors['name'] ? 'red' : '#ccc',
-                borderRadius: 8,
-              },
-            ]}
-            className={`my-6 w-full`}
-            value={formData.name}
-            onChangeText={(value) => handleInputChange('name', value)}
-          />
+          <View className="flex-row relative">
+            <Input
+              placeholder={t('Enter name deck collection')}
+              maxLength={25}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: errors['name'] ? 'red' : '#ccc',
+                  borderRadius: 8,
+                },
+              ]}
+              className={`my-6 w-full`}
+              value={formData.name}
+              onChangeText={(value) => handleInputChange('name', value)}
+            />
+            <Text className="absolute top-9 right-1 text-xs text-gray-400">
+              {characterCounter}/25
+            </Text>
+          </View>
 
           <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
             {errors['name']}

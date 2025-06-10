@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,23 +14,25 @@ import {
   MaterialCommunityIcons,
   MaterialIcons,
 } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as yup from 'yup';
+
+import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { IClassroom, useCollection } from '@/contexts/CollectionContext';
-import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from 'react';
-import { OpenDialogInput } from '@/components/atoms/DialogInput';
-import { Loading } from '@/components/Loading';
-import { MainDeckCard } from '@/components/atoms/MainDeckCard';
 import { useSession } from '@/contexts/AuthContext';
-import api from '@/services/api';
-import { DialogContent, useDialog } from '@/components/Dialog';
 import { imageSources, setImageUrl } from '@/utils/imgSource';
 
-import { storage } from '../../../../FirebaseConfig';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
+import { DialogContent, useDialog } from '@/components/Dialog';
+import { Loading } from '@/components/Loading';
+import { OpenDialogInput } from '@/components/atoms/DialogInput';
+import { MainDeckCard } from '@/components/atoms/MainDeckCard';
+
+import { storage } from '../../../../FirebaseConfig';
 
 export default function Classrooms() {
   const { userInfo } = useSession();
@@ -44,17 +47,25 @@ export default function Classrooms() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const validationSchema = yup.object().shape({
+    name: yup.string().required(t('Name is required')),
+  });
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [addNewClass, setAddNewClass] = useState(false);
   const [loadingClassroom, setLoadingClassroom] = useState(false);
   const [classrooms, setClassrooms] = useState<IClassroom[] | []>([]);
-  const [selectedCollection, setSelectedCollection] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
     string | null
   >(null);
-  const [nameCollection, setNameCollection] = useState('');
   const [openCreateCollection, setOpenCreateCollection] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [characterCounter, setCharacterCounter] = useState(0);
 
   const pickImage = async () => {
     setSelectedImageFromGallery(null);
@@ -110,6 +121,13 @@ export default function Classrooms() {
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setCharacterCounter(value.length);
+  };
+
   const handleAddNewClass = () => {
     setAddNewClass(true);
     setOpenCreateCollection(false);
@@ -123,9 +141,13 @@ export default function Classrooms() {
   };
 
   const handleCreateClassroom = async (collection_id?: string) => {
-    if (collection_id) {
-      setSelectedCollection(collection_id);
+    setErrors({});
 
+    const validateForm = async () => {
+      await validationSchema.validate(formData, { abortEarly: false });
+    };
+
+    if (collection_id) {
       try {
         await api.post(
           '/classroom/create',
@@ -143,15 +165,31 @@ export default function Classrooms() {
           variant: 'success',
           showProgress: true,
         });
-      } catch (error) {
-        toast({
-          message: `An unexpected error has occurred`,
-          variant: 'destructive',
-        });
-      } finally {
+
         setOpenCreateCollection(false);
         setAddNewClass(false);
         setOpen(false);
+      } catch (error) {
+        if (error instanceof yup.ValidationError) {
+          const newErrors: Record<string, string> = {};
+          error.inner.forEach((err) => {
+            if (err.path) newErrors[err.path] = err.message;
+          });
+          setErrors(newErrors);
+        } else if (error instanceof Error) {
+          console.error(error.message);
+          toast({
+            message: error.message,
+            variant: 'destructive',
+            showProgress: true,
+          });
+        } else {
+          toast({
+            message: `An unexpected error has occurred`,
+            variant: 'destructive',
+          });
+        }
+      } finally {
         fetchCollectionData();
         fetchData();
       }
@@ -169,8 +207,9 @@ export default function Classrooms() {
       }
 
       try {
+        await validateForm();
         const response = await api.post('/collections/create', {
-          name: nameCollection,
+          name: formData.name,
           image: url,
           user_id: userInfo?.user_id,
         });
@@ -191,18 +230,41 @@ export default function Classrooms() {
           variant: 'success',
           showProgress: true,
         });
-      } catch (error) {
-        if (error instanceof Error) {
-          console.error(error.message);
-        }
-      } finally {
+
         setOpenCreateCollection(false);
         setAddNewClass(false);
         setOpen(false);
+      } catch (error) {
+        if (error instanceof yup.ValidationError) {
+          const newErrors: Record<string, string> = {};
+          error.inner.forEach((err) => {
+            if (err.path) newErrors[err.path] = err.message;
+          });
+          setErrors(newErrors);
+        } else if (error instanceof Error) {
+          console.error(error.message);
+          toast({
+            message: error.message,
+            variant: 'destructive',
+            showProgress: true,
+          });
+        } else {
+          toast({
+            message: `An unexpected error has occurred`,
+            variant: 'destructive',
+          });
+        }
+      } finally {
         fetchCollectionData();
         fetchData();
       }
     }
+  };
+
+  const close = async () => {
+    handleInputChange('name', '');
+    setOpen(false);
+    setSelectedImage(null);
   };
 
   const handleSetClassroom = (classroom_id: string) => {
@@ -213,9 +275,7 @@ export default function Classrooms() {
     fetchData();
   }, []);
 
-  return loadingClassroom ? (
-    <Loading />
-  ) : (
+  return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View
         className="absolute top-0 left-0 right-0 flex-row w-full items-center
@@ -241,32 +301,36 @@ export default function Classrooms() {
           </View>
         </TouchableOpacity>
       </View>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 200, paddingTop: 50 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="flex-row flex-wrap justify-center gap-4 px-2">
-          {classrooms.map((classroom, index) => (
-            <View key={index}>
-              <MainDeckCard
-                name={classroom.name}
-                image={classroom.image}
-                type="class"
-                students={classroom.students.length}
-                onPress={() => {
-                  handleSetClassroom(classroom._id);
-                  setCurrentClassroom(classroom);
-                }}
-              />
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+      {loadingClassroom ? (
+        <Loading />
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 200, paddingTop: 50 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex-row flex-wrap justify-center gap-4 px-2">
+            {classrooms.map((classroom, index) => (
+              <View key={index}>
+                <MainDeckCard
+                  name={classroom.name}
+                  image={classroom.image}
+                  type="class"
+                  students={classroom.students.length}
+                  onPress={() => {
+                    handleSetClassroom(classroom._id);
+                    setCurrentClassroom(classroom);
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
       {addNewClass && (
         <OpenDialogInput
           open={addNewClass}
-          title="Select the desired collection"
+          title={t('Select the desired collection')}
         >
           <View className="w-full max-h-[80vh]">
             <ScrollView
@@ -305,7 +369,7 @@ export default function Classrooms() {
                 <View className="w-full md:w-[50%] h-[100px] mx-auto bg-white rounded-[12px]  relative shadow-lg my-3 flex-col justify-center items-center">
                   <AntDesign name="pluscircleo" size={24} color="black" />
                   <Text className="font-[ComicSans] text-xl font-bold pb-3  px-6">
-                    Create a new Collection
+                    {t('Create a new Collection')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -320,7 +384,7 @@ export default function Classrooms() {
             <Text className="font-semibold text-xl text-primary justify-center">
               {t('New deck collection')}
             </Text>
-            <TouchableOpacity onPress={() => setOpen(false)}>
+            <TouchableOpacity onPress={close}>
               <MaterialIcons name="close" size={24} color={colors.gray[950]} />
             </TouchableOpacity>
           </View>
@@ -422,12 +486,33 @@ export default function Classrooms() {
               </View>
             </Modal>
           </View>
-          <Input
-            placeholder={t('Enter name deck collection')}
-            className="py-6 w-full"
-            value={nameCollection}
-            onChangeText={(text) => setNameCollection(text)}
-          />
+
+          <View className="flex-row relative">
+            <Input
+              placeholder={t('Enter name deck collection')}
+              maxLength={25}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: errors['name'] ? 'red' : '#ccc',
+                  borderRadius: 8,
+                },
+              ]}
+              className={`my-6 w-full`}
+              value={formData.name}
+              onChangeText={(value) => handleInputChange('name', value)}
+            />
+            <Text className="absolute top-9 right-1 text-xs text-gray-400">
+              {characterCounter}/25
+            </Text>
+          </View>
+
+          <Text
+            className="-mt-6 mb-2 text-xs"
+            style={{ color: colors.error[500] }}
+          >
+            {errors['name']}
+          </Text>
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
             className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"

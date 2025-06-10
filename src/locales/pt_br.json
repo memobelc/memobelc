@@ -84,6 +84,19 @@
     "Videos": "Videos",
     "Books": "Livros",
     "Collections": "Coleções",
-    "Talk to me": "Bate Papo"
+    "Talk to me": "Bate Papo",
+
+    "Classrooms": "Salas",
+    "My classrooms": "Minhas Salas",
+    "Select the desired collection": "Selecione a coleção desejada",
+    "Create a new Collection": "Crie uma nova coleção",
+    "Content": "Conteúdo",
+    "People": "Pessoas",
+    "Add New User": "Adicionar novo usuário",
+    "Add User": "Adicionar usuário",
+    "Enter user email": "Digite o e-mail do usuário",
+    "Guests": "Convidados",
+    "Users not registered on the platform yet.": "Usuários não registrados na plataforma.",
+    "Users": "Usuários"
   }
 }
