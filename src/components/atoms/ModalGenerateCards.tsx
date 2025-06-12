@@ -47,10 +47,10 @@ export const ModalGenerateCards = ({
   const [cards, setCards] = useState<ICardProps[]>([]);
 
   const [topic, setTopic] = useState('');
-  const [numberCards, setNumberCards] = useState('');
+  const [numberCards, setNumberCards] = useState('20');
   const [format, setFormat] = useState('');
-  const [languageFront, setLanguageFront] = useState('');
-  const [languageBack, setLanguageBack] = useState('');
+  const [languageFront, setLanguageFront] = useState('English');
+  const [languageBack, setLanguageBack] = useState('Portuguese');
   const [showForm, setShowForm] = useState(true);
   const [editId, setEditId] = useState<number | null>(null);
   const [editFront, setEditFront] = useState('');
@@ -95,9 +95,9 @@ export const ModalGenerateCards = ({
       setIsLoading(true);
       const response = await api.post('/classroom/generate_cards_by_subject', {
         subject: topic,
-        amount: numberCards || 20,
-        language_front: languageFront || 'English',
-        language_back: languageBack || 'Portuguese',
+        amount: numberCards,
+        language_front: languageFront,
+        language_back: languageBack,
         format: format,
       });
 
@@ -182,6 +182,7 @@ export const ModalGenerateCards = ({
                   { label: 'Phrase/Translation', value: 'Phrase/Translation' },
                 ]}
                 className="w-[48%]"
+                border
               />
               <View className="w-[48%]">
                 <Text className="font-bold text-primary mb-1">
@@ -189,7 +190,7 @@ export const ModalGenerateCards = ({
                 </Text>
                 <TextInput
                   keyboardType="numeric"
-                  value={numberCards || '20'}
+                  value={numberCards}
                   onChangeText={(text) =>
                     setNumberCards(text.replace(/[^0-9]/g, ''))
                   }
@@ -205,6 +206,7 @@ export const ModalGenerateCards = ({
                 onValueChange={setLanguageFront}
                 options={languages}
                 className="w-[48%]"
+                border
               />
               <PickerSelect
                 label="Language Back"
@@ -212,6 +214,7 @@ export const ModalGenerateCards = ({
                 onValueChange={setLanguageBack}
                 options={languages}
                 className="w-[48%]"
+                border
               />
             </View>
 

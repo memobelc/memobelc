@@ -1,13 +1,14 @@
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useTranslation } from 'react-i18next';
 
 interface IRenderPickerProps {
-  label: string;
+  label?: string;
   selectedValue: string;
   onValueChange: (value: string) => void;
   options: { label: string; value: string }[];
   className?: string;
+  border?: boolean;
 }
 
 export const PickerSelect = ({
@@ -16,12 +17,13 @@ export const PickerSelect = ({
   onValueChange,
   options,
   className,
+  border,
 }: IRenderPickerProps) => {
   const { t } = useTranslation();
   return (
     <View className={className ?? 'w-full'}>
-      <Text className="font-bold text-primary mb-1">{t(label)}</Text>
-      <View className="border border-gray-200 rounded-lg">
+      {label && <Text className="font-bold text-primary mb-1">{t(label)}</Text>}
+      <View className={`${border ? 'border border-gray-200 rounded-lg' : ''}`}>
         <Picker
           selectedValue={selectedValue}
           onValueChange={onValueChange}

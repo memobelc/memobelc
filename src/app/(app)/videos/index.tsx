@@ -1,3 +1,4 @@
+import { PickerSelect } from '@/components/atoms/PickerSelect';
 import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -26,11 +27,14 @@ export default function VideoScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<IVideosProps[] | null>(null);
+  const [languageVideo, setLanguageVideo] = useState('en');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/video/get');
+      const response = await api.get(
+        languageVideo ? `/video/get?language=${languageVideo}` : `/video/get`,
+      );
 
       if (response.status === 201) {
         setVideos(response.data);
@@ -44,7 +48,7 @@ export default function VideoScreen() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [languageVideo]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -61,8 +65,8 @@ export default function VideoScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => {} /* Function to select language */}
+        {/* <TouchableOpacity
+          onPress={() => {} /* Function to select language *}
           className="flex-row items-center"
         >
           <Image
@@ -73,7 +77,19 @@ export default function VideoScreen() {
           <Text style={{ color: colors.primary[500], marginLeft: 5 }}>
             English
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+
+        <PickerSelect
+          selectedValue={languageVideo}
+          onValueChange={setLanguageVideo}
+          options={[
+            { label: 'English', value: 'en' },
+            { label: 'Español', value: 'es' },
+            { label: 'Deutsch', value: 'de' },
+            { label: '中國人', value: 'zh' },
+          ]}
+          className="w-40"
+        />
       </View>
 
       {/* <TextInput
@@ -130,6 +146,20 @@ export default function VideoScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+
+            {videos?.length == 0 && (
+              <View className="flex  items-center justify-center py-10">
+                <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
+                  {t('There are no videos in the selected language!')}
+                </Text>
+                <Image
+                  style={{ width: 200, height: 200 }}
+                  className="w-60 h-60"
+                  source={require('@/assets/shame.png')}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
           </View>
         </ScrollView>
       </View>
