@@ -73,6 +73,7 @@ export default function Classroom() {
 
   const [generatedCards, setGeneratedCards] = useState<ICardProps[] | []>([]);
   const [loadingCollection, setLoadingCollection] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
@@ -166,6 +167,7 @@ export default function Classroom() {
     }
 
     try {
+      setLoading(true);
       await validateForm();
       await api.post('/deck/create', {
         name: formData.name,
@@ -203,6 +205,7 @@ export default function Classroom() {
       }
     } finally {
       fetchData();
+      setLoading(false);
     }
   };
 
@@ -558,12 +561,17 @@ export default function Classroom() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{ backgroundColor: colors.primary[500] }}
-                  className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
+                  className="w-full max-w-[500px] py-2 rounded-3xl items-center mb-5"
                   onPress={HandleCreateDeck}
+                  disabled={loading}
                 >
-                  <Text className="text-white text-base font-bold">
-                    {t('Create New deck')}
-                  </Text>
+                  {loading ? (
+                    <Loading />
+                  ) : (
+                    <Text className="text-white text-base font-bold my-2">
+                      {t('Create New deck')}
+                    </Text>
+                  )}
                 </TouchableOpacity>
                 <ModalGenerateCards
                   open={openCardGenerator}

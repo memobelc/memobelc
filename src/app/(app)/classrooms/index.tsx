@@ -58,6 +58,7 @@ export default function Classrooms() {
 
   const [addNewClass, setAddNewClass] = useState(false);
   const [loadingClassroom, setLoadingClassroom] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [classrooms, setClassrooms] = useState<IClassroom[] | []>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
@@ -149,6 +150,7 @@ export default function Classrooms() {
 
     if (collection_id) {
       try {
+        setLoading(true);
         await api.post(
           '/classroom/create',
           {
@@ -192,6 +194,7 @@ export default function Classrooms() {
       } finally {
         fetchCollectionData();
         fetchData();
+        setLoading(false);
       }
     } else {
       let url = '';
@@ -515,12 +518,16 @@ export default function Classrooms() {
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
-            className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
+            className="w-full max-w-[500px] py-2 rounded-3xl items-center mb-5"
             onPress={() => handleCreateClassroom()}
           >
-            <Text className="text-white text-base font-bold">
-              {t('Create New deck collection')}
-            </Text>
+            {loading ? (
+              <Loading />
+            ) : (
+              <Text className="text-white text-base font-bold my-2">
+                {t('Create New deck collection')}
+              </Text>
+            )}
           </TouchableOpacity>
         </DialogContent>
       )}

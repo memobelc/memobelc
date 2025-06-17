@@ -66,6 +66,7 @@ export default function Collection() {
   >(null);
   // const [nameDeck, setNameDeck] = useState('');
   const [loadingCollection, setLoadingCollection] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { name } = useLocalSearchParams();
   const [modalVisible, setModalVisible] = useState(false);
   const [characterCounter, setCharacterCounter] = useState(0);
@@ -164,6 +165,7 @@ export default function Collection() {
     };
 
     try {
+      setLoading(true);
       await validateForm();
       url = await uploadImageIfNeeded();
       await createDeck(url);
@@ -191,6 +193,7 @@ export default function Collection() {
       }
     } finally {
       fetchData();
+      setLoading(false);
     }
   };
   const handleInputChange = (field: string, value: string) => {
@@ -491,10 +494,15 @@ export default function Collection() {
             style={{ backgroundColor: colors.primary[500] }}
             className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
             onPress={HandleCreateDeck}
+            disabled={loading}
           >
-            <Text className="text-white text-base font-bold">
-              {t('Create New deck')}
-            </Text>
+            {loading ? (
+              <Loading />
+            ) : (
+              <Text className="text-white text-base font-bold my-2">
+                {t('Create New deck collection')}
+              </Text>
+            )}
           </TouchableOpacity>
         </DialogContent>
       )}

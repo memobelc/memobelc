@@ -55,6 +55,7 @@ export default function Home() {
     string | null
   >(null);
   const [loadingCollection, setLoadingCollection] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
   const [characterCounter, setCharacterCounter] = useState(0);
@@ -116,6 +117,7 @@ export default function Home() {
     };
 
     try {
+      setLoading(true);
       await validateForm();
       url = await uploadImageIfNeeded();
       await createCollection(url);
@@ -143,6 +145,7 @@ export default function Home() {
       }
     } finally {
       fetchData();
+      setLoading(false);
     }
   };
 
@@ -431,7 +434,7 @@ export default function Home() {
               </View>
             </Modal>
           </View>
-          <View className="flex-row relative">
+          <View className="flex-row relative w-full max-w-[500]">
             <Input
               placeholder={t('Enter name deck collection')}
               maxLength={25}
@@ -457,12 +460,17 @@ export default function Home() {
 
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
-            className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
+            className="w-full max-w-[500px] rounded-3xl py-2 items-center mb-5"
             onPress={HandleCreateCollection}
+            disabled={loading}
           >
-            <Text className="text-white text-base font-bold">
-              {t('Create New deck collection')}
-            </Text>
+            {loading ? (
+              <Loading />
+            ) : (
+              <Text className="text-white text-base font-bold my-2">
+                {t('Create New deck collection')}{' '}
+              </Text>
+            )}
           </TouchableOpacity>
         </DialogContent>
       )}
