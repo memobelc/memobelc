@@ -340,7 +340,12 @@ export default function Classroom() {
                 />
               </View>
 
-              {loadingCollection && <Loading color={colors.primary[500]} />}
+              {loadingCollection && (
+                <Loading
+                  color={colors.primary[500]}
+                  classname="flex-1 items-center justify-center"
+                />
+              )}
 
               <View>
                 {currentCollection && currentCollection.decks.length > 0 ? (

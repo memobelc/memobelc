@@ -247,7 +247,10 @@ export default function Deck() {
         </View>
 
         {loadingCollection ? (
-          <Loading color={colors.primary[500]} />
+          <Loading
+            color={colors.primary[500]}
+            classname="flex-1 items-center justify-center"
+          />
         ) : cards.length !== 0 ? (
           <TouchableOpacity
             style={{

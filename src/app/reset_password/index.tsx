@@ -112,7 +112,7 @@ export default function Register() {
   }, [navigationState?.key, token]);
 
   return isLoading ? (
-    <Loading />
+    <Loading classname="flex-1 items-center justify-center" />
   ) : (
     <View className="flex-1 items-center justify-center p-5">
       <Image

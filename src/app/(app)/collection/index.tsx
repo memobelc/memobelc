@@ -282,7 +282,10 @@ export default function Collection() {
           </View>
 
           {loadingCollection ? (
-            <Loading color={colors.primary[500]} />
+            <Loading
+              color={colors.primary[500]}
+              classname="flex-1 items-center justify-center"
+            />
           ) : currentCollection?.decks.length !== 0 ? (
             <>
               <TouchableOpacity

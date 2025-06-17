@@ -22,7 +22,7 @@ export default function Layout() {
   });
 
   if (!fontsLoaded) {
-    <Loading />;
+    <Loading classname="flex-1 items-center justify-center" />;
   }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -217,7 +217,7 @@ export default function Home() {
             </Text>
           </View>
           {loadingCollection ? (
-            <Loading />
+            <Loading classname="flex-1 items-center justify-center" />
           ) : collections && collections.length > 0 ? (
             <View className="flex items-center md:items-end md:w-[30%]">
               <MainDeckCard

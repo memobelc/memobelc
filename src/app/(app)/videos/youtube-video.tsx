@@ -237,7 +237,12 @@ const YouTubeVideo = () => {
           onReady={() => setVideoReady(true)}
           onFullScreenChange={onFullScreenChange}
         />
-        {!videoReady && <Loading color={colors.primary[500]} />}
+        {!videoReady && (
+          <Loading
+            color={colors.primary[500]}
+            classname="flex-1 items-center justify-center"
+          />
+        )}
       </View>
       {!loading && cards.length > 0 ? (
         <TouchableOpacity
@@ -260,7 +265,7 @@ const YouTubeVideo = () => {
           />
         </TouchableOpacity>
       ) : (
-        <Loading />
+        <Loading classname="flex-1 items-center justify-center" />
       )}
 
       <ScrollView

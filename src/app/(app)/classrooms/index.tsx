@@ -305,7 +305,7 @@ export default function Classrooms() {
         </TouchableOpacity>
       </View>
       {loadingClassroom ? (
-        <Loading />
+        <Loading classname="flex-1 items-center justify-center" />
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 200, paddingTop: 50 }}
