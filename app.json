@@ -17,6 +17,7 @@
         "foregroundImage": "./assets/images/icon2.png",
         "backgroundColor": "#219ae7"
       },
+      "targetSdkVersion": 35,
       "package": "com.anonymous.memobelc"
     },
     "web": {
