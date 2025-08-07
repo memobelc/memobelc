@@ -1,0 +1,3 @@
+module.exports = {
+  projectRoot: './src',
+};
