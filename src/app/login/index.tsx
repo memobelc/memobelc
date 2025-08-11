@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 
@@ -9,9 +9,23 @@ import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '@/utils/notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowList: true,
+  }),
+});
+
 export default function SignIn() {
   const { t } = useTranslation();
   const router = useRouter();
+
+  const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
 
   const validationSchema = yup.object().shape({
     email: yup
@@ -35,7 +49,7 @@ export default function SignIn() {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const { signIn, isLoading } = useSession();
+  const { signIn, isLoading, userInfo } = useSession();
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
@@ -43,6 +57,17 @@ export default function SignIn() {
       setErrors({});
       await validationSchema.validate(formData, { abortEarly: false });
       signIn(formData.email, formData.password);
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Login realizado com sucesso 🎉',
+          body: `Vamos começar mais uma jornada incrível!`,
+        },
+        trigger: {
+          seconds: 1,
+          repeats: false,
+        } as Notifications.NotificationTriggerInput,
+      });
     } catch (error) {
       if (error instanceof yup.ValidationError) {
         const newErrors: Record<string, string> = {};
@@ -54,6 +79,13 @@ export default function SignIn() {
       }
     }
   };
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then(
+      (token: React.SetStateAction<string | undefined>) =>
+        setExpoPushToken(token),
+    );
+  }, []);
 
   return isLoading ? (
     <Loading classname="flex-1 items-center justify-center" />

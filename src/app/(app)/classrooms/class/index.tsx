@@ -220,6 +220,7 @@ export default function Classroom() {
 
   const handleAddUser = async () => {
     try {
+      setLoading(true);
       const response = await api.post(
         '/classroom/add_user_in_classroom',
         {
@@ -243,7 +244,10 @@ export default function Classroom() {
         fetchData();
         fetchCollectionData();
       }
-    } catch (error) {}
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
   };
 
   const closeAddDeck = async () => {
@@ -599,8 +603,13 @@ export default function Classroom() {
             <Pressable
               onPress={handleAddUser}
               className="bg-blue-500 px-4 py-2 rounded-lg mb-5 self-start"
+              disabled={loading}
             >
-              <Text className="text-white font-medium">{t('Add User')}</Text>
+              {loading ? (
+                <Loading />
+              ) : (
+                <Text className="text-white font-medium">{t('Add User')}</Text>
+              )}
             </Pressable>
 
             {currentClassroom && currentClassroom?.guests.length > 0 && (
