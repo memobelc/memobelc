@@ -1,8 +1,11 @@
 [phases.setup]
 nixPkgs = ["nodejs"]
 
+[phases.install]
+cmds = ["npm install"]
+
 [phases.build]
 cmds = ["npm install", "npx expo export --platform web"]
 
 [start]
-cmd = "npx serve -s dist -l 3000"
+cmd = "npx serve -s dist -l 3002"
