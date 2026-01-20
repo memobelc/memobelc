@@ -3,6 +3,11 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
 export async function registerForPushNotificationsAsync() {
+  // No web não tenta registrar push (evita erros de permissão)
+  if (Platform.OS === 'web') {
+    return undefined;
+  }
+
   let token;
 
   if (Device.isDevice) {
@@ -16,14 +21,12 @@ export async function registerForPushNotificationsAsync() {
     }
 
     if (finalStatus !== 'granted') {
-      alert('Falha ao obter permissões de notificação!');
-      return;
+      // Sem alert em produção web/desktop, apenas retorna sem token
+      return undefined;
     }
 
     token = (await Notifications.getExpoPushTokenAsync()).data;
     console.log('Expo Push Token:', token);
-  } else {
-    alert('Deve usar um dispositivo físico para notificações push');
   }
 
   if (Platform.OS === 'android') {

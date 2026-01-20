@@ -215,8 +215,26 @@ export function SessionProvider({ children }: PropsWithChildren) {
           }
         },
         signOut: () => {
-          setSession(null);
+          const token = userInfo?.token;
 
+          // Tenta informar o backend para remover tokens de push deste usuário
+          if (token && userInfo?.user_id) {
+            api
+              .post(
+                '/auth/logout',
+                {},
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                },
+              )
+              .catch(() => {
+                // silencioso – se falhar, apenas segue o fluxo local de logout
+              });
+          }
+
+          setSession(null);
           setUserInfo(null);
           router.replace('/login');
         },
