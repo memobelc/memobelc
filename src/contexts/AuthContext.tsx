@@ -24,7 +24,7 @@ type User = {
 };
 
 const AuthContext = createContext<{
-  signIn: (email: string, password: string) => void;
+  signIn: (email: string, password: string) => Promise<User | false>;
   signOut: () => void;
   refresh_token: () => void;
   verify_code: (token: any, code: string) => void;
@@ -32,7 +32,7 @@ const AuthContext = createContext<{
   isLoading: boolean;
   userInfo?: User | null;
 }>({
-  signIn: () => false,
+  signIn: async () => false,
   signOut: () => null,
   refresh_token: () => false,
   verify_code: () => false,
@@ -105,40 +105,37 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 pathname: '/verify-code',
                 params: { token: response.data.pending[1] },
               });
-            } else {
-              await setSession(response.data.token);
 
-              setUserInfo({
-                email: response.data.email,
-                name: response.data.name,
-                token: response.data.token,
-                user_id: response.data.user_id,
-                premium: response.data.premium || false,
-                role: response.data.role || 'teacher',
-              });
+              return false;
+            }
 
-              router.replace('/');
-              setIsLoading(false);
-            }
-          } catch (error) {
-            if (error instanceof Error) {
-              toast({
-                message:
-                  error.message === 'Request failed with status code 401'
-                    ? 'Invalid email or password, please enter again.'
-                    : error.message,
-                variant: 'destructive',
-                showProgress: true,
-              });
-            } else {
-              toast({
-                message: `An unexpected error has occurred`,
-                variant: 'destructive',
-              });
-            }
+            await setSession(response.data.token);
+
+            setUserInfo({
+              email: response.data.email,
+              name: response.data.name,
+              token: response.data.token,
+              user_id: response.data.user_id,
+              premium: response.data.premium || false,
+              role: response.data.role || 'teacher',
+            });
+
+            router.replace('/');
+
+            return response.data; // SUCESSO
+          } catch (error: any) {
+            toast({
+              message:
+                error?.message === 'Request failed with status code 401'
+                  ? 'Invalid email or password, please enter again.'
+                  : error?.message || 'An unexpected error has occurred',
+              variant: 'destructive',
+              showProgress: true,
+            });
 
             setUserInfo(null);
             setSession(null);
+            return false; // ERRO
           } finally {
             setIsLoading(false);
           }

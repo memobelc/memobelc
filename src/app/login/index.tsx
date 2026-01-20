@@ -10,7 +10,9 @@ import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
+import api from '@/services/api';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -56,18 +58,26 @@ export default function SignIn() {
     try {
       setErrors({});
       await validationSchema.validate(formData, { abortEarly: false });
-      signIn(formData.email, formData.password);
+      const login = await signIn(formData.email, formData.password);
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Login realizado com sucesso 🎉',
-          body: `Vamos começar mais uma jornada incrível!`,
-        },
-        trigger: {
-          seconds: 1,
-          repeats: false,
-        } as Notifications.NotificationTriggerInput,
-      });
+      if (login) {
+        const info = {
+          expoPushToken,
+          user_id: login.user_id,
+          ...getDeviceInfo(),
+        };
+        await api.post('/auth/access_log', info);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Login realizado com sucesso 🎉',
+            body: `Vamos começar mais uma jornada incrível!`,
+          },
+          trigger: {
+            seconds: 1,
+            repeats: false,
+          } as Notifications.NotificationTriggerInput,
+        });
+      }
     } catch (error) {
       if (error instanceof yup.ValidationError) {
         const newErrors: Record<string, string> = {};
@@ -174,4 +184,15 @@ export default function SignIn() {
       </TouchableOpacity>
     </View>
   );
+}
+export function getDeviceInfo() {
+  return {
+    manufacturer: Device.manufacturer,
+    deviceName: Device.deviceName,
+    deviceType: Device.deviceType,
+    osName: Device.osName,
+    osVersion: Device.osVersion,
+    platformApiLevel: Device.platformApiLevel,
+    isPhysicalDevice: Device.isDevice,
+  };
 }
