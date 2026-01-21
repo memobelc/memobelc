@@ -44,7 +44,7 @@ const MenuExploreDrawer = () => {
       name: t('Books'),
       path: '/books',
       icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
-      disabled: true,
+      disabled: false,
     },
     {
       name: t('Collections'),
