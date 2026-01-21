@@ -32,6 +32,7 @@ import { Loading } from '@/components/Loading';
 import { useTranslation } from 'react-i18next';
 import { imageSources } from '@/utils/imgSource';
 import * as yup from 'yup';
+import StudyStreak from '@/components/atoms/StudyStreak';
 
 export default function Home() {
   const { userInfo, signOut } = useSession();
@@ -306,6 +307,11 @@ export default function Home() {
             </TouchableOpacity>
           </Link>
         )}
+
+        {/* Study Streak Component */}
+        <View className="mt-8 mb-4">
+          <StudyStreak />
+        </View>
       </ScrollView>
 
       <LinearGradient
