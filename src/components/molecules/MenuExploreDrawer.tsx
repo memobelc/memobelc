@@ -25,6 +25,7 @@ import { useSession } from '@/contexts/AuthContext';
 
 const MenuExploreDrawer = () => {
   const { t } = useTranslation();
+  const { userInfo } = useSession();
 
   const menuItems = [
     {
@@ -43,7 +44,7 @@ const MenuExploreDrawer = () => {
       name: t('Books'),
       path: '/books',
       icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
-      disabled: true,
+      disabled: false,
     },
     {
       name: t('Collections'),
@@ -59,7 +60,20 @@ const MenuExploreDrawer = () => {
     },
   ];
 
-  const { userInfo, signOut } = useSession();
+  if (userInfo?.role === 'teacher') {
+    menuItems.push({
+      name: t('Classrooms'),
+      path: '/classrooms',
+      icon: (
+        <MaterialCommunityIcons
+          name="google-classroom"
+          size={24}
+          color="black"
+        />
+      ),
+      disabled: false,
+    });
+  }
 
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -122,7 +136,7 @@ const MenuExploreDrawer = () => {
                   {t('Explore')}
                 </Text>
               </View>
-              {!userInfo?.premium && (
+              {/* {!userInfo?.premium && (
                 <TouchableOpacity className="mb-3">
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
@@ -151,7 +165,7 @@ const MenuExploreDrawer = () => {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              )}
+              )} */}
               <View>
                 {menuItems.map((item) => {
                   const isActive = pathname === item.path;

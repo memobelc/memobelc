@@ -20,10 +20,11 @@ type User = {
   user_id: string;
   premium: boolean;
   image?: string;
+  role?: string;
 };
 
 const AuthContext = createContext<{
-  signIn: (email: string, password: string) => void;
+  signIn: (email: string, password: string) => Promise<User | false>;
   signOut: () => void;
   refresh_token: () => void;
   verify_code: (token: any, code: string) => void;
@@ -31,7 +32,7 @@ const AuthContext = createContext<{
   isLoading: boolean;
   userInfo?: User | null;
 }>({
-  signIn: () => false,
+  signIn: async () => false,
   signOut: () => null,
   refresh_token: () => false,
   verify_code: () => false,
@@ -75,6 +76,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
               token: response.data.token,
               user_id: response.data.user_id,
               premium: response.data.premium || false,
+              role: response.data.role || 'user',
             });
 
             router.replace('/');
@@ -103,39 +105,37 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 pathname: '/verify-code',
                 params: { token: response.data.pending[1] },
               });
-            } else {
-              await setSession(response.data.token);
 
-              setUserInfo({
-                email: response.data.email,
-                name: response.data.name,
-                token: response.data.token,
-                user_id: response.data.user_id,
-                premium: response.data.premium || false,
-              });
+              return false;
+            }
 
-              router.replace('/');
-              setIsLoading(false);
-            }
-          } catch (error) {
-            if (error instanceof Error) {
-              toast({
-                message:
-                  error.message === 'Request failed with status code 401'
-                    ? 'Invalid email or password, please enter again.'
-                    : error.message,
-                variant: 'destructive',
-                showProgress: true,
-              });
-            } else {
-              toast({
-                message: `An unexpected error has occurred`,
-                variant: 'destructive',
-              });
-            }
+            await setSession(response.data.token);
+
+            setUserInfo({
+              email: response.data.email,
+              name: response.data.name,
+              token: response.data.token,
+              user_id: response.data.user_id,
+              premium: response.data.premium || false,
+              role: response.data.role || 'teacher',
+            });
+
+            router.replace('/');
+
+            return response.data; // SUCESSO
+          } catch (error: any) {
+            toast({
+              message:
+                error?.message === 'Request failed with status code 401'
+                  ? 'Invalid email or password, please enter again.'
+                  : error?.message || 'An unexpected error has occurred',
+              variant: 'destructive',
+              showProgress: true,
+            });
 
             setUserInfo(null);
             setSession(null);
+            return false; // ERRO
           } finally {
             setIsLoading(false);
           }
@@ -157,6 +157,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 token: response.data.token,
                 user_id: response.data.user_id,
                 premium: response.data.premium || false,
+                role: response.data.role || 'teacher',
               });
 
               setTimeout(() => {
@@ -175,30 +176,65 @@ export function SessionProvider({ children }: PropsWithChildren) {
           }
         },
         verify_code: async (token: string, code: string) => {
-          const response = await api.post(
-            '/auth/verify_code',
-            { code },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
+          try {
+            const response = await api.post(
+              '/auth/verify_code',
+              { code },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
               },
-            },
-          );
-          if (response.status === 200) {
-            await setSession(response.data.token);
+            );
 
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            if (response.status === 200) {
+              await setSession(response.data.token);
 
-            router.replace('/');
-          } else {
-            alert(response.data.message);
-            router.replace('/');
+              await new Promise((resolve) => setTimeout(resolve, 100));
+
+              toast({
+                message: `Conta verificada com sucesso!`,
+                variant: 'success',
+              });
+
+              router.replace('/');
+            }
+          } catch (error: any) {
+            if (error.response?.status === 401) {
+              toast({
+                message: `Código de verificação incorreto!`,
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                message: `Ocorreu um erro inesperado.`,
+                variant: 'destructive',
+              });
+              router.replace('/');
+            }
           }
         },
-
         signOut: () => {
-          setSession(null);
+          const token = userInfo?.token;
 
+          // Tenta informar o backend para remover tokens de push deste usuário
+          if (token && userInfo?.user_id) {
+            api
+              .post(
+                '/auth/logout',
+                {},
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                },
+              )
+              .catch(() => {
+                // silencioso – se falhar, apenas segue o fluxo local de logout
+              });
+          }
+
+          setSession(null);
           setUserInfo(null);
           router.replace('/login');
         },

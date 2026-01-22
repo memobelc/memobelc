@@ -6,12 +6,13 @@ import {
 } from 'react';
 
 type card = {
-  back: string,
-  card_id: string,
-  front: string,
-  last_reviewed: string,
-  next_review: string
-}
+  back: string;
+  card_id: string;
+  front: string;
+  audio: string;
+  last_reviewed: string;
+  next_review: string;
+};
 
 type DefaultDeck = {
   _id: string;
@@ -25,41 +26,75 @@ type DefaultDeck = {
 
 type Deck = DefaultDeck & {
   cards: any[];
-  review_cards: card[]
+  review_cards: card[];
 };
 
 type Collection = DefaultDeck & {
   decks: Deck[];
-  review_collections_cards: card[]
+  review_collections_cards: card[];
+  classroom?: string | null;
 };
 
 type ProgressUpdate = {
-  user_id: string,
+  user_id: string;
   cards: {
-    card_id: string,
-    recall_level: "easy" | "good" | "difficult" | "i_dont_remember"
-  }[]
-}
+    card_id: string;
+    recall_level: 'easy' | 'good' | 'difficult' | 'i_dont_remember';
+  }[];
+};
+
+export type IClassroom = {
+  _id: string;
+  collection: string;
+  created_at: Date;
+  decks: string[];
+  guests: [];
+  image: string;
+  name: string;
+  students: { name: string; email: string }[];
+  teacher: string;
+  updated_at: Date;
+};
+
+export type Chats = {
+  _id: string;
+  created_at: string;
+  user_id: string;
+  settings: {
+    language_conversation: string;
+  };
+  history: {
+    role: string;
+    parts: {
+      text: string;
+    }[];
+  }[];
+};
 
 const CollectionContext = createContext<{
   collections: Collection[] | null;
   currentCollection: Collection | null;
   currentDeck: Deck | null;
   progressUpdate: ProgressUpdate | null;
+  currentClassroom: IClassroom | null;
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
   setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
-  setProgressUpdate:React.Dispatch<React.SetStateAction<ProgressUpdate | null>>;
-  
+  setProgressUpdate: React.Dispatch<
+    React.SetStateAction<ProgressUpdate | null>
+  >;
+  setCurrentClassroom: React.Dispatch<React.SetStateAction<IClassroom | null>>;
 }>({
   collections: null,
   currentCollection: null,
   currentDeck: null,
   progressUpdate: null,
+  currentClassroom: null,
   setCollections: () => {},
   setCurrentCollection: () => {},
   setCurrentDeck: () => {},
   setProgressUpdate: () => {},
+  setCurrentClassroom: () => {},
 });
 
 export function useCollection() {
@@ -83,7 +118,13 @@ export function CollectionProvider({ children }: PropsWithChildren) {
 
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
-  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(null);
+  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdate | null>(
+    null,
+  );
+
+  const [currentClassroom, setCurrentClassroom] = useState<IClassroom | null>(
+    null,
+  );
 
   return (
     <CollectionContext.Provider
@@ -95,7 +136,9 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         currentDeck,
         setCurrentDeck,
         progressUpdate,
-        setProgressUpdate
+        setProgressUpdate,
+        currentClassroom,
+        setCurrentClassroom,
       }}
     >
       {children}

@@ -1,47 +1,217 @@
+import { useState, useEffect, useCallback } from 'react';
 import { colors } from '@/styles/colors';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   Image,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
+import api from '@/services/api';
+import { useSession } from '@/contexts/AuthContext';
+import { Loading } from '@/components/Loading';
+import { useToast } from '@/components/Toast';
+import { useFocusEffect } from '@react-navigation/native';
 
-const books = [
-  {
-    id: '1',
-    title: 'Ali Baba and the Forty Thieves',
-    image: '@/assets/logo_memobelc.jpg',
-    pdfUri:
-      'https://firebasestorage.googleapis.com/v0/b/memobelc.firebasestorage.app/o/books%2Fbook_1_-_oxford_dominoes_quick_starter_ali_baba_and_the_forty_thieves.pdf?alt=media&token=8ee581e0-7ce0-447c-92eb-1684fc1c0ba5',
-  },
-  {
-    id: '2',
-    title: 'Ali Baba and the Forty Thieves',
-    image: '@/assets/logo_memobelc.jpg',
-    pdfUri:
-      'https://firebasestorage.googleapis.com/v0/b/memobelc.firebasestorage.app/o/books%2Fbook_1_-_oxford_dominoes_quick_starter_ali_baba_and_the_forty_thieves.pdf?alt=media&token=8ee581e0-7ce0-447c-92eb-1684fc1c0ba5',
-  },
-  {
-    id: '3',
-    title: 'Ali Baba and the Forty Thieves',
-    image: '@/assets/logo_memobelc.jpg',
-    pdfUri:
-      'https://firebasestorage.googleapis.com/v0/b/memobelc.firebasestorage.app/o/books%2Fbook_1_-_oxford_dominoes_quick_starter_ali_baba_and_the_forty_thieves.pdf?alt=media&token=8ee581e0-7ce0-447c-92eb-1684fc1c0ba5',
-  },
-];
+type Chapter = {
+  titulo: string;
+  pdf_url: string;
+  audio_url?: string;
+  ordem: number;
+  images_urls?: string[];
+};
+
+type Book = {
+  _id: string;
+  titulo: string;
+  autor?: string;
+  capa: string | null;
+  idioma: string;
+  nivel: string;
+  genero?: string;
+  is_free: boolean;
+  price?: number;
+  payment_link?: string;
+  chapters: Chapter[];
+};
 
 export default function BooksScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { userInfo } = useSession();
+  const { toast } = useToast();
+
+  const [myBooks, setMyBooks] = useState<Book[]>([]);
+  const [discoverBooks, setDiscoverBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBooks = async () => {
+    if (!userInfo?.token) return;
+
+    try {
+      setLoading(true);
+      const response = await api.get('/books/list', {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
+
+      if (response.data) {
+        setMyBooks(response.data.my_books || []);
+        setDiscoverBooks(response.data.discover || []);
+      }
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      toast({
+        message: t('Error loading books'),
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBookPress = async (book: Book) => {
+    if (book.is_free || myBooks.some((b) => b._id === book._id)) {
+      router.push({
+        pathname: './books/book',
+        params: { bookId: book._id },
+      });
+    } else {
+      // Livro pago - abrir link de pagamento ou mostrar modal
+      if (book.payment_link) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.open(book.payment_link, '_blank');
+        } else {
+          const { WebBrowser } = require('expo-web-browser');
+          await WebBrowser.openBrowserAsync(book.payment_link);
+        }
+      } else {
+        toast({
+          message: t('Payment link not available'),
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  // Recarrega automaticamente quando a tela ganha foco (por exemplo, após criar livro)
+  useFocusEffect(
+    useCallback(() => {
+      if (userInfo?.token) {
+        fetchBooks();
+      }
+    }, [userInfo?.token]),
+  );
+
+  const renderBookCard = (book: Book, isMyBook: boolean) => (
+    <View
+      key={book._id}
+      className={`p-3 items-center justify-center ${
+        isMyBook ? 'w-36 mr-4' : 'w-40 mb-4'
+      } rounded-lg`}
+      style={{
+        backgroundColor: isMyBook ? 'transparent' : colors.gray[100],
+        position: 'relative',
+      }}
+    >
+      {/* Menu admin no canto superior do livro */}
+      {userInfo?.role === 'admin' && (
+        <View className="absolute top-1 right-1 flex-row z-10">
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: './books/admin',
+                params: { bookId: book._id },
+              })
+            }
+            className="mr-1 px-1 py-1 rounded-full"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          >
+            <MaterialIcons name="edit" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: './books/details',
+                params: { bookId: book._id },
+              })
+            }
+            className="px-1 py-1 rounded-full"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          >
+            <MaterialIcons name="info" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={() => handleBookPress(book)}
+        className="items-center justify-center w-full"
+      >
+      {book.capa ? (
+        <Image
+          source={{ uri: book.capa }}
+          className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2`}
+          resizeMode="cover"
+          defaultSource={require('@/assets/page_1.png')}
+        />
+      ) : (
+        <View
+          className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2 items-center justify-center`}
+          style={{ backgroundColor: colors.gray[200] }}
+        >
+          <MaterialIcons name="book" size={40} color={colors.gray[400]} />
+        </View>
+      )}
+      <Text
+        className="font-[ComicSans] text-xs text-center mb-1"
+        style={{ color: colors.gray[900] }}
+        numberOfLines={2}
+      >
+        {book.titulo}
+      </Text>
+      {book.autor && (
+        <Text
+          className="text-xs text-center"
+          style={{ color: colors.gray[500] }}
+          numberOfLines={1}
+        >
+          {book.autor}
+        </Text>
+      )}
+      {!book.is_free && !isMyBook && (
+        <View
+          className="mt-1 px-2 py-1 rounded-full"
+          style={{ backgroundColor: colors.warning[500] }}
+        >
+          <Text className="text-xs font-semibold" style={{ color: '#FFFFFF' }}>
+            {book.price ? `$${book.price}` : t('Paid')}
+          </Text>
+        </View>
+      )}
+      {book.is_free && (
+        <View
+          className="mt-1 px-2 py-1 rounded-full"
+          style={{ backgroundColor: colors.success[500] }}
+        >
+          <Text className="text-xs font-semibold" style={{ color: '#FFFFFF' }}>
+            {t('Free')}
+          </Text>
+        </View>
+      )}
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-      <View className="flex-row justify-between items-center w-full bg-gray-100 -mt-2">
+    <View
+      className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative"
+      style={Platform.OS === 'web' ? { height: '100%' } : {}}
+    >
+      <View className="flex-row justify-between items-center w-full bg-gray-100 -mt-2 mb-4">
         <TouchableOpacity
           onPress={() => router.back()}
           className="flex-row items-center"
@@ -54,94 +224,97 @@ export default function BooksScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => {} /* Function to select language */}
-          className="flex-row items-center"
-        >
-          <Image
-            source={require('@/assets/flags/flag-uk.png')}
-            className="w-6 h-6"
-          />
-          <Text style={{ color: colors.primary[500], marginLeft: 5 }}>
-            English
-          </Text>
-        </TouchableOpacity>
+        {userInfo?.role === 'admin' && (
+          <TouchableOpacity
+            onPress={() => router.push('./books/admin')}
+            className="flex-row items-center"
+          >
+            <MaterialIcons
+              name="add-circle"
+              size={24}
+              color={colors.primary[500]}
+            />
+            <Text style={{ color: colors.primary[500], marginLeft: 5 }}>
+              {t('Add Book')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <TextInput
-        placeholder={t('Search books...')}
-        placeholderTextColor="#888"
-        className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
-      />
-
-      <View>
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <Loading />
+        </View>
+      ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 200 }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row items-center justify-start pt-6 pb-2">
-            <MaterialIcons
-              className="mr-2"
-              name="local-library"
-              size={24}
-              color="black"
-            />
-            <Text>Your Library</Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={true}
-            contentContainerStyle={{ paddingHorizontal: 4 }}
-          >
-            {books.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => router.push('./books/book')}
-                className="px-4 flex items-center justify-start w-40 rounded-[12px]"
-              >
-                <Image
-                  source={require('@/assets/page_1.png')}
-                  className="w-32 h-48"
-                  resizeMode="contain"
+          {/* Meus Livros */}
+          {myBooks.length > 0 && (
+            <>
+              <View className="flex-row items-center justify-start pt-4 pb-3">
+                <MaterialIcons
+                  className="mr-2"
+                  name="local-library"
+                  size={24}
+                  color={colors.primary[500]}
                 />
-                <Text className="font-[ComicSans] text-sm text-center w-32">
-                  {item.title}
+                <Text
+                  className="text-lg font-semibold"
+                  style={{ color: colors.gray[900] }}
+                >
+                  {t('My Library')}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              </View>
 
-          <View className="flex-row items-center justify-start mt-4 mb-2">
-            <Ionicons
-              className="mr-2"
-              name="library-outline"
-              size={24}
-              color="black"
-            />
-            <Text>Discover</Text>
-          </View>
-
-          <View className="flex flex-row flex-wrap justify-start gap-4">
-            {books.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => router.push('./books/book')}
-                className="p-4 flex items-center justify-center bg-gray-200 w-40 rounded-[12px]"
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 10 }}
               >
-                <Image
-                  source={require('@/assets/page_1.png')}
-                  className="w-32 h-40"
-                  resizeMode="contain"
+                {myBooks.map((book) => renderBookCard(book, true))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Descobrir */}
+          {discoverBooks.length > 0 && (
+            <>
+              <View className="flex-row items-center justify-start mt-6 mb-3">
+                <Ionicons
+                  className="mr-2"
+                  name="library-outline"
+                  size={24}
+                  color={colors.primary[500]}
                 />
-                <Text className="font-[ComicSans] text-sm text-center w-32">
-                  {item.title}
+                <Text
+                  className="text-lg font-semibold"
+                  style={{ color: colors.gray[900] }}
+                >
+                  {t('Discover')}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              </View>
+
+              <View className="flex flex-row flex-wrap justify-start">
+                {discoverBooks.map((book) => renderBookCard(book, false))}
+              </View>
+            </>
+          )}
+
+          {myBooks.length === 0 && discoverBooks.length === 0 && (
+            <View className="flex-1 items-center justify-center py-20">
+              <MaterialIcons name="book" size={60} color={colors.gray[400]} />
+              <Text
+                className="text-lg mt-4 text-center"
+                style={{ color: colors.gray[500] }}
+              >
+                {t('No books available yet')}
+              </Text>
+            </View>
+          )}
         </ScrollView>
-      </View>
+      )}
     </View>
   );
 }

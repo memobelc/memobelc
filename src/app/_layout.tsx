@@ -10,6 +10,7 @@ import { Loading } from '@/components/Loading';
 import { Dialog } from '@/components/Dialog';
 import { ToastProvider } from '@/components/Toast';
 import { CollectionProvider } from '@/contexts/CollectionContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import '@/locales/i18n';
 import { ProfileProvider } from '@/contexts/profileContext';
 // import StripeWrapper from '@/components/molecules/StripeWrapper';
@@ -22,7 +23,7 @@ export default function Layout() {
   });
 
   if (!fontsLoaded) {
-    <Loading />;
+    <Loading classname="flex-1 items-center justify-center" />;
   }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -32,14 +33,16 @@ export default function Layout() {
             {/* <StripeWrapper> */}
             <ProfileProvider>
               <CollectionProvider>
-                <Dialog>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor },
-                    }}
-                  />
-                </Dialog>
+                <NotificationProvider>
+                  <Dialog>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor },
+                      }}
+                    />
+                  </Dialog>
+                </NotificationProvider>
               </CollectionProvider>
             </ProfileProvider>
             {/* </StripeWrapper> */}

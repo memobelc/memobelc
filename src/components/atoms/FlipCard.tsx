@@ -2,16 +2,19 @@ import { colors } from '@/styles/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, Animated, Platform } from 'react-native';
+import AudioPlayer from './AudioPlayer';
 
 interface FlipCardProps {
   frontSide: string;
   backSide: string;
+  audio?: string | null;
   onFlip?: () => void;
 }
 
 const FlipCard = ({
   frontSide,
   backSide,
+  audio,
   onFlip = () => {},
 }: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
@@ -63,10 +66,10 @@ const FlipCard = ({
   });
 
   return (
-    <View className="flex  w-full items-center justify-start py-5 ">
+    <View className="flex  w-full h-[60%] items-center justify-start py-5 ">
       <Pressable
         onPress={flipCard}
-        className={`w-[80%] ${Platform.OS == 'web' ? 'h-[350]' : 'h-[70%]'} relative`}
+        className={`w-[80%] ${Platform.OS == 'web' ? 'h-[350]' : 'h-[90%]'} relative`}
       >
         {/* Front of Card */}
 
@@ -135,6 +138,11 @@ const FlipCard = ({
             </View>
           )}
         </Animated.View>
+        {audio && (
+          <View className="absolute left-5 bottom-5">
+            <AudioPlayer audioUri={audio} autoPlay={true} />
+          </View>
+        )}
       </Pressable>
     </View>
   );

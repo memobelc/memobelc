@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Image, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  MaterialIcons,
+  MaterialCommunityIcons,
+  FontAwesome,
+  Feather,
+} from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import * as DocumentPicker from 'expo-document-picker';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
 import { DialogContent, useDialog } from '@/components/Dialog';
@@ -15,12 +23,17 @@ import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useTranslation } from 'react-i18next';
+import { setImageUrlDeck } from '@/utils/imgSource';
+import { Loading } from '@/components/Loading';
+
+import { storage } from '../../../../FirebaseConfig';
 
 interface IcardProps {
   _id: string;
   back: string;
   created_at: string;
   front: string;
+  audio?: string;
   media_type: any;
   updated_at: string;
 }
@@ -29,7 +42,7 @@ export default function Deck() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { currentDeck, setCollections } = useCollection();
+  const { currentDeck, setCollections, currentCollection } = useCollection();
 
   const [cards, setCards] = useState<IcardProps[] | []>([]);
 
@@ -45,8 +58,20 @@ export default function Deck() {
 
   const [frontSide, setFrontSide] = useState('');
   const [backSide, setBackSide] = useState('');
+  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
 
   const [viewCArd, setViewCArd] = useState(false);
+
+  const pickAndUploadAudio = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'audio/*',
+      copyToCacheDirectory: true,
+    });
+
+    if (result.assets) {
+      setSelectedAudio(result.assets[0].uri);
+    }
+  };
 
   const HandleOpenAddCard = () => {
     setOpenAddCard(true);
@@ -109,12 +134,22 @@ export default function Deck() {
   };
 
   const HandleCreateCard = async () => {
+    let urlAudio = '';
+    if (selectedAudio) {
+      const response = await fetch(selectedAudio);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `audios/cards/${Date.now()}`);
+
+      await uploadBytes(storageRef, blob);
+      urlAudio = await getDownloadURL(storageRef);
+    }
     try {
-      await api.post('/card', {
+      await api.post('/card/create', {
         front: frontSide,
         back: backSide,
         deck_id: currentDeck?._id,
         user_id: userInfo?.user_id,
+        audio: urlAudio,
       });
 
       toast({
@@ -122,6 +157,8 @@ export default function Deck() {
         variant: 'success',
         showProgress: true,
       });
+
+      fetchCardsData();
     } catch (error) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -149,83 +186,128 @@ export default function Deck() {
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="flex-row items-center mb-3 mr-5"
-      >
-        <Ionicons
-          name="arrow-back-circle"
-          size={24}
-          color={colors.primary[500]}
-        />
-        <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
-      </TouchableOpacity>
-
-      <View className="flex flex-row justify-between items-center mb-4">
-        <MaterialIcons name="language" size={24} color="#000" />
-        <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row">
-          <MaterialCommunityIcons
-            className="pr-2"
-            name="cards"
-            size={24}
-            color={colors.error[600]}
-          />
-          <Text className="text-xs color-red-700">
-            {currentDeck?.total_cards != 0
-              ? `${currentDeck?.pending_cards} out of ${currentDeck?.total_cards} to study`
-              : 'No cards added yet'}
-          </Text>
-        </View>
-      </View>
-
-      <Text className="w-full text-gray-800 text-2xl font-bold">{name}</Text>
-
-      <View className="my-6 w-full h-36 bg-white rounded-[12px] overflow-hidden shadow-lg">
-        <Image
-          source={{
-            uri: 'https://travelopod.com/_next/image?url=https%3A%2F%2Fstatic.wixstatic.com%2Fmedia%2F0539f7_aee4fccbe409439e8334b9f9b5426020~mv2.jpg&w=2048&q=75',
-          }}
-          className="w-full h-full top-0"
-        />
-      </View>
-
-      <TouchableOpacity
-        style={{ backgroundColor: colors.warning[500] }}
-        className="flex flex-row items-center justify-center w-full  rounded-full p-2.5"
-        onPress={HandleOpenStudy}
-      >
-        <Text className="text-white font-bold text-2xl">Study Now</Text>
-        <MaterialIcons name="arrow-right-alt" size={40} color="white" />
-      </TouchableOpacity>
-
       <ScrollView
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
-        className="flex-1"
       >
-        {cards &&
-          cards.map((item) => (
-            <CardDisplaying
-              key={item._id}
-              front={item.front}
-              back={item.back}
-            />
-          ))}
-      </ScrollView>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row items-center mb-3 mr-5"
+        >
+          <Ionicons
+            name="arrow-back-circle"
+            size={24}
+            color={colors.primary[500]}
+          />
+          <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
+        </TouchableOpacity>
 
+        <View className="flex flex-row justify-between items-center mb-4">
+          <MaterialIcons name="language" size={24} color="#000" />
+          <View className="flex bg-red-100 px-2 py-1 rounded-md items-center justify-center flex-row">
+            <MaterialCommunityIcons
+              className="pr-2"
+              name="cards"
+              size={24}
+              color={colors.error[600]}
+            />
+            <Text className="text-xs color-red-700">
+              {currentDeck?.total_cards != 0
+                ? `${currentDeck?.pending_cards} out of ${currentDeck?.total_cards} to study`
+                : 'No cards added yet'}
+            </Text>
+          </View>
+        </View>
+
+        <Text className="w-full text-gray-800 text-2xl font-bold">{name}</Text>
+
+        <View className="my-6 w-full h-48 md:h-[756px] rounded-[12px] overflow-hidden relative">
+          <Image
+            source={setImageUrlDeck({ image: currentDeck?.image })}
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+              opacity: 0.3,
+            }}
+            className="w-full h-full"
+            blurRadius={10}
+          />
+
+          <Image
+            source={setImageUrlDeck({ image: currentDeck?.image })}
+            style={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'contain',
+            }}
+            className="w-full h-full"
+          />
+        </View>
+
+        {loadingCollection ? (
+          <Loading
+            color={colors.primary[500]}
+            classname="flex-1 items-center justify-center"
+          />
+        ) : cards.length !== 0 ? (
+          <TouchableOpacity
+            style={{
+              backgroundColor:
+                currentDeck?.pending_cards == 0
+                  ? colors.warning[100]
+                  : colors.warning[500],
+            }}
+            className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
+            onPress={HandleOpenStudy}
+            disabled={currentDeck?.pending_cards == 0}
+          >
+            <Text className="text-white font-bold text-2xl">
+              {t('Study Now')}
+            </Text>
+            <Feather name="arrow-right" size={40} color="white" />
+          </TouchableOpacity>
+        ) : (
+          <View className="flex  items-center justify-center py-10">
+            <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
+              {t('Your deck is empty, add a cards to your deck')}
+            </Text>
+            <Image
+              style={{ width: 200, height: 200 }}
+              className="w-60 h-60"
+              source={require('@/assets/empty.png')}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+        <View>
+          {cards &&
+            cards.map((item) => (
+              <CardDisplaying
+                key={item._id}
+                front={item.front}
+                back={item.back}
+                audio={item.audio}
+              />
+            ))}
+        </View>
+      </ScrollView>
       <LinearGradient
-        colors={['transparent', 'white']}
+        colors={['transparent', `${colors.gray[100]}`]}
         className="absolute bottom-0 left-0 right-0 h-60"
         pointerEvents="none"
       />
 
-      <TouchableOpacity
-        style={{ backgroundColor: colors.primary[500] }}
-        className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
-        onPress={HandleOpenAddCard}
-      >
-        <Text className="text-white font-bold text-2xl">Add cards</Text>
-      </TouchableOpacity>
+      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+        <TouchableOpacity
+          style={{ backgroundColor: colors.primary[500] }}
+          className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
+          onPress={HandleOpenAddCard}
+        >
+          <Text className="text-white font-bold text-2xl">Add cards</Text>
+        </TouchableOpacity>
+      )}
 
       {openStudy && <OpenStudy open={openStudy} />}
 
@@ -263,7 +345,7 @@ export default function Deck() {
 
           <View className="border-b border-gray-300 mb-4 w-full" />
           {!viewCArd ? (
-            <>
+            <ScrollView className="w-full" showsVerticalScrollIndicator={false}>
               <Input
                 label="Front Side"
                 className="py-6 w-full"
@@ -278,9 +360,22 @@ export default function Deck() {
                 value={backSide}
                 onChangeText={(text) => setBackSide(text)}
               />
-            </>
+              <TouchableOpacity
+                onPress={pickAndUploadAudio}
+                className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
+              >
+                <FontAwesome name="file-audio-o" size={24} color="black" />
+                <Text className="text-gray-500 mt-2">
+                  {t('Tap to attach audio')}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           ) : (
-            <FlipCard frontSide={frontSide} backSide={backSide} />
+            <FlipCard
+              frontSide={frontSide}
+              backSide={backSide}
+              audio={selectedAudio}
+            />
           )}
         </DialogContent>
       )}

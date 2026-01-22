@@ -13,7 +13,9 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({ children }) => {
   const { StripeProvider } = require('@stripe/stripe-react-native');
 
   return (
-    <StripeProvider publishableKey="pk_test_XXXXX">{children}</StripeProvider>
+    <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_KEY}>
+      {children}
+    </StripeProvider>
   );
 };
 

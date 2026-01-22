@@ -12,7 +12,7 @@ export default function AppLayout() {
   const backgroundColor = colors.gray[100];
 
   if (isLoading) {
-    return <Loading />;
+    return <Loading classname="flex-1 items-center justify-center" />;
   }
 
   if (!session) {

@@ -31,6 +31,7 @@ import api from '@/services/api';
 import { storage } from '../../../../FirebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { setImageUrl } from '@/utils/imgSource';
 
 interface ICardProps {
   _id: string;
@@ -58,7 +59,7 @@ const YouTubeVideo = () => {
   const [loading, setLoading] = useState(true);
   const [userAlreadyHasDeck, setUserAlreadyHasDeck] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  const [openStudy, setOpenStudy] = useState(false);
+  const [openAddVideo, setOpenAddVideo] = useState(false);
   const [openCreateCollection, setOpenCreateCollection] = useState(false);
   const [cards, setCards] = useState<ICardProps[]>([]);
 
@@ -83,8 +84,8 @@ const YouTubeVideo = () => {
     }
   };
 
-  const HandleOpenStudy = () => {
-    setOpenStudy(true);
+  const HandleOpenAddVideo = () => {
+    setOpenAddVideo(true);
     setOpen(true);
   };
 
@@ -148,7 +149,7 @@ const YouTubeVideo = () => {
       }
     } finally {
       setOpen(false);
-      setOpenStudy(false);
+      setOpenAddVideo(false);
       setNameCollection('');
       setSelectedImage(null);
     }
@@ -236,7 +237,12 @@ const YouTubeVideo = () => {
           onReady={() => setVideoReady(true)}
           onFullScreenChange={onFullScreenChange}
         />
-        {!videoReady && <Loading color={colors.primary[500]} />}
+        {!videoReady && (
+          <Loading
+            color={colors.primary[500]}
+            classname="flex-1 items-center justify-center"
+          />
+        )}
       </View>
       {!loading && cards.length > 0 ? (
         <TouchableOpacity
@@ -247,7 +253,7 @@ const YouTubeVideo = () => {
           }}
           disabled={userAlreadyHasDeck}
           className=" mt-10 flex flex-row items-center justify-center w-full  rounded-full p-2.5"
-          onPress={HandleOpenStudy}
+          onPress={HandleOpenAddVideo}
         >
           <Text className="text-white font-bold text-2xl">
             {!userAlreadyHasDeck ? 'Save Deck' : 'Deck is already saved'}
@@ -259,7 +265,7 @@ const YouTubeVideo = () => {
           />
         </TouchableOpacity>
       ) : (
-        <Loading />
+        <Loading classname="flex-1 items-center justify-center" />
       )}
 
       <ScrollView
@@ -278,15 +284,18 @@ const YouTubeVideo = () => {
       </ScrollView>
 
       <LinearGradient
-        colors={['transparent', 'white']}
+        colors={['transparent', `${colors.gray[100]}`]}
         className="absolute bottom-0 left-0 right-0 h-60"
         pointerEvents="none"
       />
-      {openStudy && (
-        <OpenDialogInput open={openStudy} title="Select the desired collection">
-          <View className="w-full">
+      {openAddVideo && (
+        <OpenDialogInput
+          open={openAddVideo}
+          title="Select the desired collection"
+        >
+          <View className="w-full max-h-[80vh]">
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 200, paddingTop: 100 }}
+              contentContainerStyle={{ paddingBottom: 200, paddingTop: 25 }}
               showsVerticalScrollIndicator={false}
             >
               {collections && collections.length >= 1 && (
@@ -298,14 +307,15 @@ const YouTubeVideo = () => {
                         HandleSaveDeck(item._id);
                       }}
                     >
-                      <View className="w-full h-[100px] bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3">
+                      <View className="w-full md:w-[50%] h-[100px] mx-auto bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3">
                         <Image
-                          source={{ uri: item.image || '' }}
+                          style={{ width: '30%', height: '100%' }}
+                          source={setImageUrl({ image: item.image })}
                           className="w-[30%] h-full absolute  top-0"
                         />
 
                         <View className="w-[70%] h-full justify-center items-center left-[30%]">
-                          <Text className="font-[ComicSans] text-xl font-bold pb-3 text-start w-full px-6">
+                          <Text className="font-[ComicSans] text-xl font-bold  text-start w-full pl-3">
                             {item.name}
                           </Text>
                           <View className="flex flex-row justify-between items-center  w-[80%]"></View>

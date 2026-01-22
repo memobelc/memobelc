@@ -31,7 +31,7 @@ type menuItem = {
 
 const menuItems: menuItem[] | [] = [];
 
-const AvatarProfileDropDown = () => {
+const AvatarProfileDrawer = () => {
   const { userInfo, signOut } = useSession();
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
@@ -44,26 +44,24 @@ const AvatarProfileDropDown = () => {
 
   // const handleSubscribe = async () => {
   //   setLoading(true);
-  //   // const response = await api.post(
-  //   //   '/payment/payment_intent',
-  //   //   {},
-  //   //   {
-  //   //     headers: {
-  //   //       Authorization: `Bearer ${userInfo?.token}`,
-  //   //     },
-  //   //   },
-  //   // );
+  //   const response = await api.post(
+  //     '/payment/payment_intent',
+  //     {},
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${userInfo?.token}`,
+  //       },
+  //     },
+  //   );
 
-  //   const client_secret =
-  //     'pi_3R7zeRHGJ1Rp3sOw0El7bZu3_secret_PDVpF20WqUvK9Llq2pmKqGtqm';
-  //   console.log(client_secret);
+  //   const client_secret = response.data.client_secret;
 
-  //   if (!client_secret) {
-  //     console.error('Erro: client_secret não foi retornado.');
-  //     return;
-  //   }
+  // if (!client_secret) {
+  //   console.error('Erro: client_secret não foi retornado.');
+  //   return;
+  // }
 
-  //   // Inicializar a tela de pagamento corretamente
+  // Inicializar a tela de pagamento corretamente
   //   const { error } = await initPaymentSheet({
   //     merchantDisplayName: 'Memobelc',
   //     paymentIntentClientSecret: client_secret,
@@ -110,7 +108,7 @@ const AvatarProfileDropDown = () => {
   }, [open]);
 
   useEffect(() => {
-    i18n.changeLanguage(language || 'en');
+    i18n.changeLanguage(language || 'pt-BR');
   }, [language]);
 
   return (
@@ -173,8 +171,12 @@ const AvatarProfileDropDown = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
-              {!userInfo?.premium && (
-                <TouchableOpacity className="mb-3" disabled={loading}>
+              {/*{!userInfo?.premium && (
+                <TouchableOpacity
+                  className="mb-3"
+                  disabled={loading}
+                  onPress={handleSubscribe}
+                >
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
                     end={{ x: 0, y: 1 }}
@@ -202,7 +204,7 @@ const AvatarProfileDropDown = () => {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              )}
+              )} */}
 
               <View>
                 {menuItems &&
@@ -241,14 +243,14 @@ const AvatarProfileDropDown = () => {
                   <Picker
                     selectedValue={language}
                     onValueChange={(itemValue) =>
-                      setLanguage(itemValue || 'en')
+                      setLanguage(itemValue || 'pt-BR')
                     }
                   >
                     <Picker.Item label="English" value="en" />
                     <Picker.Item label="Português" value="pt-BR" />
-                    <Picker.Item label="Español" value="es" />
+                    {/* <Picker.Item label="Español" value="es" />
                     <Picker.Item label="Deutsch" value="de" />
-                    <Picker.Item label="中國人" value="zh" />
+                    <Picker.Item label="中國人" value="zh" /> */}
                   </Picker>
                 </View>
               </View>
@@ -267,4 +269,4 @@ const AvatarProfileDropDown = () => {
   );
 };
 
-export default AvatarProfileDropDown;
+export default AvatarProfileDrawer;

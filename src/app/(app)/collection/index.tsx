@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -6,9 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Modal,
   Platform,
 } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  MaterialIcons,
+  MaterialCommunityIcons,
+  Feather,
+} from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,21 +32,44 @@ import { useSession } from '@/contexts/AuthContext';
 import { colors } from '@/styles/colors';
 
 import { storage } from '../../../../FirebaseConfig';
-import { setImageUrl } from '@/utils/imgSource';
+import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
+import { Loading } from '@/components/Loading';
+import * as yup from 'yup';
 
 export default function Collection() {
-  const { setCollections, currentCollection, setCurrentDeck } = useCollection();
+  const {
+    setCollections,
+    currentCollection,
+    setCurrentDeck,
+    setCurrentCollection,
+  } = useCollection();
   const { userInfo } = useSession();
   const { toast } = useToast();
   const { t } = useTranslation();
   const router = useRouter();
-  const { setOpen } = useDialog();
+
+  const validationSchema = yup.object().shape({
+    name: yup.string().required(t('Name is required')),
+  });
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { setOpen, open } = useDialog();
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [nameDeck, setNameDeck] = useState('');
+  const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
+    string | null
+  >(null);
+  // const [nameDeck, setNameDeck] = useState('');
   const [loadingCollection, setLoadingCollection] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { name } = useLocalSearchParams();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [characterCounter, setCharacterCounter] = useState(0);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -83,7 +111,16 @@ export default function Collection() {
       });
 
       if (response.status === 200) {
-        setCollections(response.data.collections);
+        const updatedCollections = response.data.collections;
+        setCollections(updatedCollections);
+
+        const updated = updatedCollections.find(
+          (e: any) => e._id === currentCollection?._id,
+        );
+
+        if (updated) {
+          setCurrentCollection(updated);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -93,29 +130,55 @@ export default function Collection() {
   };
 
   const HandleCreateDeck = async () => {
-    if (!selectedImage) return;
+    setErrors({});
+    let url = '';
 
-    const response = await fetch(selectedImage);
-    const blob = await response.blob();
-    const storageRef = ref(storage, `images/decks/${Date.now()}`);
+    const validateForm = async () => {
+      await validationSchema.validate(formData, { abortEarly: false });
+    };
 
-    try {
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
+    const uploadImageIfNeeded = async (): Promise<string> => {
+      if (selectedImage && !selectedImageFromGallery) {
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `images/decks/${Date.now()}`);
 
+        await uploadBytes(storageRef, blob);
+        return await getDownloadURL(storageRef);
+      }
+
+      return selectedImageFromGallery!;
+    };
+
+    const createDeck = async (imageUrl: string) => {
       await api.post('/deck/create', {
-        name: nameDeck,
-        image: url,
+        name: formData.name,
+        image: imageUrl,
         collection_id: currentCollection?._id,
       });
 
       toast({
-        message: 'Deck  created successfully',
+        message: t('Deck created successfully'),
         variant: 'success',
         showProgress: true,
       });
+    };
+
+    try {
+      setLoading(true);
+      await validateForm();
+      url = await uploadImageIfNeeded();
+      await createDeck(url);
+      setOpen(false);
+      setSelectedImage(null);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof yup.ValidationError) {
+        const newErrors: Record<string, string> = {};
+        error.inner.forEach((err) => {
+          if (err.path) newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+      } else if (error instanceof Error) {
         console.error(error.message);
         toast({
           message: error.message,
@@ -124,17 +187,34 @@ export default function Collection() {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: 'An unexpected error has occurred',
           variant: 'destructive',
         });
       }
     } finally {
-      setOpen(false);
-      setNameDeck('');
-      setSelectedImage(null);
       fetchData();
+      setLoading(false);
     }
   };
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setCharacterCounter(value.length);
+  };
+
+  const closeAddDeck = async () => {
+    handleInputChange('name', '');
+    setOpenAddDeck(false);
+    setOpen(false);
+    setSelectedImage(null);
+  };
+
+  useEffect(() => {
+    if (!open) {
+      closeAddDeck();
+    }
+  }, [open]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -176,36 +256,76 @@ export default function Collection() {
             {name}
           </Text>
 
-          <View className="my-6 w-full h-44 md:h-[500px] bg-white rounded-[12px] overflow-hidden shadow-lg">
+          <View className="my-6 w-full h-48 md:h-[756px] rounded-[12px] overflow-hidden relative">
+            <Image
+              source={setImageUrl({ image: currentCollection?.image })}
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+                opacity: 0.3,
+              }}
+              className="w-full h-full"
+              blurRadius={10}
+            />
+
             <Image
               source={setImageUrl({ image: currentCollection?.image })}
               style={{
                 width: '100%',
                 height: '100%',
-                resizeMode: 'cover',
+                resizeMode: 'contain',
               }}
-              className="w-full h-full top-0"
+              className="w-full h-full"
             />
           </View>
 
-          <TouchableOpacity
-            style={{ backgroundColor: colors.warning[500] }}
-            className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
-            onPress={HandleOpenStudy}
-          >
-            <Text className="text-white font-bold text-2xl">
-              {t('Study Now')}
-            </Text>
-            <MaterialIcons name="arrow-right-alt" size={40} color="white" />
-          </TouchableOpacity>
-
-          <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
-            <TextInput
-              placeholder={t('Search decks...')}
-              placeholderTextColor="#888"
-              className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
+          {loadingCollection ? (
+            <Loading
+              color={colors.primary[500]}
+              classname="flex-1 items-center justify-center"
             />
-          </View>
+          ) : currentCollection?.decks.length !== 0 ? (
+            <>
+              <TouchableOpacity
+                style={{
+                  backgroundColor:
+                    currentCollection?.pending_cards == 0
+                      ? colors.warning[100]
+                      : colors.warning[500],
+                }}
+                className="flex flex-row items-center justify-center w-full rounded-full p-2.5"
+                onPress={HandleOpenStudy}
+                disabled={currentCollection?.pending_cards == 0}
+              >
+                <Text className="text-white font-bold text-2xl">
+                  {t('Study Now')}
+                </Text>
+                <Feather name="arrow-right" size={40} color="white" />
+              </TouchableOpacity>
+              {/* <View className="mt-8 flex-col w-full items-start justify-between z-10 bg-gray-100 mb-4">
+                <TextInput
+                  placeholder={t('Search decks...')}
+                  placeholderTextColor="#888"
+                  className="h-14 w-full border border-gray-300 rounded-lg pl-2 text-sm"
+                />
+              </View> */}
+            </>
+          ) : (
+            <View className="flex  items-center justify-center py-10">
+              <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
+                {t('Your collection is empty, add a deck to your collection')}
+              </Text>
+              <Image
+                style={{ width: 200, height: 200 }}
+                className="w-60 h-60"
+                source={require('@/assets/empty.png')}
+                resizeMode="cover"
+              />
+            </View>
+          )}
+
           <View>
             {currentCollection && (
               <>
@@ -226,72 +346,166 @@ export default function Collection() {
         </View>
       </ScrollView>
       <LinearGradient
-        colors={['transparent', 'white']}
+        colors={['transparent', `${colors.gray[100]}`]}
         className="absolute bottom-0 left-0 right-0 h-60"
         pointerEvents="none"
       />
 
-      <TouchableOpacity
-        style={{ backgroundColor: colors.primary[500] }}
-        className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"
-        onPress={HandleOpenAddDeck}
-      >
-        <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>
-      </TouchableOpacity>
+      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+        <TouchableOpacity
+          style={{ backgroundColor: colors.primary[500] }}
+          className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"
+          onPress={HandleOpenAddDeck}
+        >
+          <Text className="text-white font-bold text-2xl">{t('Add deck')}</Text>
+        </TouchableOpacity>
+      )}
 
       {openStudy && <OpenStudy open={openStudy} />}
 
       {openAddDeck && (
-        <DialogContent className="bg-white rounded-t-lg flex w-full absolute items-center bottom-0 h-1/2 p-4">
+        <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
           <View className="flex flex-row justify-between items-center mb-2 w-full">
             <Text className="font-semibold text-xl text-primary justify-center">
               {t('New deck')}
             </Text>
-            <TouchableOpacity onPress={() => setOpen(false)}>
+            <TouchableOpacity onPress={() => closeAddDeck()}>
               <MaterialIcons name="close" size={24} color={colors.gray[950]} />
             </TouchableOpacity>
           </View>
 
           <View className="border-b border-gray-300 mb-4 w-full" />
 
-          <TouchableOpacity
-            onPress={pickImage}
-            className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-full"
-          >
-            {selectedImage ? (
-              <View className="relative">
-                <Image
-                  source={{ uri: selectedImage }}
-                  className="w-32 h-32 rounded-lg"
-                />
-                <View className="bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md">
-                  <MaterialIcons
-                    onPress={() => setSelectedImage(null)}
-                    name="close"
-                    size={24}
-                    color="red"
-                    className=""
+          <View>
+            <View className="flex flex-row items-center justify-betweenS">
+              <TouchableOpacity
+                onPress={pickImage}
+                className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-[80%]"
+              >
+                {selectedImage ? (
+                  <View className="relative">
+                    <Image
+                      style={{ width: 128, height: 128 }}
+                      source={
+                        typeof selectedImage === 'string'
+                          ? { uri: selectedImage }
+                          : selectedImage
+                      }
+                      className="w-32 h-32 rounded-lg"
+                    />
+                    <View className="bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md">
+                      <MaterialIcons
+                        onPress={() => {
+                          setSelectedImage(null);
+                          setSelectedImageFromGallery(null);
+                        }}
+                        name="close"
+                        size={24}
+                        color="red"
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <View className="flex-col items-center justify-center">
+                    <MaterialIcons name="cloud-upload" size={40} color="gray" />
+                    <Text className="text-gray-500 mt-2">
+                      {t('Tap to send an image')}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setModalVisible(true)}
+                className=" rounded-lg  flex-col items-start justify-start p-5  w-[20%]"
+              >
+                <View className="flex-col items-center justify-center">
+                  <MaterialCommunityIcons
+                    name="folder-multiple-image"
+                    size={40}
+                    color="black"
                   />
+                  <Text className="text-xs">{t('Gallery')}</Text>
                 </View>
-              </View>
-            ) : (
-              <View className="flex-col items-center justify-center ">
-                <MaterialIcons name="cloud-upload" size={40} color="gray" />
-                <Text className="text-gray-500 mt-2 ">
-                  {t('Tap to send an image')}
+              </TouchableOpacity>
+            </View>
+
+            <Modal visible={modalVisible} animationType="slide" transparent>
+              <View className="flex-1 bg-white p-5">
+                <Text className="text-lg font-bold mb-3">
+                  {t('Select an image')}
                 </Text>
+                <ScrollView
+                  contentContainerStyle={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    gap: 10,
+                  }}
+                >
+                  {imageSourcesDeck.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => {
+                        setSelectedImage(item.uri);
+                        setSelectedImageFromGallery(`dt_${item.id}`);
+                        setModalVisible(false);
+                      }}
+                      className="border rounded-lg overflow-hidden"
+                    >
+                      <Image
+                        style={{ width: 100, height: 100 }}
+                        source={item.uri}
+                        className="w-24 h-24"
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TouchableOpacity
+                  onPress={() => setModalVisible(false)}
+                  className="bg-red-500 p-3 mt-4 rounded-lg"
+                >
+                  <Text className="text-white text-center">{t('Cancel')}</Text>
+                </TouchableOpacity>
               </View>
-            )}
-          </TouchableOpacity>
-          <Input placeholder={t('Enter name deck')} className="py-6 w-full" />
+            </Modal>
+          </View>
+          <View className="flex-row relative">
+            <Input
+              placeholder={t('Enter name deck')}
+              maxLength={25}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: errors['name'] ? 'red' : '#ccc',
+                  borderRadius: 8,
+                },
+              ]}
+              className={`my-6 w-full`}
+              value={formData.name}
+              onChangeText={(value) => handleInputChange('name', value)}
+            />
+            <Text className="absolute top-9 right-1 text-xs text-gray-400">
+              {characterCounter}/25
+            </Text>
+          </View>
+
+          <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
+            {errors['name']}
+          </Text>
+
           <TouchableOpacity
             style={{ backgroundColor: colors.primary[500] }}
             className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
             onPress={HandleCreateDeck}
+            disabled={loading}
           >
-            <Text className="text-white text-base font-bold">
-              {t('Create New deck')}
-            </Text>
+            {loading ? (
+              <Loading />
+            ) : (
+              <Text className="text-white text-base font-bold my-2">
+                {t('Create New deck collection')}
+              </Text>
+            )}
           </TouchableOpacity>
         </DialogContent>
       )}

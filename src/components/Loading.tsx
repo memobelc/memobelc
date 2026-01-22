@@ -2,21 +2,13 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 interface ILoadingProps {
   color?: string;
+  classname?: string;
 }
 
-export const Loading = ({ color = 'white' }: ILoadingProps) => {
+export const Loading = ({ color = 'white', classname }: ILoadingProps) => {
   return (
-    <View style={styles.container}>
+    <View className={classname}>
       <ActivityIndicator size="large" color={color} />
     </View>
   );
 };
-
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-});
