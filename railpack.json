@@ -1,11 +1,14 @@
 {
   "$schema": "https://schema.railpack.com",
   "steps": {
+    "install yarn": {
+      "commands": ["npm install --global yarn"]
+    },
     "install": {
-      "commands": ["npm install"]
+      "commands": ["yarn install"]
     },
     "build": {
-      "inputs": [{ "step": "install" }],
+      "inputs": [{ "step": "install yarn" },{ "step": "install" }],
       "commands": ["npx expo export --platform web"]
     }
   },
