@@ -1,5 +1,5 @@
 import { FontAwesome6 } from '@expo/vector-icons';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useToast } from '@/components/Toast';
@@ -11,79 +11,53 @@ interface IAudioProps {
 
 export default function AudioPlayer({ audioUri, autoPlay }: IAudioProps) {
   const { toast } = useToast();
-
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const player = useAudioPlayer(audioUri);
+  const status = useAudioPlayerStatus(player);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const playSound = async () => {
+  const isPlaying = player.playing;
+  const isLoading = !status.isLoaded || status.isBuffering;
+
+  const playSound = () => {
     if (isPlaying || isLoading) return;
 
-    setIsLoading(true);
-
     try {
-      if (sound) {
-        sound.setOnPlaybackStatusUpdate(null);
-        await sound.unloadAsync();
-        setSound(null);
-      }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: audioUri },
-        { shouldPlay: true },
-      );
-
-      setSound(newSound);
-      setIsPlaying(true);
-
-      newSound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-        if (!status.isLoaded) return;
-
-        if (status.didJustFinish) {
-          setIsPlaying(false);
-          newSound.setOnPlaybackStatusUpdate(null);
-          newSound.unloadAsync();
-          setSound(null);
-        }
-      });
+      player.play();
     } catch (error) {
       toast({
         message: `Erro ao tocar áudio: ${error}`,
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const stopSound = async () => {
-    if (sound) {
-      sound.setOnPlaybackStatusUpdate(null);
-      await sound.stopAsync();
-      await sound.unloadAsync();
-      setIsPlaying(false);
-      setSound(null);
+  const stopSound = () => {
+    try {
+      player.pause();
+      player.seekTo(0);
+    } catch (error) {
+      toast({
+        message: `Erro ao parar áudio: ${error}`,
+        variant: 'destructive',
+      });
     }
   };
 
   useEffect(() => {
-    if (autoPlay && !isAutoPlay) {
-      setTimeout(() => {
+    if (autoPlay && !isAutoPlay && !isLoading && audioUri) {
+      const timer = setTimeout(() => {
         playSound();
         setIsAutoPlay(true);
       }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [autoPlay, isAutoPlay]);
+  }, [autoPlay, isAutoPlay, isLoading, audioUri]);
 
   useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.setOnPlaybackStatusUpdate(null);
-        sound.unloadAsync();
-      }
-    };
-  }, [sound]);
+    if (status.didJustFinish) {
+      player.seekTo(0);
+    }
+  }, [status.didJustFinish]);
 
   return (
     <View>
