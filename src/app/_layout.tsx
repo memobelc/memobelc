@@ -23,29 +23,26 @@ export default function Layout() {
   });
 
   if (!fontsLoaded) {
-    <Loading classname="flex-1 items-center justify-center" />;
+    return <Loading classname="flex-1 items-center justify-center" />;
   }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ToastProvider>
         <PaperProvider>
           <SessionProvider>
-            {/* <StripeWrapper> */}
             <ProfileProvider>
               <CollectionProvider>
                 <NotificationProvider>
-                  <Dialog>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor },
-                      }}
-                    />
-                  </Dialog>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor },
+                    }}
+                  />
                 </NotificationProvider>
               </CollectionProvider>
             </ProfileProvider>
-            {/* </StripeWrapper> */}
           </SessionProvider>
         </PaperProvider>
       </ToastProvider>

@@ -13,7 +13,7 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
-import { DialogContent, useDialog } from '@/components/Dialog';
+import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
 import { CardDisplaying } from '@/components/atoms/CardDisplaying';
 import { Input } from '@/components/Input';
 import FlipCard from '@/components/atoms/FlipCard';
@@ -312,72 +312,81 @@ export default function Deck() {
       {openStudy && <OpenStudy open={openStudy} />}
 
       {openAddCard && (
-        <DialogContent className="bg-white rounded-t-lg flex w-full  h-full absolute items-center bottom-0  p-4">
-          <View className="flex flex-row justify-between items-center mb-2 w-full">
-            <TouchableOpacity onPress={HandleClose}>
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color="black"
-              />
-            </TouchableOpacity>
-            <View className="flex-row w-[60%] items-center justify-between">
-              <Text className="font-semibold text-xl text-primary justify-center">
-                New card
-              </Text>
-              <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
+        <Dialog>
+          <DialogContent className="bg-white rounded-t-lg flex w-full  h-full absolute items-center bottom-0  p-4">
+            <View className="flex flex-row justify-between items-center mb-2 w-full">
+              <TouchableOpacity onPress={HandleClose}>
                 <MaterialCommunityIcons
-                  name={!viewCArd ? 'eye' : 'eye-off'}
+                  name="arrow-left"
                   size={24}
                   color="black"
                 />
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={HandleCreateCard}
-                style={{ backgroundColor: colors.primary[500] }}
-                className="rounded-2xl p-2.5"
-              >
-                <MaterialCommunityIcons name="check" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View className="border-b border-gray-300 mb-4 w-full" />
-          {!viewCArd ? (
-            <ScrollView className="w-full" showsVerticalScrollIndicator={false}>
-              <Input
-                label="Front Side"
-                className="py-6 w-full"
-                inputClasses="h-40"
-                value={frontSide}
-                onChangeText={(text) => setFrontSide(text)}
-              />
-              <Input
-                label="Back Side"
-                className="py-6 w-full"
-                inputClasses="h-40"
-                value={backSide}
-                onChangeText={(text) => setBackSide(text)}
-              />
-              <TouchableOpacity
-                onPress={pickAndUploadAudio}
-                className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
-              >
-                <FontAwesome name="file-audio-o" size={24} color="black" />
-                <Text className="text-gray-500 mt-2">
-                  {t('Tap to attach audio')}
+              <View className="flex-row w-[60%] items-center justify-between">
+                <Text className="font-semibold text-xl text-primary justify-center">
+                  New card
                 </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          ) : (
-            <FlipCard
-              frontSide={frontSide}
-              backSide={backSide}
-              audio={selectedAudio}
-            />
-          )}
-        </DialogContent>
+                <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
+                  <MaterialCommunityIcons
+                    name={!viewCArd ? 'eye' : 'eye-off'}
+                    size={24}
+                    color="black"
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={HandleCreateCard}
+                  style={{ backgroundColor: colors.primary[500] }}
+                  className="rounded-2xl p-2.5"
+                >
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={24}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View className="border-b border-gray-300 mb-4 w-full" />
+            {!viewCArd ? (
+              <ScrollView
+                className="w-full"
+                showsVerticalScrollIndicator={false}
+              >
+                <Input
+                  label="Front Side"
+                  className="py-6 w-full"
+                  inputClasses="h-40"
+                  value={frontSide}
+                  onChangeText={(text) => setFrontSide(text)}
+                />
+                <Input
+                  label="Back Side"
+                  className="py-6 w-full"
+                  inputClasses="h-40"
+                  value={backSide}
+                  onChangeText={(text) => setBackSide(text)}
+                />
+                <TouchableOpacity
+                  onPress={pickAndUploadAudio}
+                  className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
+                >
+                  <FontAwesome name="file-audio-o" size={24} color="black" />
+                  <Text className="text-gray-500 mt-2">
+                    {t('Tap to attach audio')}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            ) : (
+              <FlipCard
+                frontSide={frontSide}
+                backSide={backSide}
+                audio={selectedAudio}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       )}
     </View>
   );
