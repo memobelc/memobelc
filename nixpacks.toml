@@ -6,10 +6,10 @@ NIXPACKS_NO_CACHE="1"
 nixPkgs = ["nodejs"]
 
 [phases.install]
-cmds = ["npm install --global yarn", "yarn install"]
+cmds = ["npm install --global yarn"]
 
 [phases.build]
-cmds = ["npx expo export --platform web"]
+cmds = ["yarn install", "npx expo export --platform web"]
 
 [start]
 cmd = "npx serve -s dist -l 3002"
