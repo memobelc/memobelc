@@ -1,15 +1,11 @@
-[variables]
-NIXPACKS_NODE_VERSION="20"
-NIXPACKS_NO_CACHE="1"
-
 [phases.setup]
-nixPkgs = ["nodejs"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm install --global yarn"]
+cmds = ["npm install"]
 
 [phases.build]
-cmds = ["yarn install", "npx expo export --platform web"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "npx serve -s dist -l 3002"
+cmd = "npm run start:web"
