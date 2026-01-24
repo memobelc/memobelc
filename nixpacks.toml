@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs"]
 
 [phases.install]
-cmds = ["node -v"]
+cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npx expo export --platform web"]
