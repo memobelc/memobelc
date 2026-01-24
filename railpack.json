@@ -9,7 +9,7 @@
     },
     "build": {
       "inputs": [{ "step": "install yarn" },{ "step": "install" }],
-      "commands": ["npx expo export --platform web"]
+      "commands": ["ls", "npx expo export --platform web"]
     }
   },
   "deploy": {
