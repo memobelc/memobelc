@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": ["npm install"]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": ["npx expo export --platform web"]
+    }
+  },
+  "deploy": {
+    "startCommand": "npx serve -s dist -l 3002"
+  }
+}
