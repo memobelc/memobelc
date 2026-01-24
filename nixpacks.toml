@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs"]
 
 [phases.install]
-cmds = ["npm install -g corepack", "yarn install"]
+cmds = ["node -v"]
 
 [phases.build]
-cmds = ["npx expo export --platform web"]
+cmds = ["npm install", "npx expo export --platform web"]
 
 [start]
 cmd = "npx serve -s dist -l 3002"
