@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:web": "npx serve dist -l $PORT",
+    "build": "npx expo export -p web",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:web": "npx expo export -p web",
     "test": "jest --watchAll",
     "lint": "expo lint"
   },
