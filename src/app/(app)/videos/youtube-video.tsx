@@ -327,7 +327,8 @@ const YouTubeVideo = () => {
               )}
               <TouchableOpacity onPress={() => setOpenCreateCollection(true)}>
                 <View className="w-full h-[100px] bg-white rounded-[12px]  relative shadow-lg my-3 flex-col justify-center items-center">
-                  <AntDesign name="pluscircleo" size={24} color="black" />
+                  <AntDesign name="plus-circle" size={24} color="black" />
+
                   <Text className="font-[ComicSans] text-xl font-bold pb-3  px-6">
                     Create a new Collection
                   </Text>

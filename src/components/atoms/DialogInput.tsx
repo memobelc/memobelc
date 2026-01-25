@@ -1,6 +1,5 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { colors } from '@/styles/colors';
 import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
 
@@ -17,7 +16,6 @@ export const OpenDialogInput = ({
   subTitle,
   children,
 }: OpenDialogProps) => {
-  const router = useRouter();
   const { setOpen } = useDialog();
 
   return (

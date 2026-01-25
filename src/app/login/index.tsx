@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Platform } from 'react-native';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
@@ -14,14 +14,17 @@ import * as Device from 'expo-device';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
 import api from '@/services/api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowList: true,
-  }),
-});
+// Só configura notificações se não estiver no web
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export default function SignIn() {
   const { t } = useTranslation();
@@ -58,24 +61,50 @@ export default function SignIn() {
     try {
       setErrors({});
       await validationSchema.validate(formData, { abortEarly: false });
-      const login = await signIn(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
 
-      if (login) {
+      if (result.success && result.user) {
         const info = {
           expoPushToken,
-          user_id: login.user_id,
+          user_id: result.user.user_id,
           ...getDeviceInfo(),
         };
-        await api.post('/auth/access_log', info);
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Login realizado com sucesso 🎉',
-            body: `Vamos começar mais uma jornada incrível!`,
-          },
-          trigger: {
-            seconds: 1,
-            repeats: false,
-          } as Notifications.NotificationTriggerInput,
+        try {
+          await api.post('/auth/access_log', info);
+        } catch (logError) {
+          // Silenciosamente ignora erros no log de acesso
+          console.warn('Failed to log access:', logError);
+        }
+        
+        // Só agenda notificação se não estiver no web e se as notificações estiverem disponíveis
+        if (Platform.OS !== 'web' && Notifications.scheduleNotificationAsync) {
+          try {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Login realizado com sucesso 🎉',
+                body: `Vamos começar mais uma jornada incrível!`,
+              },
+              trigger: {
+                seconds: 1,
+                repeats: false,
+              } as Notifications.NotificationTriggerInput,
+            });
+          } catch (notificationError) {
+            // Silenciosamente ignora erros de notificação, não deve bloquear o login
+            console.warn('Failed to schedule notification:', notificationError);
+          }
+        }
+        
+        router.replace('/');
+      } else if (result.pending) {
+        router.push({
+          pathname: '/verify-code',
+          params: { token: result.pending.token },
+        });
+      } else if (result.error) {
+        // Erro já foi tratado no AuthContext com toast
+        setErrors({ 
+          general: result.error 
         });
       }
     } catch (error) {
@@ -86,15 +115,27 @@ export default function SignIn() {
           if (err.path) newErrors[err.path] = err.message;
         });
         setErrors(newErrors);
+      } else {
+        // Tratamento de outros erros inesperados
+        setErrors({ 
+          general: error instanceof Error ? error.message : 'An unexpected error occurred' 
+        });
       }
     }
   };
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(
-      (token: React.SetStateAction<string | undefined>) =>
-        setExpoPushToken(token),
-    );
+    // Só tenta registrar push notifications se não estiver no web
+    if (Platform.OS !== 'web') {
+      registerForPushNotificationsAsync()
+        .then((token: React.SetStateAction<string | undefined>) =>
+          setExpoPushToken(token),
+        )
+        .catch((error) => {
+          // Silenciosamente ignora erros ao registrar push notifications
+          console.warn('Failed to register push notifications:', error);
+        });
+    }
   }, []);
 
   return isLoading ? (
@@ -151,6 +192,11 @@ export default function SignIn() {
           {errors['password']}
         </Text>
       )}
+      {errors['general'] && (
+        <Text className="mb-3 text-center" style={{ color: colors.error[500] }}>
+          {errors['general']}
+        </Text>
+      )}
       <TouchableOpacity
         className="w-full md:w-80 py-4 rounded-[25px] flex-row justify-center items-center mb-5"
         style={{ backgroundColor: colors.info[500] }}
@@ -186,13 +232,26 @@ export default function SignIn() {
   );
 }
 export function getDeviceInfo() {
+  // Se estiver no web ou Device não estiver disponível, retorna valores padrão
+  if (Platform.OS === 'web' || !Device) {
+    return {
+      manufacturer: null,
+      deviceName: 'Web Browser',
+      deviceType: 'DESKTOP',
+      osName: Platform.OS,
+      osVersion: null,
+      platformApiLevel: null,
+      isPhysicalDevice: false,
+    };
+  }
+  
   return {
-    manufacturer: Device.manufacturer,
-    deviceName: Device.deviceName,
-    deviceType: Device.deviceType,
-    osName: Device.osName,
-    osVersion: Device.osVersion,
-    platformApiLevel: Device.platformApiLevel,
-    isPhysicalDevice: Device.isDevice,
+    manufacturer: Device.manufacturer || null,
+    deviceName: Device.deviceName || null,
+    deviceType: Device.deviceType || null,
+    osName: Device.osName || Platform.OS,
+    osVersion: Device.osVersion || null,
+    platformApiLevel: Device.platformApiLevel || null,
+    isPhysicalDevice: Device.isDevice || false,
   };
 }

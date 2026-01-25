@@ -17,7 +17,7 @@ import { Link } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getGreeting } from '@/utils/greeting';
-import { useDialog, DialogContent, Dialog } from '@/components/Dialog';
+// Dialog removido, agora usando Modal diretamente
 import { Input } from '@/components/Input';
 import { colors } from '@/styles/colors';
 import { MainDeckCard } from '@/components/atoms/MainDeckCard';
@@ -35,7 +35,7 @@ import * as yup from 'yup';
 import StudyStreak from '@/components/atoms/StudyStreak';
 
 export default function Home() {
-  const { userInfo, signOut } = useSession();
+  const { userInfo } = useSession();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { collections, setCollections, setCurrentCollection } = useCollection();
@@ -49,7 +49,7 @@ export default function Home() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { setOpen, open } = useDialog();
+  // Removido useDialog, agora usando Modal diretamente
   const [openAddCollection, setOpenAddCollection] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
@@ -122,7 +122,6 @@ export default function Home() {
       await validateForm();
       url = await uploadImageIfNeeded();
       await createCollection(url);
-      setOpen(false);
       setSelectedImage(null);
     } catch (error) {
       if (error instanceof yup.ValidationError) {
@@ -147,6 +146,7 @@ export default function Home() {
     } finally {
       fetchData();
       setLoading(false);
+      setOpenAddCollection(false);
     }
   };
 
@@ -179,15 +179,8 @@ export default function Home() {
   const closeAddCollection = async () => {
     handleInputChange('name', '');
     setOpenAddCollection(false);
-    setOpen(false);
     setSelectedImage(null);
   };
-
-  useEffect(() => {
-    if (!open) {
-      closeAddCollection();
-    }
-  }, [open]);
 
   useEffect(() => {
     fetchData();
@@ -324,15 +317,23 @@ export default function Home() {
         className="absolute bottom-7 right-7 bg-[#007AFF] rounded-full p-2.5"
         onPress={() => {
           setOpenAddCollection(true);
-          setOpen(true);
         }}
       >
         <MaterialIcons name="add" size={40} color={colors.gray[100]} />
       </TouchableOpacity>
 
-      {openAddCollection && (
-        <Dialog>
-          <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openAddCollection}
+        onRequestClose={closeAddCollection}
+      >
+        <View className="flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4"
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View className="flex flex-row justify-between items-center mb-2 w-full">
               <Text className="font-semibold text-xl text-primary justify-center">
                 {t('New deck collection')}
@@ -489,9 +490,9 @@ export default function Home() {
                 </Text>
               )}
             </TouchableOpacity>
-          </DialogContent>
-        </Dialog>
-      )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }

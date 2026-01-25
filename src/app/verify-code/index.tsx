@@ -7,22 +7,26 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSession } from '@/contexts/AuthContext';
 import { colors } from '@/styles/colors';
 
 const ConfirmAccountScreen = () => {
   const { verify_code } = useSession();
   const { token } = useLocalSearchParams();
+  const router = useRouter();
 
   const [code, setCode] = useState<string>('');
 
-  const handleValidateCode = () => {
+  const handleValidateCode = async () => {
     if (code.length < 6) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
-    verify_code(token, code);
+    const result = await verify_code(token, code);
+    if (result.success) {
+      router.replace('/');
+    }
   };
 
   return (

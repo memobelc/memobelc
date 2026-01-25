@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useTranslation } from 'react-i18next';
 
-import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
+// Dialog removido, agora usando Modal diretamente
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { Input } from '@/components/Input';
 import { OpenStudy } from '@/components/atoms/openStudy';
@@ -38,6 +38,7 @@ import * as yup from 'yup';
 
 export default function Collection() {
   const {
+    collections,
     setCollections,
     currentCollection,
     setCurrentDeck,
@@ -57,7 +58,7 @@ export default function Collection() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { setOpen, open } = useDialog();
+  // Removido useDialog, agora usando Modal diretamente
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -92,13 +93,11 @@ export default function Collection() {
   const HandleOpenAddDeck = () => {
     setOpenAddDeck(true);
     setOpenStudy(false);
-    setOpen(true);
   };
 
   const HandleOpenStudy = () => {
     setOpenStudy(true);
     setOpenAddDeck(false);
-    setOpen(true);
   };
 
   const fetchData = async () => {
@@ -169,7 +168,6 @@ export default function Collection() {
       await validateForm();
       url = await uploadImageIfNeeded();
       await createDeck(url);
-      setOpen(false);
       setSelectedImage(null);
     } catch (error) {
       if (error instanceof yup.ValidationError) {
@@ -194,6 +192,7 @@ export default function Collection() {
     } finally {
       fetchData();
       setLoading(false);
+      setOpenAddDeck(false);
     }
   };
   const handleInputChange = (field: string, value: string) => {
@@ -206,15 +205,22 @@ export default function Collection() {
   const closeAddDeck = async () => {
     handleInputChange('name', '');
     setOpenAddDeck(false);
-    setOpen(false);
     setSelectedImage(null);
   };
 
+  // Modal agora é controlado diretamente por openAddDeck, não precisa do useEffect
+
   useEffect(() => {
-    if (!open) {
-      closeAddDeck();
+    // Se não há currentCollection mas há name nos params, busca a collection
+    if (!currentCollection && name && collections) {
+      const foundCollection = collections.find(
+        (c: any) => c.name === name || c._id === name,
+      );
+      if (foundCollection) {
+        setCurrentCollection(foundCollection);
+      }
     }
-  }, [open]);
+  }, [name, collections, currentCollection]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -361,11 +367,27 @@ export default function Collection() {
         </TouchableOpacity>
       )}
 
-      {openStudy && <OpenStudy open={openStudy} />}
+      {openStudy && (
+        <OpenStudy
+          open={openStudy}
+          onClose={() => {
+            setOpenStudy(false);
+          }}
+        />
+      )}
 
-      {openAddDeck && (
-        <Dialog>
-          <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openAddDeck}
+        onRequestClose={closeAddDeck}
+      >
+        <View className="flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4"
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View className="flex flex-row justify-between items-center mb-2 w-full">
               <Text className="font-semibold text-xl text-primary justify-center">
                 {t('New deck')}
@@ -518,9 +540,9 @@ export default function Collection() {
                 </Text>
               )}
             </TouchableOpacity>
-          </DialogContent>
-        </Dialog>
-      )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }

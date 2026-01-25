@@ -254,7 +254,10 @@ const AvatarProfileDrawer = () => {
                 </View>
               </View>
               <TouchableOpacity
-                onPress={signOut}
+                onPress={() => {
+                  signOut();
+                  router.replace('/login');
+                }}
                 className="flex flex-row gap-2 items-center cursor-pointer"
               >
                 <MaterialIcons name="logout" size={20} />

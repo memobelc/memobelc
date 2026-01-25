@@ -3,11 +3,11 @@ import { colors } from '@/styles/colors';
 import { Stack } from 'expo-router';
 import { SessionProvider, useSession } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
-import { Menu, PaperProvider, Portal } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '@/styles/global.css';
 import { Loading } from '@/components/Loading';
-import { Dialog } from '@/components/Dialog';
+import { DialogProvider } from '@/components/Dialog';
 import { ToastProvider } from '@/components/Toast';
 import { CollectionProvider } from '@/contexts/CollectionContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
@@ -30,20 +30,22 @@ export default function Layout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ToastProvider>
         <PaperProvider>
-          <SessionProvider>
-            <ProfileProvider>
-              <CollectionProvider>
-                <NotificationProvider>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor },
-                    }}
-                  />
-                </NotificationProvider>
-              </CollectionProvider>
-            </ProfileProvider>
-          </SessionProvider>
+          <DialogProvider>
+            <SessionProvider>
+              <ProfileProvider>
+                <CollectionProvider>
+                  <NotificationProvider>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor },
+                      }}
+                    />
+                  </NotificationProvider>
+                </CollectionProvider>
+              </ProfileProvider>
+            </SessionProvider>
+          </DialogProvider>
         </PaperProvider>
       </ToastProvider>
     </GestureHandlerRootView>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Image, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import {
   MaterialIcons,
   MaterialCommunityIcons,
@@ -13,7 +13,7 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
-import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
+// Dialog removido, agora usando Modal diretamente
 import { CardDisplaying } from '@/components/atoms/CardDisplaying';
 import { Input } from '@/components/Input';
 import FlipCard from '@/components/atoms/FlipCard';
@@ -46,12 +46,13 @@ export default function Deck() {
 
   const [cards, setCards] = useState<IcardProps[] | []>([]);
 
-  const { userInfo, signOut } = useSession();
+  const { userInfo } = useSession();
   const { toast } = useToast();
 
   const [loadingCollection, setLoadingCollection] = useState(false);
+  const [loadingCreateCard, setLoadingCreateCard] = useState(false);
 
-  const { setOpen } = useDialog();
+  // Removido useDialog, agora usando Modal diretamente
   const [openAddCard, setOpenAddCard] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
   const { name } = useLocalSearchParams();
@@ -76,17 +77,15 @@ export default function Deck() {
   const HandleOpenAddCard = () => {
     setOpenAddCard(true);
     setOpenStudy(false);
-    setOpen(true);
   };
 
   const HandleOpenStudy = () => {
     setOpenStudy(true);
     setOpenAddCard(false);
-    setOpen(true);
   };
 
   const HandleClose = () => {
-    setOpen(false);
+    setOpenAddCard(false);
     setFrontSide('');
     setBackSide('');
     setViewCArd(false);
@@ -134,16 +133,24 @@ export default function Deck() {
   };
 
   const HandleCreateCard = async () => {
-    let urlAudio = '';
-    if (selectedAudio) {
-      const response = await fetch(selectedAudio);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `audios/cards/${Date.now()}`);
-
-      await uploadBytes(storageRef, blob);
-      urlAudio = await getDownloadURL(storageRef);
+    // Previne múltiplos cliques
+    if (loadingCreateCard) {
+      return;
     }
+
+    setLoadingCreateCard(true);
+    let urlAudio = '';
+    
     try {
+      if (selectedAudio) {
+        const response = await fetch(selectedAudio);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `audios/cards/${Date.now()}`);
+
+        await uploadBytes(storageRef, blob);
+        urlAudio = await getDownloadURL(storageRef);
+      }
+
       await api.post('/card/create', {
         front: frontSide,
         back: backSide,
@@ -159,6 +166,7 @@ export default function Deck() {
       });
 
       fetchCardsData();
+      HandleClose();
     } catch (error) {
       if (error instanceof Error) {
         console.error(error.message);
@@ -174,9 +182,7 @@ export default function Deck() {
         });
       }
     } finally {
-      setOpen(false);
-      HandleClose();
-      // fetchData();
+      setLoadingCreateCard(false);
     }
   };
 
@@ -309,11 +315,27 @@ export default function Deck() {
         </TouchableOpacity>
       )}
 
-      {openStudy && <OpenStudy open={openStudy} />}
+      {openStudy && (
+        <OpenStudy
+          open={openStudy}
+          onClose={() => {
+            setOpenStudy(false);
+          }}
+        />
+      )}
 
-      {openAddCard && (
-        <Dialog>
-          <DialogContent className="bg-white rounded-t-lg flex w-full  h-full absolute items-center bottom-0  p-4">
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openAddCard}
+        onRequestClose={HandleClose}
+      >
+        <View className="flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            className="bg-white rounded-t-lg flex w-full h-full absolute items-center bottom-0 p-4"
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View className="flex flex-row justify-between items-center mb-2 w-full">
               <TouchableOpacity onPress={HandleClose}>
                 <MaterialCommunityIcons
@@ -336,14 +358,21 @@ export default function Deck() {
 
                 <TouchableOpacity
                   onPress={HandleCreateCard}
-                  style={{ backgroundColor: colors.primary[500] }}
+                  style={{ 
+                    backgroundColor: loadingCreateCard ? colors.gray[400] : colors.primary[500] 
+                  }}
                   className="rounded-2xl p-2.5"
+                  disabled={loadingCreateCard}
                 >
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={24}
-                    color="white"
-                  />
+                  {loadingCreateCard ? (
+                    <Loading />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={24}
+                      color="white"
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -385,9 +414,9 @@ export default function Deck() {
                 audio={selectedAudio}
               />
             )}
-          </DialogContent>
-        </Dialog>
-      )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -300,7 +300,7 @@ export default function Classrooms() {
 
         <TouchableOpacity onPress={() => handleAddNewClass()}>
           <View className=" bg-white p-2 rounded-[12px] shadow-lg flex-row justify-center items-center">
-            <AntDesign name="pluscircleo" size={24} color="black" />
+            <AntDesign name="plus-circle" size={24} color="black" />
           </View>
         </TouchableOpacity>
       </View>
@@ -370,7 +370,8 @@ export default function Classrooms() {
               )}
               <TouchableOpacity onPress={() => setOpenCreateClassroom()}>
                 <View className="w-full md:w-[50%] h-[100px] mx-auto bg-white rounded-[12px]  relative shadow-lg my-3 flex-col justify-center items-center">
-                  <AntDesign name="pluscircleo" size={24} color="black" />
+                  <AntDesign name="plus-circle" size={24} color="black" />
+
                   <Text className="font-[ComicSans] text-xl font-bold pb-3  px-6">
                     {t('Create a new Collection')}
                   </Text>

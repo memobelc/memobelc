@@ -1,4 +1,4 @@
-import { cloneElement, createContext, useContext, useState } from 'react';
+import { cloneElement, createContext, useContext, useState, type PropsWithChildren } from 'react';
 import {
   Modal,
   TouchableOpacity,
@@ -15,6 +15,17 @@ interface DialogContextType {
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
+
+// Global Dialog Provider for app-wide use
+export function DialogProvider({ children }: PropsWithChildren) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DialogContext.Provider value={{ open, setOpen }}>
+      {children}
+    </DialogContext.Provider>
+  );
+}
 
 function Dialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);

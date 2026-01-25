@@ -23,7 +23,7 @@ import { useCollection } from '@/contexts/CollectionContext';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { useDialog, DialogContent, Dialog } from '@/components/Dialog';
+// Dialog removido, agora usando Modal diretamente
 import { Input } from '@/components/Input';
 import { Loading } from '@/components/Loading';
 import { storage } from '../../../../FirebaseConfig';
@@ -47,7 +47,7 @@ export default function AllCollections() {
   const { collections, setCurrentCollection, setCollections } = useCollection();
   const { userInfo } = useSession();
   const { toast } = useToast();
-  const { setOpen, open } = useDialog();
+  // Removido useDialog, agora usando Modal diretamente
 
   const validationSchema = yup.object().shape({
     name: yup.string().required(t('Name is required')),
@@ -137,7 +137,6 @@ export default function AllCollections() {
     }
 
     setOpenEditCollection(true);
-    setOpen(true);
   };
 
   const HandleDeleteCollection = (collection: Collection) => {
@@ -253,7 +252,6 @@ export default function AllCollections() {
       await validateForm();
       url = await uploadImageIfNeeded();
       await updateCollection(url);
-      setOpen(false);
       setSelectedImage(null);
       setSelectedImageFromGallery(null);
       setOpenEditCollection(false);
@@ -287,18 +285,11 @@ export default function AllCollections() {
   const closeEditCollection = () => {
     setFormData({ name: '' });
     setOpenEditCollection(false);
-    setOpen(false);
     setSelectedImage(null);
     setSelectedImageFromGallery(null);
     setCollectionToEdit(null);
     setCharacterCounter(0);
   };
-
-  useEffect(() => {
-    if (!open) {
-      closeEditCollection();
-    }
-  }, [open]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -414,10 +405,19 @@ export default function AllCollections() {
         </View>
       </Modal>
 
-      {/* Modal de edição (reutilizando o mesmo do home) */}
-      {openEditCollection && (
-        <Dialog>
-          <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
+      {/* Modal de edição */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openEditCollection}
+        onRequestClose={closeEditCollection}
+      >
+        <View className="flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4"
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View className="flex flex-row justify-between items-center mb-2 w-full">
               <Text className="font-semibold text-xl text-primary justify-center">
                 {t('Edit Collection')}
@@ -571,9 +571,9 @@ export default function AllCollections() {
                 </Text>
               )}
             </TouchableOpacity>
-          </DialogContent>
-        </Dialog>
-      )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
