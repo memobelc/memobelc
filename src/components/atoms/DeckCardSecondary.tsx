@@ -33,15 +33,10 @@ export const DeckCardSecondary = ({
   const hasActions = type === 'collection' && (onEdit || onDelete);
 
   const handleCardPress = () => {
-    if (onPress) {
-      onPress();
-    }
-    if (!hasActions) {
-      router.push({
-        pathname: type === 'deck' ? '/(app)/deck' : '/collection',
-        params: { name, classroom },
-      });
-    }
+    router.push({
+      pathname: type === 'deck' ? '/(app)/deck' : '/collection',
+      params: { name, classroom },
+    });
   };
 
   const cardContent = (
