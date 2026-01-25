@@ -56,7 +56,7 @@ const MenuExploreDrawer = () => {
       name: t('Talk to me'),
       path: '/talk_to_me',
       icon: <Entypo name="chat" size={24} color="black" />,
-      disabled: false,
+      disabled: true,
     },
   ];
 
