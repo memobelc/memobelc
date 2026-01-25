@@ -1,37 +1,37 @@
-import { Text } from 'react-native';
-import { Redirect, Stack } from 'expo-router';
+import { Text, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
 import { colors } from '@/styles/colors';
-import Header from '@/components/organisms/header/Header';
+import HeaderWrapper from '@/components/organisms/header/HeaderWrapper';
 import React from 'react';
 
 export default function AppLayout() {
   const { session, isLoading, refresh_token, userInfo } = useSession();
   const backgroundColor = colors.gray[100];
 
+  useEffect(() => {
+    if (!userInfo && session && !isLoading) {
+      refresh_token();
+    }
+  }, [session, userInfo, isLoading]);
+
   if (isLoading) {
     return <Loading classname="flex-1 items-center justify-center" />;
   }
 
-  if (!session) {
-    return <Redirect href="/login" />;
-  }
-
-  if (!userInfo) {
-    refresh_token();
-  }
-
+  // Always render Stack - let individual screens handle redirects
   return (
-    <>
-      <Header />
+    <View style={{ flex: 1 }}>
+      <HeaderWrapper />
       <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor },
         }}
       />
-    </>
+    </View>
   );
 }
