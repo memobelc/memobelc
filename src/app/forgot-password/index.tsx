@@ -11,15 +11,26 @@ export default function Register() {
   const [email, setEmail] = useState('');
 
   const handleResetPassword = async () => {
-    await api.post('/auth/forgot_password', {
-      email,
-    });
-    toast({
-      message: 'The recovery link has been sent to your email!',
-      variant: 'success',
-      showProgress: true,
-    });
-    router.push('./login');
+    try {
+      await api.post('/auth/forgot_password', {
+        email,
+      });
+      toast({
+        message: 'Código de recuperação enviado para seu e-mail!',
+        variant: 'success',
+        showProgress: true,
+      });
+      router.push({
+        pathname: './reset_password',
+        params: { email },
+      });
+    } catch (error: any) {
+      toast({
+        message: error?.response?.data?.error || 'Erro ao enviar código de recuperação',
+        variant: 'destructive',
+        showProgress: true,
+      });
+    }
   };
 
   return (
@@ -50,7 +61,7 @@ export default function Register() {
         className="font-[ComicSans] font-medium text-base mb-4"
         style={{ color: colors.gray[100] }}
       >
-        Informe um email e enviaremos um link para recuperação da sua senha.
+        Informe um email e enviaremos um código para recuperação da sua senha.
       </Text>
 
       <View
@@ -75,7 +86,7 @@ export default function Register() {
           className="text-lg font-bold mr-3"
           style={{ color: colors.gray[100] }}
         >
-          Enviar link de recuperação
+          Enviar código de recuperação
         </Text>
       </TouchableOpacity>
     </View>

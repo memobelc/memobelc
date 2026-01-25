@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useTranslation } from 'react-i18next';
 
-import { DialogContent, useDialog } from '@/components/Dialog';
+// Dialog removido, agora usando Modal diretamente
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { Input } from '@/components/Input';
 import { OpenStudy } from '@/components/atoms/openStudy';
@@ -38,6 +38,7 @@ import * as yup from 'yup';
 
 export default function Collection() {
   const {
+    collections,
     setCollections,
     currentCollection,
     setCurrentDeck,
@@ -57,7 +58,7 @@ export default function Collection() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { setOpen, open } = useDialog();
+  // Removido useDialog, agora usando Modal diretamente
   const [openAddDeck, setOpenAddDeck] = useState(false);
   const [openStudy, setOpenStudy] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -92,13 +93,11 @@ export default function Collection() {
   const HandleOpenAddDeck = () => {
     setOpenAddDeck(true);
     setOpenStudy(false);
-    setOpen(true);
   };
 
   const HandleOpenStudy = () => {
     setOpenStudy(true);
     setOpenAddDeck(false);
-    setOpen(true);
   };
 
   const fetchData = async () => {
@@ -169,7 +168,6 @@ export default function Collection() {
       await validateForm();
       url = await uploadImageIfNeeded();
       await createDeck(url);
-      setOpen(false);
       setSelectedImage(null);
     } catch (error) {
       if (error instanceof yup.ValidationError) {
@@ -194,6 +192,7 @@ export default function Collection() {
     } finally {
       fetchData();
       setLoading(false);
+      setOpenAddDeck(false);
     }
   };
   const handleInputChange = (field: string, value: string) => {
@@ -206,15 +205,22 @@ export default function Collection() {
   const closeAddDeck = async () => {
     handleInputChange('name', '');
     setOpenAddDeck(false);
-    setOpen(false);
     setSelectedImage(null);
   };
 
+  // Modal agora é controlado diretamente por openAddDeck, não precisa do useEffect
+
   useEffect(() => {
-    if (!open) {
-      closeAddDeck();
+    // Se não há currentCollection mas há name nos params, busca a collection
+    if (!currentCollection && name && collections) {
+      const foundCollection = collections.find(
+        (c: any) => c.name === name || c._id === name,
+      );
+      if (foundCollection) {
+        setCurrentCollection(foundCollection);
+      }
     }
-  }, [open]);
+  }, [name, collections, currentCollection]);
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
@@ -361,154 +367,182 @@ export default function Collection() {
         </TouchableOpacity>
       )}
 
-      {openStudy && <OpenStudy open={openStudy} />}
+      {openStudy && (
+        <OpenStudy
+          open={openStudy}
+          onClose={() => {
+            setOpenStudy(false);
+          }}
+        />
+      )}
 
-      {openAddDeck && (
-        <DialogContent className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4">
-          <View className="flex flex-row justify-between items-center mb-2 w-full">
-            <Text className="font-semibold text-xl text-primary justify-center">
-              {t('New deck')}
-            </Text>
-            <TouchableOpacity onPress={() => closeAddDeck()}>
-              <MaterialIcons name="close" size={24} color={colors.gray[950]} />
-            </TouchableOpacity>
-          </View>
-
-          <View className="border-b border-gray-300 mb-4 w-full" />
-
-          <View>
-            <View className="flex flex-row items-center justify-betweenS">
-              <TouchableOpacity
-                onPress={pickImage}
-                className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-[80%]"
-              >
-                {selectedImage ? (
-                  <View className="relative">
-                    <Image
-                      style={{ width: 128, height: 128 }}
-                      source={
-                        typeof selectedImage === 'string'
-                          ? { uri: selectedImage }
-                          : selectedImage
-                      }
-                      className="w-32 h-32 rounded-lg"
-                    />
-                    <View className="bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md">
-                      <MaterialIcons
-                        onPress={() => {
-                          setSelectedImage(null);
-                          setSelectedImageFromGallery(null);
-                        }}
-                        name="close"
-                        size={24}
-                        color="red"
-                      />
-                    </View>
-                  </View>
-                ) : (
-                  <View className="flex-col items-center justify-center">
-                    <MaterialIcons name="cloud-upload" size={40} color="gray" />
-                    <Text className="text-gray-500 mt-2">
-                      {t('Tap to send an image')}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setModalVisible(true)}
-                className=" rounded-lg  flex-col items-start justify-start p-5  w-[20%]"
-              >
-                <View className="flex-col items-center justify-center">
-                  <MaterialCommunityIcons
-                    name="folder-multiple-image"
-                    size={40}
-                    color="black"
-                  />
-                  <Text className="text-xs">{t('Gallery')}</Text>
-                </View>
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openAddDeck}
+        onRequestClose={closeAddDeck}
+      >
+        <View className="flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            className="bg-white rounded-t-lg w-full absolute flex items-center bottom-0 h-3/4 p-4"
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="flex flex-row justify-between items-center mb-2 w-full">
+              <Text className="font-semibold text-xl text-primary justify-center">
+                {t('New deck')}
+              </Text>
+              <TouchableOpacity onPress={() => closeAddDeck()}>
+                <MaterialIcons
+                  name="close"
+                  size={24}
+                  color={colors.gray[950]}
+                />
               </TouchableOpacity>
             </View>
 
-            <Modal visible={modalVisible} animationType="slide" transparent>
-              <View className="flex-1 bg-white p-5">
-                <Text className="text-lg font-bold mb-3">
-                  {t('Select an image')}
-                </Text>
-                <ScrollView
-                  contentContainerStyle={{
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    gap: 10,
-                  }}
-                >
-                  {imageSourcesDeck.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      onPress={() => {
-                        setSelectedImage(item.uri);
-                        setSelectedImageFromGallery(`dt_${item.id}`);
-                        setModalVisible(false);
-                      }}
-                      className="border rounded-lg overflow-hidden"
-                    >
-                      <Image
-                        style={{ width: 100, height: 100 }}
-                        source={item.uri}
-                        className="w-24 h-24"
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            <View className="border-b border-gray-300 mb-4 w-full" />
 
+            <View>
+              <View className="flex flex-row items-center justify-betweenS">
                 <TouchableOpacity
-                  onPress={() => setModalVisible(false)}
-                  className="bg-red-500 p-3 mt-4 rounded-lg"
+                  onPress={pickImage}
+                  className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center w-[80%]"
                 >
-                  <Text className="text-white text-center">{t('Cancel')}</Text>
+                  {selectedImage ? (
+                    <View className="relative">
+                      <Image
+                        style={{ width: 128, height: 128 }}
+                        source={
+                          typeof selectedImage === 'string'
+                            ? { uri: selectedImage }
+                            : selectedImage
+                        }
+                        className="w-32 h-32 rounded-lg"
+                      />
+                      <View className="bg-slate-100 absolute -top-2 -right-2 w-6 rounded-md">
+                        <MaterialIcons
+                          onPress={() => {
+                            setSelectedImage(null);
+                            setSelectedImageFromGallery(null);
+                          }}
+                          name="close"
+                          size={24}
+                          color="red"
+                        />
+                      </View>
+                    </View>
+                  ) : (
+                    <View className="flex-col items-center justify-center">
+                      <MaterialIcons
+                        name="cloud-upload"
+                        size={40}
+                        color="gray"
+                      />
+                      <Text className="text-gray-500 mt-2">
+                        {t('Tap to send an image')}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setModalVisible(true)}
+                  className=" rounded-lg  flex-col items-start justify-start p-5  w-[20%]"
+                >
+                  <View className="flex-col items-center justify-center">
+                    <MaterialCommunityIcons
+                      name="folder-multiple-image"
+                      size={40}
+                      color="black"
+                    />
+                    <Text className="text-xs">{t('Gallery')}</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
-            </Modal>
-          </View>
-          <View className="flex-row relative">
-            <Input
-              placeholder={t('Enter name deck')}
-              maxLength={25}
-              style={[
-                {
-                  borderWidth: 1,
-                  borderColor: errors['name'] ? 'red' : '#ccc',
-                  borderRadius: 8,
-                },
-              ]}
-              className={`my-6 w-full`}
-              value={formData.name}
-              onChangeText={(value) => handleInputChange('name', value)}
-            />
-            <Text className="absolute top-9 right-1 text-xs text-gray-400">
-              {characterCounter}/25
-            </Text>
-          </View>
 
-          <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
-            {errors['name']}
-          </Text>
+              <Modal visible={modalVisible} animationType="slide" transparent>
+                <View className="flex-1 bg-white p-5">
+                  <Text className="text-lg font-bold mb-3">
+                    {t('Select an image')}
+                  </Text>
+                  <ScrollView
+                    contentContainerStyle={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    {imageSourcesDeck.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => {
+                          setSelectedImage(item.uri);
+                          setSelectedImageFromGallery(`dt_${item.id}`);
+                          setModalVisible(false);
+                        }}
+                        className="border rounded-lg overflow-hidden"
+                      >
+                        <Image
+                          style={{ width: 100, height: 100 }}
+                          source={item.uri}
+                          className="w-24 h-24"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
 
-          <TouchableOpacity
-            style={{ backgroundColor: colors.primary[500] }}
-            className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
-            onPress={HandleCreateDeck}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loading />
-            ) : (
-              <Text className="text-white text-base font-bold my-2">
-                {t('Create New deck collection')}
+                  <TouchableOpacity
+                    onPress={() => setModalVisible(false)}
+                    className="bg-red-500 p-3 mt-4 rounded-lg"
+                  >
+                    <Text className="text-white text-center">
+                      {t('Cancel')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Modal>
+            </View>
+            <View className="flex-row relative">
+              <Input
+                placeholder={t('Enter name deck')}
+                maxLength={25}
+                style={[
+                  {
+                    borderWidth: 1,
+                    borderColor: errors['name'] ? 'red' : '#ccc',
+                    borderRadius: 8,
+                  },
+                ]}
+                className={`my-6 w-full`}
+                value={formData.name}
+                onChangeText={(value) => handleInputChange('name', value)}
+              />
+              <Text className="absolute top-9 right-1 text-xs text-gray-400">
+                {characterCounter}/25
               </Text>
-            )}
+            </View>
+
+            <Text className="-mt-5 mb-5" style={{ color: colors.error[500] }}>
+              {errors['name']}
+            </Text>
+
+            <TouchableOpacity
+              style={{ backgroundColor: colors.primary[500] }}
+              className="w-full max-w-[500px] py-4 rounded-3xl items-center mb-5"
+              onPress={HandleCreateDeck}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loading />
+              ) : (
+                <Text className="text-white text-base font-bold my-2">
+                  {t('Create New deck collection')}
+                </Text>
+              )}
+            </TouchableOpacity>
           </TouchableOpacity>
-        </DialogContent>
-      )}
+        </View>
+      </Modal>
     </View>
   );
 }

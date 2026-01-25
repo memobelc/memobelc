@@ -5,7 +5,6 @@ import {
   type PropsWithChildren,
   useState,
 } from 'react';
-import { useRouter } from 'expo-router';
 import {
   useStorageStateSession,
   useStorageStateLoading,
@@ -23,19 +22,26 @@ type User = {
   role?: string;
 };
 
+type SignInResult = {
+  success: boolean;
+  user?: User;
+  pending?: { token: string };
+  error?: string;
+};
+
 const AuthContext = createContext<{
-  signIn: (email: string, password: string) => Promise<User | false>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
   signOut: () => void;
-  refresh_token: () => void;
-  verify_code: (token: any, code: string) => void;
+  refresh_token: () => Promise<{ success: boolean; needsLogin?: boolean }>;
+  verify_code: (token: any, code: string) => Promise<{ success: boolean; error?: string }>;
   session?: string | null;
   isLoading: boolean;
   userInfo?: User | null;
 }>({
-  signIn: async () => false,
+  signIn: async () => ({ success: false }),
   signOut: () => null,
-  refresh_token: () => false,
-  verify_code: () => false,
+  refresh_token: async () => ({ success: false }),
+  verify_code: async () => ({ success: false }),
   session: null,
   isLoading: false,
   userInfo: null,
@@ -57,7 +63,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const [isLoading, setIsLoading] = useStorageStateLoading();
   const [userInfo, setUserInfo] = useState<User | null>(null);
-  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,13 +83,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
               premium: response.data.premium || false,
               role: response.data.role || 'user',
             });
-
-            router.replace('/');
           }
         } catch (error) {
           setSession(null);
           setUserInfo(null);
-          router.replace('/login');
         } finally {
           setIsLoading(false);
         }
@@ -101,48 +103,57 @@ export function SessionProvider({ children }: PropsWithChildren) {
             const response = await api.post('/auth/login', { email, password });
 
             if (response.data.pending) {
-              router.push({
-                pathname: '/verify-code',
-                params: { token: response.data.pending[1] },
-              });
-
-              return false;
+              const pendingToken = Array.isArray(response.data.pending) 
+                ? response.data.pending[1] 
+                : response.data.pending.token || response.data.pending;
+              
+              return {
+                success: false,
+                pending: { token: pendingToken },
+              };
             }
 
             await setSession(response.data.token);
 
-            setUserInfo({
+            const user: User = {
               email: response.data.email,
               name: response.data.name,
               token: response.data.token,
               user_id: response.data.user_id,
               premium: response.data.premium || false,
-              role: response.data.role || 'teacher',
-            });
+              role: response.data.role || 'user',
+            };
 
-            router.replace('/');
+            setUserInfo(user);
 
-            return response.data; // SUCESSO
+            return { success: true, user };
           } catch (error: any) {
+            let errorMessage = 'An unexpected error has occurred';
+            
+            if (error?.response?.status === 401) {
+              errorMessage = 'Invalid email or password, please enter again.';
+            } else if (error?.response?.data?.error) {
+              errorMessage = error.response.data.error;
+            } else if (error?.message) {
+              errorMessage = error.message;
+            }
+
             toast({
-              message:
-                error?.message === 'Request failed with status code 401'
-                  ? 'Invalid email or password, please enter again.'
-                  : error?.message || 'An unexpected error has occurred',
+              message: errorMessage,
               variant: 'destructive',
               showProgress: true,
             });
 
             setUserInfo(null);
             setSession(null);
-            return false; // ERRO
+            return { success: false, error: errorMessage };
           } finally {
             setIsLoading(false);
           }
         },
 
         refresh_token: async () => {
-          if (!session) return;
+          if (!session) return { success: false, needsLogin: true };
           try {
             setIsLoading(true);
             const response = await api.post('/auth/refresh_token', {
@@ -157,20 +168,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 token: response.data.token,
                 user_id: response.data.user_id,
                 premium: response.data.premium || false,
-                role: response.data.role || 'teacher',
+                role: response.data.role || 'user',
               });
 
-              setTimeout(() => {
-                router.replace('/');
-              }, 0);
+              return { success: true };
             }
+            return { success: false, needsLogin: true };
           } catch (error) {
             setSession(null);
-
             setUserInfo(null);
-            setTimeout(() => {
-              router.replace('/login');
-            }, 0);
+            return { success: false, needsLogin: true };
           } finally {
             setIsLoading(false);
           }
@@ -197,20 +204,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
                 variant: 'success',
               });
 
-              router.replace('/');
+              return { success: true };
             }
+            return { success: false, error: 'Verification failed' };
           } catch (error: any) {
             if (error.response?.status === 401) {
               toast({
                 message: `Código de verificação incorreto!`,
                 variant: 'destructive',
               });
+              return { success: false, error: 'Invalid code' };
             } else {
               toast({
                 message: `Ocorreu um erro inesperado.`,
                 variant: 'destructive',
               });
-              router.replace('/');
+              return { success: false, error: 'Unexpected error' };
             }
           }
         },
@@ -236,7 +245,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
           setSession(null);
           setUserInfo(null);
-          router.replace('/login');
         },
         session,
         isLoading,

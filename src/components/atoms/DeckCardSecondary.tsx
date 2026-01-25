@@ -33,8 +33,14 @@ export const DeckCardSecondary = ({
   const hasActions = type === 'collection' && (onEdit || onDelete);
 
   const handleCardPress = () => {
+    // Chama o onPress se fornecido (para setar currentCollection/currentDeck)
+    if (onPress) {
+      onPress();
+    }
+    
+    // Navega para a página
     router.push({
-      pathname: type === 'deck' ? '/(app)/deck' : '/collection',
+      pathname: type === 'deck' ? '/(app)/deck' : '/(app)/collection',
       params: { name, classroom },
     });
   };
@@ -73,12 +79,13 @@ export const DeckCardSecondary = ({
               <View className="flex flex-row gap-2 ml-2">
                 {onEdit && (
                   <TouchableOpacity
-                    onPress={(e) => {
-                      e?.stopPropagation?.();
+                    onPress={() => {
                       onEdit();
                     }}
                     className="p-1"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onStartShouldSetResponder={() => true}
+                    onResponderTerminationRequest={() => false}
                   >
                     <MaterialIcons
                       name="edit"
@@ -89,12 +96,13 @@ export const DeckCardSecondary = ({
                 )}
                 {onDelete && (
                   <TouchableOpacity
-                    onPress={(e) => {
-                      e?.stopPropagation?.();
+                    onPress={() => {
                       onDelete();
                     }}
                     className="p-1"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onStartShouldSetResponder={() => true}
+                    onResponderTerminationRequest={() => false}
                   >
                     <MaterialIcons
                       name="delete"
