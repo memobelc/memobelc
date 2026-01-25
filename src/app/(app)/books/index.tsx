@@ -151,57 +151,62 @@ export default function BooksScreen() {
         onPress={() => handleBookPress(book)}
         className="items-center justify-center w-full"
       >
-      {book.capa ? (
-        <Image
-          source={{ uri: book.capa }}
-          className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2`}
-          resizeMode="cover"
-          defaultSource={require('@/assets/page_1.png')}
-        />
-      ) : (
-        <View
-          className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2 items-center justify-center`}
-          style={{ backgroundColor: colors.gray[200] }}
-        >
-          <MaterialIcons name="book" size={40} color={colors.gray[400]} />
-        </View>
-      )}
-      <Text
-        className="font-[ComicSans] text-xs text-center mb-1"
-        style={{ color: colors.gray[900] }}
-        numberOfLines={2}
-      >
-        {book.titulo}
-      </Text>
-      {book.autor && (
+        {book.capa ? (
+          <Image
+            source={{ uri: book.capa }}
+            className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2`}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            className={`${isMyBook ? 'w-28 h-44' : 'w-32 h-48'} rounded-md mb-2 items-center justify-center`}
+            style={{ backgroundColor: colors.gray[200] }}
+          >
+            <MaterialIcons name="book" size={40} color={colors.gray[400]} />
+          </View>
+        )}
         <Text
-          className="text-xs text-center"
-          style={{ color: colors.gray[500] }}
-          numberOfLines={1}
+          className="font-[ComicSans] text-xs text-center mb-1"
+          style={{ color: colors.gray[900] }}
+          numberOfLines={2}
         >
-          {book.autor}
+          {book.titulo}
         </Text>
-      )}
-      {!book.is_free && !isMyBook && (
-        <View
-          className="mt-1 px-2 py-1 rounded-full"
-          style={{ backgroundColor: colors.warning[500] }}
-        >
-          <Text className="text-xs font-semibold" style={{ color: '#FFFFFF' }}>
-            {book.price ? `$${book.price}` : t('Paid')}
+        {book.autor && (
+          <Text
+            className="text-xs text-center"
+            style={{ color: colors.gray[500] }}
+            numberOfLines={1}
+          >
+            {book.autor}
           </Text>
-        </View>
-      )}
-      {book.is_free && (
-        <View
-          className="mt-1 px-2 py-1 rounded-full"
-          style={{ backgroundColor: colors.success[500] }}
-        >
-          <Text className="text-xs font-semibold" style={{ color: '#FFFFFF' }}>
-            {t('Free')}
-          </Text>
-        </View>
-      )}
+        )}
+        {!book.is_free && !isMyBook && (
+          <View
+            className="mt-1 px-2 py-1 rounded-full"
+            style={{ backgroundColor: colors.warning[500] }}
+          >
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: '#FFFFFF' }}
+            >
+              {book.price ? `$${book.price}` : t('Paid')}
+            </Text>
+          </View>
+        )}
+        {book.is_free && (
+          <View
+            className="mt-1 px-2 py-1 rounded-full"
+            style={{ backgroundColor: colors.success[500] }}
+          >
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: '#FFFFFF' }}
+            >
+              {t('Free')}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -271,7 +276,10 @@ export default function BooksScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 10 }}
+                contentContainerStyle={{
+                  paddingHorizontal: 4,
+                  paddingBottom: 10,
+                }}
               >
                 {myBooks.map((book) => renderBookCard(book, true))}
               </ScrollView>
