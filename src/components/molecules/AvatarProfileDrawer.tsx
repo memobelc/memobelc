@@ -20,6 +20,7 @@ import { Avatar, AvatarImage } from '@/components/Avatar';
 import { useProfile } from '@/contexts/profileContext';
 import { colors } from '@/styles/colors';
 import api from '@/services/api';
+import { InviteFriendsModal } from './InviteFriendsModal';
 
 type menuItem = {
   name: string;
@@ -36,6 +37,7 @@ const AvatarProfileDrawer = () => {
   const { t, i18n } = useTranslation();
 
   const [open, setOpen] = useState(false);
+  const [openInviteModal, setOpenInviteModal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   // const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -255,6 +257,16 @@ const AvatarProfileDrawer = () => {
               </View>
               <TouchableOpacity
                 onPress={() => {
+                  setOpenInviteModal(true);
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="person-add" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('Invite Friends')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
                   signOut();
                   router.replace('/login');
                 }}
@@ -267,6 +279,11 @@ const AvatarProfileDrawer = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <InviteFriendsModal
+        open={openInviteModal}
+        onClose={() => setOpenInviteModal(false)}
+      />
     </View>
   );
 };
