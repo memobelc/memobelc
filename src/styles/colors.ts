@@ -46,4 +46,11 @@ export const colors = {
   },
 
   placeholder: '#7A4F7F',
+
+  // Semantic colors (surfaces, text, borders)
+  surface: '#FFFFFF',
+  background: '#F4F4F5',
+  text: '#18181B',
+  textSecondary: '#71717A',
+  border: '#E4E4E7',
 };

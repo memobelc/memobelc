@@ -198,10 +198,7 @@ export const InviteFriendsModal = ({
           style={{ backgroundColor: colors.surface }}
         >
           <View className="flex-row justify-between items-center mb-4">
-            <Text
-              className="text-2xl font-bold"
-              style={{ color: colors.text }}
-            >
+            <Text className="text-2xl font-bold" style={{ color: colors.text }}>
               {t('Invite Friends')}
             </Text>
             <TouchableOpacity onPress={onClose}>
@@ -210,19 +207,28 @@ export const InviteFriendsModal = ({
           </View>
 
           {/* Tabs para escolher método */}
-          <View className="flex-row mb-4 border-b" style={{ borderBottomColor: colors.border }}>
+          <View
+            className="flex-row mb-4 border-b"
+            style={{ borderBottomColor: colors.border }}
+          >
             <TouchableOpacity
               onPress={() => setInviteMethod('email')}
               className="flex-1 pb-3 items-center"
               style={{
                 borderBottomWidth: inviteMethod === 'email' ? 2 : 0,
-                borderBottomColor: inviteMethod === 'email' ? colors.primary[500] : 'transparent',
+                borderBottomColor:
+                  inviteMethod === 'email'
+                    ? colors.primary[500]
+                    : 'transparent',
               }}
             >
               <Text
                 className="font-semibold"
                 style={{
-                  color: inviteMethod === 'email' ? colors.primary[500] : colors.textSecondary,
+                  color:
+                    inviteMethod === 'email'
+                      ? colors.primary[500]
+                      : colors.textSecondary,
                 }}
               >
                 {t('By Email')}
@@ -233,13 +239,17 @@ export const InviteFriendsModal = ({
               className="flex-1 pb-3 items-center"
               style={{
                 borderBottomWidth: inviteMethod === 'link' ? 2 : 0,
-                borderBottomColor: inviteMethod === 'link' ? colors.primary[500] : 'transparent',
+                borderBottomColor:
+                  inviteMethod === 'link' ? colors.primary[500] : 'transparent',
               }}
             >
               <Text
                 className="font-semibold"
                 style={{
-                  color: inviteMethod === 'link' ? colors.primary[500] : colors.textSecondary,
+                  color:
+                    inviteMethod === 'link'
+                      ? colors.primary[500]
+                      : colors.textSecondary,
                 }}
               >
                 {t('By Link')}
@@ -251,10 +261,7 @@ export const InviteFriendsModal = ({
             {/* Método por Email */}
             {inviteMethod === 'email' && (
               <View>
-                <Text
-                  className="text-base mb-2"
-                  style={{ color: colors.text }}
-                >
+                <Text className="text-base mb-2" style={{ color: colors.text }}>
                   {t('Enter the email address to send an invite')}
                 </Text>
                 <View className="flex-row gap-2 mb-4">
@@ -277,7 +284,10 @@ export const InviteFriendsModal = ({
                     disabled={loading || !email.trim()}
                     className="px-6 py-3 rounded-lg items-center justify-center"
                     style={{
-                      backgroundColor: loading || !email.trim() ? colors.gray[400] : colors.primary[500],
+                      backgroundColor:
+                        loading || !email.trim()
+                          ? colors.gray[400]
+                          : colors.primary[500],
                     }}
                   >
                     {loading ? (
@@ -293,10 +303,7 @@ export const InviteFriendsModal = ({
             {/* Método por Link */}
             {inviteMethod === 'link' && (
               <View>
-                <Text
-                  className="text-base mb-4"
-                  style={{ color: colors.text }}
-                >
+                <Text className="text-base mb-4" style={{ color: colors.text }}>
                   {t('Generate a unique invite link to share')}
                 </Text>
                 <TouchableOpacity
@@ -304,7 +311,9 @@ export const InviteFriendsModal = ({
                   disabled={loading}
                   className="mb-4 px-6 py-3 rounded-lg items-center justify-center"
                   style={{
-                    backgroundColor: loading ? colors.gray[400] : colors.primary[500],
+                    backgroundColor: loading
+                      ? colors.gray[400]
+                      : colors.primary[500],
                   }}
                 >
                   {loading ? (
@@ -340,7 +349,11 @@ export const InviteFriendsModal = ({
                         className="px-4 py-3 rounded-lg items-center justify-center"
                         style={{ backgroundColor: colors.primary[500] }}
                       >
-                        <MaterialIcons name="content-copy" size={20} color="#FFFFFF" />
+                        <MaterialIcons
+                          name="content-copy"
+                          size={20}
+                          color="#FFFFFF"
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -370,7 +383,11 @@ export const InviteFriendsModal = ({
                         className="px-4 py-3 rounded-lg items-center justify-center"
                         style={{ backgroundColor: colors.primary[500] }}
                       >
-                        <MaterialIcons name="content-copy" size={20} color="#FFFFFF" />
+                        <MaterialIcons
+                          name="content-copy"
+                          size={20}
+                          color="#FFFFFF"
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -449,7 +466,9 @@ export const InviteFriendsModal = ({
                               className="text-xs"
                               style={{ color: colors.textSecondary }}
                             >
-                              {new Date(friend.accepted_at).toLocaleDateString()}
+                              {new Date(
+                                friend.accepted_at,
+                              ).toLocaleDateString()}
                             </Text>
                           )}
                         </View>
@@ -472,4 +491,3 @@ export const InviteFriendsModal = ({
     </Modal>
   );
 };
-
