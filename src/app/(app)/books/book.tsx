@@ -1,22 +1,35 @@
-import { useState, useEffect } from 'react';
-import { Text, TouchableOpacity, View, ScrollView, Platform, Image } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { useState, useEffect, useCallback } from 'react';
+import { Text, TouchableOpacity, View, ScrollView, Platform } from 'react-native';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Loading } from '@/components/Loading';
 import AudioPlayer from '@/components/atoms/AudioPlayer';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { useCollection } from '@/contexts/CollectionContext';
 import FlipBook from './FlipBook';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 type Chapter = {
-  titulo: string;
-  pdf_url: string;
+  titulo?: string;
+  title?: string;
+  pdf_url?: string;
   audio_url?: string;
-  ordem: number;
+  ordem?: number;
   images_urls?: string[];
+  deck_id?: string;
+  has_cards?: boolean;
+  user_has_saved?: boolean;
 };
 
 type Book = {
@@ -29,6 +42,56 @@ type Book = {
   genero?: string;
   chapters: Chapter[];
 };
+
+/** Dica de tutorial: "Arraste para o lado" com seta animada */
+function SwipeTutorialHint({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  const offset = useSharedValue(0);
+  useEffect(() => {
+    offset.value = withRepeat(
+      withSequence(
+        withTiming(-14, { duration: 550 }),
+        withTiming(0, { duration: 550 }),
+      ),
+      -1,
+      true,
+    );
+  }, [offset]);
+  const arrowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: offset.value }],
+  }));
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onDismiss}
+      style={{
+        position: 'absolute',
+        bottom: 100,
+        left: 16,
+        right: 16,
+        backgroundColor: 'rgba(0,0,0,0.75)',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: 15, marginRight: 12 }}>
+        {typeof message === 'string' ? message : ''}
+      </Text>
+      <Animated.View style={arrowStyle}>
+        <MaterialIcons name="chevron-left" size={28} color="#fff" />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 // Evita importar módulo nativo de WebView no web
 let NativeWebView: any = null;
@@ -43,13 +106,17 @@ export default function BookScreen() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const { userInfo } = useSession();
   const { toast } = useToast();
+  const { setCollections } = useCollection();
 
   const [book, setBook] = useState<Book | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savingCards, setSavingCards] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasOpenedWebPdf, setHasOpenedWebPdf] = useState(false);
+  const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const fetchBook = async () => {
     if (!userInfo?.token || !bookId) return;
@@ -64,7 +131,7 @@ export default function BookScreen() {
         // Seleciona o primeiro capítulo ou capítulo único
         if (response.data.chapters && response.data.chapters.length > 0) {
           const sortedChapters = [...response.data.chapters].sort(
-            (a, b) => a.ordem - b.ordem,
+            (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0),
           );
           setSelectedChapter(sortedChapters[0]);
         }
@@ -94,10 +161,52 @@ export default function BookScreen() {
 
   const getPdfViewerUrl = () => {
     if (!selectedChapter?.pdf_url) return '';
-    // Usa Google Docs Viewer para evitar download automático e renderizar em tela
     return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(
       selectedChapter.pdf_url,
     )}`;
+  };
+
+  const handleSaveChapterCards = async () => {
+    if (!bookId || !selectedChapter?.deck_id || !userInfo?.token || selectedChapter.user_has_saved) return;
+    setSavingCards(true);
+    try {
+      const response = await api.post(
+        '/books/save-chapter-cards',
+        { book_id: bookId, deck_id: selectedChapter.deck_id },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+      if (response.data?.collection_id) {
+        setBook((prev) =>
+          prev
+            ? {
+                ...prev,
+                chapters: prev.chapters.map((ch) =>
+                  ch.deck_id === selectedChapter.deck_id ? { ...ch, user_has_saved: true } : ch,
+                ),
+              }
+            : null,
+        );
+        setSelectedChapter((prev) => (prev ? { ...prev, user_has_saved: true } : null));
+        toast({ message: t('Cards added to your collection'), variant: 'success' });
+        try {
+          const collRes = await api.get('/collections/get_by_user', {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          });
+          if (collRes.data?.collections && setCollections) setCollections(collRes.data.collections);
+        } catch {
+          // ignore refresh error
+        }
+      } else {
+        toast({ message: response.data?.message || t('No cards to save'), variant: 'default' });
+      }
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error saving cards'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingCards(false);
+    }
   };
 
   if (loading) {
@@ -126,7 +235,7 @@ export default function BookScreen() {
     );
   }
 
-  const sortedChapters = [...book.chapters].sort((a, b) => a.ordem - b.ordem);
+  const sortedChapters = [...book.chapters].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
 
   return (
     <View className="flex-1 bg-white">
@@ -165,25 +274,26 @@ export default function BookScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {sortedChapters.map((chapter, index) => (
               <TouchableOpacity
-                key={index}
+                key={chapter.deck_id ?? index}
                 onPress={() => {
                   setSelectedChapter(chapter);
                   setCurrentPage(1);
+                  if (index >= 1) setShowSwipeTutorial(false);
                 }}
                 className={`px-4 py-2 mr-2 rounded-full ${
-                  selectedChapter?.ordem === chapter.ordem ? 'bg-primary-500' : 'bg-gray-200'
+                  (selectedChapter?.ordem ?? 0) === (chapter.ordem ?? 0) ? 'bg-primary-500' : 'bg-gray-200'
                 }`}
               >
                 <Text
                   className="text-sm font-medium"
                   style={{
                     color:
-                      selectedChapter?.ordem === chapter.ordem
+                      (selectedChapter?.ordem ?? 0) === (chapter.ordem ?? 0)
                         ? '#FFFFFF'
                         : colors.gray[700],
                   }}
                 >
-                  {chapter.titulo || `${t('Chapter')} ${chapter.ordem}`}
+                  {chapter.titulo || chapter.title || `${t('Chapter')} ${chapter.ordem ?? index + 1}`}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -191,47 +301,44 @@ export default function BookScreen() {
         </View>
       )}
 
-      {/* Audio Player (se houver áudio) */}
+      {/* Audio Player (se houver áudio) - altura reduzida */}
       {selectedChapter.audio_url && (
         <View
-          className="flex-row items-center justify-center p-4 border-b"
+          className="flex-row items-center justify-center py-2 px-3 border-b"
           style={{ backgroundColor: colors.gray[50], borderColor: colors.gray[200] }}
         >
           <MaterialIcons
             name="headphones"
-            size={24}
+            size={20}
             color={colors.primary[500]}
-            style={{ marginRight: 10 }}
+            style={{ marginRight: 8 }}
           />
           <View className="flex-1">
             <Text className="text-sm font-medium" style={{ color: colors.gray[900] }}>
               {t('Audio')}
             </Text>
           </View>
-          <AudioPlayer audioUri={selectedChapter.audio_url} />
+          <AudioPlayer
+            key={selectedChapter.deck_id ?? selectedChapter.ordem ?? 'audio'}
+            audioUri={selectedChapter.audio_url}
+            onEnd={
+              sortedChapters.length >= 2 &&
+              (selectedChapter?.ordem ?? 0) === (sortedChapters[0]?.ordem ?? 0)
+                ? () => setShowSwipeTutorial(true)
+                : undefined
+            }
+          />
         </View>
       )}
 
-      {/* Viewer: imagens em formato livro ou PDF */}
-      <View className="flex-1">
-        {selectedChapter.images_urls && selectedChapter.images_urls.length > 0 ? (
-          Platform.OS === 'web' ? (
-            <ScrollView
-              className="flex-1"
-              contentContainerStyle={{ paddingVertical: 16, alignItems: 'center' }}
-            >
-              {selectedChapter.images_urls.map((uri, idx) => (
-                <Image
-                  key={idx}
-                  source={{ uri }}
-                  style={{ width: '90%', height: 500, resizeMode: 'contain', marginBottom: 16 }}
-                />
-              ))}
-            </ScrollView>
-          ) : (
-            <FlipBook images={selectedChapter.images_urls} />
-          )
-        ) : selectedChapter.pdf_url ? (
+      {/* Viewer: imagens em formato livro (flip) ou PDF */}
+      <View className="flex-1" style={{ minHeight: 0 }}>
+        {(selectedChapter.images_urls?.length ?? 0) > 0 ? (
+          <FlipBook
+            key={selectedChapter.deck_id ?? selectedChapter.ordem ?? 0}
+            images={selectedChapter.images_urls ?? []}
+          />
+        ) : (selectedChapter.pdf_url && selectedChapter.pdf_url.trim() !== '') ? (
           Platform.OS === 'web' ? (
             <View className="flex-1 items-center justify-center p-4">
               <MaterialIcons name="picture-as-pdf" size={60} color={colors.primary[500]} />
@@ -294,16 +401,67 @@ export default function BookScreen() {
           )
         ) : (
           <View className="flex-1 items-center justify-center p-4">
-            <MaterialIcons name="error-outline" size={60} color={colors.error[500]} />
+            <MaterialIcons name="menu-book" size={60} color={colors.gray[400]} />
             <Text
               className="text-lg mt-4 text-center"
               style={{ color: colors.gray[500] }}
             >
-              {t('PDF not available')}
+              {t('No content for this chapter')}
             </Text>
           </View>
         )}
       </View>
+
+      {/* Adicionar cartas do capítulo (só se o deck tiver cartas) - acima da safe area */}
+      {selectedChapter.has_cards && (
+        <View
+          className="border-t px-4 py-3"
+          style={{
+            backgroundColor: colors.gray[50],
+            borderColor: colors.gray[200],
+            paddingBottom: Math.max(insets.bottom, 12),
+          }}
+        >
+          {selectedChapter.user_has_saved ? (
+            <View className="flex-row items-center justify-center py-2">
+              <MaterialIcons name="check-circle" size={22} color={colors.gray[500]} style={{ marginRight: 8 }} />
+              <Text className="text-base font-medium" style={{ color: colors.gray[600] }}>
+                {t('Deck already added')}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSaveChapterCards}
+              disabled={savingCards}
+              className="flex-row items-center justify-center py-3 px-4 rounded-xl"
+              style={{ backgroundColor: colors.primary[500] }}
+            >
+              {savingCards ? (
+                <Text className="text-base font-semibold" style={{ color: '#FFFFFF' }}>
+                  {t('Adding...')}
+                </Text>
+              ) : (
+                <>
+                  <MaterialIcons name="collections-bookmark" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text className="text-base font-semibold" style={{ color: '#FFFFFF' }}>
+                    {t('Add cards to my collection')}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Tutorial: arraste para o próximo capítulo (após áudio do 1º capítulo) */}
+      {showSwipeTutorial &&
+        sortedChapters.length >= 2 &&
+        (selectedChapter?.images_urls?.length ?? 0) > 0 ? (
+          <SwipeTutorialHint
+            message={t('Swipe to next chapter')}
+            onDismiss={() => setShowSwipeTutorial(false)}
+          />
+        ) : null}
 
       {/* Page Indicator */}
       {selectedChapter.pdf_url && totalPages > 1 && (

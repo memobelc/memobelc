@@ -305,7 +305,7 @@ export default function Deck() {
         pointerEvents="none"
       />
 
-      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+      {userInfo?.role === 'admin' && (
         <TouchableOpacity
           style={{ backgroundColor: colors.primary[500] }}
           className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"

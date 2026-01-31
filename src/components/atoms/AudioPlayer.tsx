@@ -8,9 +8,10 @@ import { useToast } from '@/components/Toast';
 interface IAudioProps {
   audioUri: string;
   autoPlay?: boolean;
+  onEnd?: () => void;
 }
 
-export default function AudioPlayer({ audioUri, autoPlay }: IAudioProps) {
+export default function AudioPlayer({ audioUri, autoPlay, onEnd }: IAudioProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const player = useAudioPlayer(audioUri);
@@ -58,21 +59,34 @@ export default function AudioPlayer({ audioUri, autoPlay }: IAudioProps) {
   useEffect(() => {
     if (status.didJustFinish) {
       player.seekTo(0);
+      onEnd?.();
     }
-  }, [status.didJustFinish]);
+  }, [status.didJustFinish, onEnd]);
+
+  // Para o áudio ao desmontar (troca de capítulo ou sair da tela do livro)
+  useEffect(() => {
+    return () => {
+      try {
+        player.pause();
+        player.seekTo(0);
+      } catch {
+        // ignora se o player já foi liberado
+      }
+    };
+  }, [player]);
 
   return (
     <View>
       {audioUri &&
         (isPlaying ? (
           <TouchableOpacity onPress={stopSound}>
-            <FontAwesome6 name="circle-pause" size={48} color="black" />
+            <FontAwesome6 name="circle-pause" size={36} color="black" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity onPress={playSound} disabled={isLoading}>
             <FontAwesome6
               name="play-circle"
-              size={48}
+              size={36}
               color={isLoading ? 'gray' : 'black'}
             />
           </TouchableOpacity>

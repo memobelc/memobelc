@@ -33,6 +33,9 @@ type Collection = DefaultDeck & {
   decks: Deck[];
   review_collections_cards: card[];
   classroom?: string | null;
+  is_book_collection?: boolean;
+  book_id?: string;
+  book_titulo?: string;
 };
 
 type ProgressUpdate = {

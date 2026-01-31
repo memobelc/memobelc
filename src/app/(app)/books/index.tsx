@@ -37,6 +37,7 @@ type Book = {
   price?: number;
   payment_link?: string;
   chapters: Chapter[];
+  collection_id?: string | null;
 };
 
 export default function BooksScreen() {
@@ -48,6 +49,7 @@ export default function BooksScreen() {
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   const [discoverBooks, setDiscoverBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const fetchBooks = async () => {
     if (!userInfo?.token) return;
@@ -70,6 +72,32 @@ export default function BooksScreen() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateCollection = async (book: Book) => {
+    if (!userInfo?.token || userInfo?.role !== 'admin') return;
+    setGeneratingId(book._id);
+    try {
+      const response = await api.post(
+        `/books/admin/generate-collection/${book._id}`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+      if (response.data?.collection_id || response.data?.already) {
+        toast({
+          message: response.data?.message || t('Collection generated successfully'),
+          variant: 'success',
+        });
+        await fetchBooks();
+      }
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error generating collection'),
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -119,7 +147,19 @@ export default function BooksScreen() {
     >
       {/* Menu admin no canto superior do livro */}
       {userInfo?.role === 'admin' && (
-        <View className="absolute top-1 right-1 flex-row z-10">
+        <View className="absolute top-1 right-1 flex-row items-center z-10 gap-1">
+          {!book.collection_id && (
+            <TouchableOpacity
+              onPress={() => handleGenerateCollection(book)}
+              disabled={!!generatingId}
+              className="px-2 py-1 rounded-full"
+              style={{ backgroundColor: colors.primary[500] }}
+            >
+              <Text className="text-[10px] font-semibold text-white" numberOfLines={1}>
+                {generatingId === book._id ? t('...') : t('Generate collection')}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -127,7 +167,7 @@ export default function BooksScreen() {
                 params: { bookId: book._id },
               })
             }
-            className="mr-1 px-1 py-1 rounded-full"
+            className="px-1 py-1 rounded-full"
             style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
           >
             <MaterialIcons name="edit" size={16} color="#FFFFFF" />
