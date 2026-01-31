@@ -127,7 +127,7 @@ export default function Classroom() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -177,7 +177,7 @@ export default function Classroom() {
       });
 
       toast({
-        message: 'Deck  created successfully',
+        message: t('Deck created successfully'),
         variant: 'success',
         showProgress: true,
       });
@@ -199,7 +199,7 @@ export default function Classroom() {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -237,7 +237,7 @@ export default function Classroom() {
 
       if (response.status == 200) {
         toast({
-          message: 'Invitation sent successfully',
+          message: t('Invitation sent successfully'),
           variant: 'success',
           showProgress: true,
         });

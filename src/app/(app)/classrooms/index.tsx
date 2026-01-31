@@ -72,7 +72,7 @@ export default function Classrooms() {
     setSelectedImageFromGallery(null);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -163,7 +163,7 @@ export default function Classrooms() {
           },
         );
         toast({
-          message: 'Classroom  created successfully',
+          message: t('Classroom created successfully'),
           variant: 'success',
           showProgress: true,
         });
@@ -187,7 +187,7 @@ export default function Classrooms() {
           });
         } else {
           toast({
-            message: `An unexpected error has occurred`,
+            message: t('An unexpected error has occurred'),
             variant: 'destructive',
           });
         }
@@ -229,7 +229,7 @@ export default function Classrooms() {
           },
         );
         toast({
-          message: 'Classroom  created successfully',
+          message: t('Classroom created successfully'),
           variant: 'success',
           showProgress: true,
         });
@@ -253,7 +253,7 @@ export default function Classrooms() {
           });
         } else {
           toast({
-            message: `An unexpected error has occurred`,
+            message: t('An unexpected error has occurred'),
             variant: 'destructive',
           });
         }

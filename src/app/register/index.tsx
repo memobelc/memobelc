@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
 import { Loading } from '@/components/Loading';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { colors } from '@/styles/colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useToast } from '@/components/Toast';
@@ -14,6 +15,8 @@ export default function Register() {
   const { t } = useTranslation();
   const router = useRouter();
   const { toast } = useToast();
+  const params = useLocalSearchParams();
+  const inviteCode = params.invite as string | string[] | undefined;
 
   const validationSchema = yup.object().shape({
     name: yup.string().required(t('Name is required')),
@@ -64,7 +67,15 @@ export default function Register() {
       await validationSchema.validate(formData, { abortEarly: false });
 
       setIsLoading(true);
-      const response = await api.post('/auth/register', formData);
+      
+      // Adiciona o código de convite se existir na URL
+      const registerData = { ...formData };
+      if (inviteCode) {
+        const code = Array.isArray(inviteCode) ? inviteCode[0] : inviteCode;
+        registerData.invite_code = code;
+      }
+      
+      const response = await api.post('/auth/register', registerData);
 
       if (response.status === 201) {
         router.push({
@@ -115,6 +126,7 @@ export default function Register() {
         source={require('@/assets/logo_memobelc.jpg')}
         style={{ width: 200, height: 200 }}
       />
+      <AuthLanguagePicker />
       {['name', 'email', 'password', 'confirmPassword'].map((field) => (
         <View key={field} className="w-full items-center">
           <View

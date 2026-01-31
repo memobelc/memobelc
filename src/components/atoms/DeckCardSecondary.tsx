@@ -1,6 +1,7 @@
 import { View, Image, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/styles/colors';
 import { Link } from 'expo-router';
@@ -10,6 +11,7 @@ interface CardSecondaryProps {
   image?: string | null;
   type: 'collection' | 'deck';
   classroom?: string;
+  isBookCollection?: boolean;
   name: string;
   pending_cards: number;
   total_cards: number;
@@ -23,6 +25,7 @@ export const DeckCardSecondary = ({
   name,
   type,
   classroom,
+  isBookCollection,
   pending_cards,
   total_cards,
   onPress,
@@ -30,6 +33,7 @@ export const DeckCardSecondary = ({
   onDelete,
 }: CardSecondaryProps) => {
   const router = useRouter();
+  const { t } = useTranslation();
   const hasActions = type === 'collection' && (onEdit || onDelete);
 
   const handleCardPress = () => {
@@ -37,7 +41,7 @@ export const DeckCardSecondary = ({
     if (onPress) {
       onPress();
     }
-    
+
     // Navega para a página
     router.push({
       pathname: type === 'deck' ? '/(app)/deck' : '/(app)/collection',
@@ -75,17 +79,23 @@ export const DeckCardSecondary = ({
                 </Text>
               </View>
             )}
+            {type === 'collection' && isBookCollection && !classroom && (
+              <View className="mt-1 self-start bg-emerald-100 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-semibold text-emerald-700">
+                  {t('Book')}
+                </Text>
+              </View>
+            )}
             {hasActions && (
               <View className="flex flex-row gap-2 ml-2">
                 {onEdit && (
                   <TouchableOpacity
-                    onPress={() => {
+                    onPress={(e) => {
+                      e.stopPropagation();
                       onEdit();
                     }}
                     className="p-1"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onStartShouldSetResponder={() => true}
-                    onResponderTerminationRequest={() => false}
                   >
                     <MaterialIcons
                       name="edit"
@@ -96,13 +106,12 @@ export const DeckCardSecondary = ({
                 )}
                 {onDelete && (
                   <TouchableOpacity
-                    onPress={() => {
+                    onPress={(e) => {
+                      e.stopPropagation();
                       onDelete();
                     }}
                     className="p-1"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onStartShouldSetResponder={() => true}
-                    onResponderTerminationRequest={() => false}
                   >
                     <MaterialIcons
                       name="delete"

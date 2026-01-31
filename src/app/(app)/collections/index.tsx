@@ -39,6 +39,9 @@ type Collection = {
   pending_cards: number;
   total_cards: number;
   classroom?: string | null;
+  is_book_collection?: boolean;
+  book_id?: string;
+  book_titulo?: string;
 };
 
 export default function AllCollections() {
@@ -77,7 +80,7 @@ export default function AllCollections() {
     setSelectedImageFromGallery(null);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -188,7 +191,7 @@ export default function AllCollections() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -273,7 +276,7 @@ export default function AllCollections() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -325,18 +328,21 @@ export default function AllCollections() {
             <>
               {collections.map((item) => {
                 const isClassroom = !!item.classroom;
+                const isBookCollection = !!item.is_book_collection;
+                const noEditDelete = isClassroom || isBookCollection;
 
                 return (
                   <DeckCardSecondary
                     key={item._id}
-                    name={item.name}
+                    name={item.is_book_collection && item.book_titulo ? item.book_titulo : item.name}
                     image={item.image}
                     type="collection"
                     classroom={item.classroom || undefined}
+                    isBookCollection={!!item.is_book_collection}
                     pending_cards={item.pending_cards}
                     total_cards={item.total_cards}
                     onPress={() => setCurrentCollection(item)}
-                    {...(!isClassroom && {
+                    {...(!noEditDelete && {
                       onEdit: () => HandleEditCollection(item),
                       onDelete: () => HandleDeleteCollection(item),
                     })}

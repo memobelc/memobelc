@@ -71,15 +71,21 @@ const StudyStreak = () => {
     };
   }, [userInfo?.token]);
 
-  // Nomes dos dias da semana (abr.) - Começando na segunda
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const dayNamesPT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  // Day names (short) - Monday = 0, from locale
+  const dayNamesArray = [
+    t('Mon'),
+    t('Tue'),
+    t('Wed'),
+    t('Thu'),
+    t('Fri'),
+    t('Sat'),
+    t('Sun'),
+  ];
 
   // Calcula os dias da semana para os últimos 7 dias
   const getDayLabels = () => {
     const today = new Date();
     const labels: string[] = [];
-    const dayNamesArray = t('language') === 'pt-BR' ? dayNamesPT : dayNames;
 
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);

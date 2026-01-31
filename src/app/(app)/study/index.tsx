@@ -31,7 +31,9 @@ export default function Study() {
       try {
         api.put('/progress/update_status', progressUpdate);
         toast({
-          message: `Awesome, you reviewed all ${progressUpdate.cards.length} cards today!`,
+          message: t('Awesome, you reviewed all {{count}} cards today!', {
+            count: progressUpdate.cards.length,
+          }),
           variant: 'success',
         });
         setProgressUpdate(null);

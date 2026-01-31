@@ -12,14 +12,16 @@ import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Picker } from '@react-native-picker/picker';
 import { useTranslation } from 'react-i18next';
+
+import { LanguageSelectWithFlags } from '@/components/atoms/LanguageSelectWithFlags';
 
 import { useSession } from '@/contexts/AuthContext';
 import { Avatar, AvatarImage } from '@/components/Avatar';
 import { useProfile } from '@/contexts/profileContext';
 import { colors } from '@/styles/colors';
 import api from '@/services/api';
+import { InviteFriendsModal } from './InviteFriendsModal';
 
 type menuItem = {
   name: string;
@@ -36,6 +38,7 @@ const AvatarProfileDrawer = () => {
   const { t, i18n } = useTranslation();
 
   const [open, setOpen] = useState(false);
+  const [openInviteModal, setOpenInviteModal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   // const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -107,8 +110,9 @@ const AvatarProfileDrawer = () => {
   }, [open]);
 
   useEffect(() => {
-    i18n.changeLanguage(language || 'pt-BR');
-  }, [language]);
+    const lng = language ?? 'en';
+    i18n.changeLanguage(lng);
+  }, [language, i18n]);
 
   return (
     <View>
@@ -238,21 +242,21 @@ const AvatarProfileDrawer = () => {
                 <Text className="font-bold text-primary mb-1">
                   {t('Language')}
                 </Text>
-                <View className="border border-gray-200 rounded-lg overflow-hidden">
-                  <Picker
-                    selectedValue={language}
-                    onValueChange={(itemValue) =>
-                      setLanguage(itemValue || 'pt-BR')
-                    }
-                  >
-                    <Picker.Item label="English" value="en" />
-                    <Picker.Item label="Português" value="pt-BR" />
-                    {/* <Picker.Item label="Español" value="es" />
-                    <Picker.Item label="Deutsch" value="de" />
-                    <Picker.Item label="中國人" value="zh" /> */}
-                  </Picker>
-                </View>
+                <LanguageSelectWithFlags
+                  value={language ?? i18n.language ?? 'en'}
+                  onValueChange={(v) => setLanguage(v ?? 'en')}
+                />
               </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setOpenInviteModal(true);
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="person-add" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('Invite Friends')}</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
                   signOut();
@@ -267,6 +271,11 @@ const AvatarProfileDrawer = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <InviteFriendsModal
+        open={openInviteModal}
+        onClose={() => setOpenInviteModal(false)}
+      />
     </View>
   );
 };

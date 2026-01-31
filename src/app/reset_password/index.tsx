@@ -3,8 +3,10 @@ import {
   useRootNavigationState,
   useRouter,
 } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
 import { Loading } from '@/components/Loading';
@@ -13,29 +15,38 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useToast } from '@/components/Toast';
 import * as yup from 'yup';
 
-const codeValidationSchema = yup.object().shape({
-  code: yup
-    .string()
-    .length(6, 'Code must be 6 digits')
-    .matches(/^\d+$/, 'Code must contain only numbers')
-    .required('Code is required'),
-});
-
-const passwordValidationSchema = yup.object().shape({
-  password: yup
-    .string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref('password'), undefined], 'Passwords do not match')
-    .required('Confirm password is required'),
-});
-
-export default function Register() {
+export default function ResetPassword() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const codeValidationSchema = useMemo(
+    () =>
+      yup.object().shape({
+        code: yup
+          .string()
+          .length(6, t('Code must be 6 digits'))
+          .matches(/^\d+$/, t('Code must contain only numbers'))
+          .required(t('Code is required')),
+      }),
+    [t],
+  );
+
+  const passwordValidationSchema = useMemo(
+    () =>
+      yup.object().shape({
+        password: yup
+          .string()
+          .min(6, t('Password must be at least 6 characters'))
+          .required(t('Password is required')),
+        confirmPassword: yup
+          .string()
+          .oneOf([yup.ref('password'), undefined], t('Passwords do not match'))
+          .required(t('Confirm password is required')),
+      }),
+    [t],
+  );
 
   const { email: emailParam } = useLocalSearchParams();
   const email = Array.isArray(emailParam) ? emailParam[0] : emailParam;
@@ -59,7 +70,7 @@ export default function Register() {
   const handleVerifyCode = async () => {
     if (!email) {
       toast({
-        message: 'Email não encontrado. Por favor, solicite um novo código.',
+        message: t('Email not found. Please request a new code.'),
         variant: 'destructive',
         showProgress: true,
       });
@@ -79,14 +90,14 @@ export default function Register() {
 
       if (response.status === 200 && response.data.valid) {
         toast({
-          message: 'Código verificado com sucesso!',
+          message: t('Code verified successfully!'),
           variant: 'success',
           showProgress: true,
         });
         setStep('password');
       } else {
         toast({
-          message: 'Código inválido ou expirado',
+          message: t('Invalid or expired code.'),
           variant: 'destructive',
           showProgress: true,
         });
@@ -105,7 +116,7 @@ export default function Register() {
           showProgress: true,
         });
       } else {
-        const errorMessage = error?.response?.data?.error || 'Código inválido ou expirado';
+        const errorMessage = error?.response?.data?.error || t('Invalid or expired code.');
         toast({
           message: errorMessage,
           variant: 'destructive',
@@ -120,7 +131,7 @@ export default function Register() {
   const handleResetPassword = async () => {
     if (!email) {
       toast({
-        message: 'Email não encontrado. Por favor, solicite um novo código.',
+        message: t('Email not found. Please request a new code.'),
         variant: 'destructive',
         showProgress: true,
       });
@@ -141,7 +152,7 @@ export default function Register() {
 
       if (response.status === 200) {
         toast({
-          message: 'Senha atualizada com sucesso!',
+          message: t('Password updated successfully!'),
           variant: 'success',
           showProgress: true,
         });
@@ -163,7 +174,7 @@ export default function Register() {
           showProgress: true,
         });
       } else {
-        const errorMessage = error?.response?.data?.error || 'An unexpected error has occurred';
+        const errorMessage = error?.response?.data?.error || t('An unexpected error has occurred.');
         toast({
           message: errorMessage,
           variant: 'destructive',
@@ -179,13 +190,13 @@ export default function Register() {
     if (!navigationState?.key) return;
     if (!email) {
       toast({
-        message: 'Email não encontrado. Por favor, solicite um novo código.',
+        message: t('Email not found. Please request a new code.'),
         variant: 'destructive',
         showProgress: true,
       });
       router.push('./forgot-password');
     }
-  }, [navigationState?.key, email]);
+  }, [navigationState?.key, email, t]);
 
   return isLoading ? (
     <Loading classname="flex-1 items-center justify-center" />
@@ -195,20 +206,20 @@ export default function Register() {
         source={require('@/assets/logo_memobelc.jpg')}
         style={{ width: 200, height: 200 }}
       />
-      
+      <AuthLanguagePicker />
       {step === 'code' ? (
         <>
           <Text
             className="font-[ComicSans] font-bold text-xl mb-2"
             style={{ color: colors.gray[100] }}
           >
-            Verificação de Código
+            {t('Code verification')}
           </Text>
           <Text
             className="font-[ComicSans] font-medium text-base mb-4 text-center"
             style={{ color: colors.gray[100] }}
           >
-            Digite o código de 6 dígitos recebido por e-mail.
+            {t('Enter the 6-digit code received by email.')}
           </Text>
           <View className="w-full items-center">
             <View
@@ -221,7 +232,7 @@ export default function Register() {
             >
               <TextInput
                 className="flex-1 h-14 text-center text-2xl font-bold"
-                placeholder="000000"
+                placeholder={t('Code placeholder')}
                 placeholderTextColor={colors.placeholder}
                 value={code}
                 onChangeText={(value) => {
@@ -244,7 +255,7 @@ export default function Register() {
             onPress={handleVerifyCode}
           >
             <Text style={{ color: colors.gray[100] }} className="font-bold text-lg">
-              Verificar Código
+              {t('Verify Code')}
             </Text>
           </TouchableOpacity>
         </>
@@ -254,13 +265,13 @@ export default function Register() {
             className="font-[ComicSans] font-bold text-xl mb-2"
             style={{ color: colors.gray[100] }}
           >
-            Nova Senha
+            {t('New Password')}
           </Text>
           <Text
             className="font-[ComicSans] font-medium text-base mb-4 text-center"
             style={{ color: colors.gray[100] }}
           >
-            Digite sua nova senha.
+            {t('Enter your new password.')}
           </Text>
           {['password', 'confirmPassword'].map((field) => (
             <View key={field} className="w-full items-center">
@@ -276,8 +287,8 @@ export default function Register() {
                   className="flex-1 h-14"
                   placeholder={
                     field === 'password'
-                      ? 'Nova senha'
-                      : 'Confirmar nova senha'
+                      ? t('New password')
+                      : t('Confirm new password')
                   }
                   placeholderTextColor={colors.placeholder}
                   secureTextEntry={
@@ -313,7 +324,7 @@ export default function Register() {
             onPress={handleResetPassword}
           >
             <Text style={{ color: colors.gray[100] }} className="font-bold text-lg">
-              Redefinir Senha
+              {t('Reset Password')}
             </Text>
           </TouchableOpacity>
         </>

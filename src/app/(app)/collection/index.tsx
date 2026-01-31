@@ -75,7 +75,7 @@ export default function Collection() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -185,7 +185,7 @@ export default function Collection() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -357,7 +357,7 @@ export default function Collection() {
         pointerEvents="none"
       />
 
-      {(!currentCollection?.classroom || userInfo?.role === 'teacher') && (
+      {userInfo?.role === 'admin' && (
         <TouchableOpacity
           style={{ backgroundColor: colors.primary[500] }}
           className="flex flex-row items-center justify-center w-full md:w-40 absolute bottom-7 rounded-full p-2"

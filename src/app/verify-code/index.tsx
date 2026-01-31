@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { useSession } from '@/contexts/AuthContext';
 import { colors } from '@/styles/colors';
 
@@ -15,12 +17,12 @@ const ConfirmAccountScreen = () => {
   const { verify_code } = useSession();
   const { token } = useLocalSearchParams();
   const router = useRouter();
-
+  const { t } = useTranslation();
   const [code, setCode] = useState<string>('');
 
   const handleValidateCode = async () => {
     if (code.length < 6) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      Alert.alert(t('Error'), t('Please fill in all fields.'));
       return;
     }
     const result = await verify_code(token, code);
@@ -38,6 +40,7 @@ const ConfirmAccountScreen = () => {
           height: 150,
         }}
       />
+      <AuthLanguagePicker />
       <Text
         style={{
           color: colors.gray[100],
@@ -45,7 +48,7 @@ const ConfirmAccountScreen = () => {
           fontSize: 22,
         }}
       >
-        Confirme o Código
+        {t('Confirm Code')}
       </Text>
       <Text
         style={{
@@ -55,7 +58,7 @@ const ConfirmAccountScreen = () => {
           marginHorizontal: 20,
         }}
       >
-        Enviamos um código de confirmação para seu E-mail
+        {t('We sent a confirmation code to your email.')}
       </Text>
 
       <View
@@ -92,7 +95,7 @@ const ConfirmAccountScreen = () => {
             fontWeight: 'bold',
           }}
         >
-          Confirmar
+          {t('Confirm')}
         </Text>
       </TouchableOpacity>
     </View>
