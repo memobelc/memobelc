@@ -75,7 +75,7 @@ export default function Collection() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -185,7 +185,7 @@ export default function Collection() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }

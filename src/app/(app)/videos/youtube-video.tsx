@@ -92,7 +92,7 @@ const YouTubeVideo = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -128,7 +128,7 @@ const YouTubeVideo = () => {
       HandleSaveDeck(collection_creation.data.collection_id);
 
       toast({
-        message: 'Collection of deck  created successfully',
+        message: t('Collection of deck created successfully'),
         variant: 'success',
         showProgress: true,
       });
@@ -143,7 +143,7 @@ const YouTubeVideo = () => {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -171,7 +171,7 @@ const YouTubeVideo = () => {
       setUserAlreadyHasDeck(true);
 
       toast({
-        message: 'Deck saved successfully',
+        message: t('Deck saved successfully'),
         variant: 'success',
         showProgress: true,
       });
@@ -185,7 +185,7 @@ const YouTubeVideo = () => {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -291,7 +291,7 @@ const YouTubeVideo = () => {
       {openAddVideo && (
         <OpenDialogInput
           open={openAddVideo}
-          title="Select the desired collection"
+          title={t('Select the desired collection')}
         >
           <View className="w-full max-h-[80vh]">
             <ScrollView
@@ -381,13 +381,13 @@ const YouTubeVideo = () => {
                 <View className="flex-col items-center justify-center ">
                   <MaterialIcons name="cloud-upload" size={40} color="gray" />
                   <Text className="text-gray-500 mt-2 ">
-                    Tap to send an image
+                    {t('Tap to send an image')}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
             <Input
-              placeholder="Enter your name deck collection"
+              placeholder={t('Enter name deck collection')}
               className="py-6 w-full"
               value={nameCollection}
               onChangeText={(text) => setNameCollection(text)}
@@ -398,7 +398,7 @@ const YouTubeVideo = () => {
               onPress={HandleCreateCollection}
             >
               <Text className="text-white text-base font-bold">
-                Create New deck collection
+                {t('Create New deck collection')}
               </Text>
             </TouchableOpacity>
           </DialogContent>

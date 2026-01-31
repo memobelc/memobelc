@@ -160,7 +160,7 @@ export default function Deck() {
       });
 
       toast({
-        message: 'Card created successfully',
+        message: t('Card created successfully'),
         variant: 'success',
         showProgress: true,
       });
@@ -177,7 +177,7 @@ export default function Deck() {
         });
       } else {
         toast({
-          message: `An unexpected error has occurred`,
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -311,7 +311,7 @@ export default function Deck() {
           className="flex flex-row items-center justify-center w-full absolute bottom-7 rounded-full p-2"
           onPress={HandleOpenAddCard}
         >
-          <Text className="text-white font-bold text-2xl">Add cards</Text>
+          <Text className="text-white font-bold text-2xl">{t('Add cards')}</Text>
         </TouchableOpacity>
       )}
 
@@ -346,7 +346,7 @@ export default function Deck() {
               </TouchableOpacity>
               <View className="flex-row w-[60%] items-center justify-between">
                 <Text className="font-semibold text-xl text-primary justify-center">
-                  New card
+                  {t('New card')}
                 </Text>
                 <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
                   <MaterialCommunityIcons
@@ -384,14 +384,14 @@ export default function Deck() {
                 showsVerticalScrollIndicator={false}
               >
                 <Input
-                  label="Front Side"
+                  label={t('Front Side')}
                   className="py-6 w-full"
                   inputClasses="h-40"
                   value={frontSide}
                   onChangeText={(text) => setFrontSide(text)}
                 />
                 <Input
-                  label="Back Side"
+                  label={t('Back Side')}
                   className="py-6 w-full"
                   inputClasses="h-40"
                   value={backSide}

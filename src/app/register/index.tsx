@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useStorageStateLoading } from '@/storage/useStorageState';
 import api from '@/services/api';
 import { Loading } from '@/components/Loading';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { colors } from '@/styles/colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useToast } from '@/components/Toast';
@@ -125,6 +126,7 @@ export default function Register() {
         source={require('@/assets/logo_memobelc.jpg')}
         style={{ width: 200, height: 200 }}
       />
+      <AuthLanguagePicker />
       {['name', 'email', 'password', 'confirmPassword'].map((field) => (
         <View key={field} className="w-full items-center">
           <View

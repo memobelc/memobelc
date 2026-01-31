@@ -2,6 +2,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/Toast';
 
 interface IAudioProps {
@@ -10,6 +11,7 @@ interface IAudioProps {
 }
 
 export default function AudioPlayer({ audioUri, autoPlay }: IAudioProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const player = useAudioPlayer(audioUri);
   const status = useAudioPlayerStatus(player);
@@ -37,7 +39,7 @@ export default function AudioPlayer({ audioUri, autoPlay }: IAudioProps) {
       player.seekTo(0);
     } catch (error) {
       toast({
-        message: `Erro ao parar áudio: ${error}`,
+        message: t('Error stopping audio'),
         variant: 'destructive',
       });
     }

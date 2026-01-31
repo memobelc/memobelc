@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, Platform } from 'react-
 
 import { useSession } from '@/contexts/AuthContext';
 import { Loading } from '@/components/Loading';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
@@ -81,8 +82,8 @@ export default function SignIn() {
           try {
             await Notifications.scheduleNotificationAsync({
               content: {
-                title: 'Login realizado com sucesso 🎉',
-                body: `Vamos começar mais uma jornada incrível!`,
+                title: t('Login successful 🎉'),
+                body: t('Let\'s start another amazing journey!'),
               },
               trigger: {
                 seconds: 1,
@@ -118,7 +119,7 @@ export default function SignIn() {
       } else {
         // Tratamento de outros erros inesperados
         setErrors({ 
-          general: error instanceof Error ? error.message : 'An unexpected error occurred' 
+          general: error instanceof Error ? error.message : t('An unexpected error occurred') 
         });
       }
     }
@@ -146,6 +147,8 @@ export default function SignIn() {
         source={require('@/assets/logo_memobelc.jpg')}
         style={{ width: 200, height: 200 }}
       />
+
+      <AuthLanguagePicker />
 
       <View
         className="w-full md:w-80 rounded-[25px] flex-row items-center mb-5 px-4"

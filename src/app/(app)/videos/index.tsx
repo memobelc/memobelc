@@ -1,4 +1,4 @@
-import { PickerSelect } from '@/components/atoms/PickerSelect';
+import { LanguageSelectWithFlags } from '@/components/atoms/LanguageSelectWithFlags';
 import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -7,9 +7,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Image,
+  Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -23,11 +23,13 @@ interface IVideosProps {
 }
 
 export default function VideoScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<IVideosProps[] | null>(null);
   const [languageVideo, setLanguageVideo] = useState('en');
+  // Message in the selected video language (not app language)
+  const tVideoLang = i18n.getFixedT(languageVideo);
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,10 +54,10 @@ export default function VideoScreen() {
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
-      <View className="flex-row justify-between items-center w-full bg-gray-100 -mt-2">
+      <View className="flex-row justify-between items-center w-full bg-gray-100 -mt-2 gap-3">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="flex-row items-center"
+          className="flex-row items-center flex-shrink-0"
         >
           <Ionicons
             name="arrow-back-circle"
@@ -65,30 +67,18 @@ export default function VideoScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        {/* <TouchableOpacity
-          onPress={() => {} /* Function to select language *}
-          className="flex-row items-center"
-        >
-          <Image
-            style={{ width: 24, height: 24 }}
-            source={require('@/assets/flags/flag-uk.png')}
-            className="w-6 h-6"
-          />
-          <Text style={{ color: colors.primary[500], marginLeft: 5 }}>
-            English
-          </Text>
-        </TouchableOpacity> */}
-
-        <PickerSelect
-          selectedValue={languageVideo}
+        <LanguageSelectWithFlags
+          value={languageVideo}
           onValueChange={setLanguageVideo}
           options={[
-            { label: 'English', value: 'en' },
-            { label: 'Español', value: 'es' },
-            { label: 'Deutsch', value: 'de' },
-            { label: '中國人', value: 'zh' },
+            { code: 'en', label: 'English' },
+            { code: 'pt-BR', label: 'Português' },
+            { code: 'es', label: 'Español' },
+            { code: 'de', label: 'Deutsch' },
+            { code: 'zh', label: '中文' },
           ]}
-          className="w-40"
+          className={Platform.OS === 'web' ? 'w-48' : 'w-32 flex-shrink-0'}
+          compact={Platform.OS !== 'web'}
         />
       </View>
 
@@ -110,7 +100,7 @@ export default function VideoScreen() {
               size={24}
               color="black"
             />
-            <Text>Discover</Text>
+            <Text>{t('Discover')}</Text>
           </View>
 
           <View className="flex flex-row flex-wrap justify-start gap-4">
@@ -150,7 +140,7 @@ export default function VideoScreen() {
             {videos?.length == 0 && (
               <View className="flex  items-center justify-center py-10">
                 <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-                  {t('There are no videos in the selected language!')}
+                  {tVideoLang('There are no videos in the selected language!')}
                 </Text>
                 <Image
                   style={{ width: 200, height: 200 }}

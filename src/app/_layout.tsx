@@ -13,6 +13,7 @@ import { CollectionProvider } from '@/contexts/CollectionContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import '@/locales/i18n';
 import { ProfileProvider } from '@/contexts/profileContext';
+import { LanguageSync } from '@/components/LanguageSync';
 // import StripeWrapper from '@/components/molecules/StripeWrapper';
 
 export default function Layout() {
@@ -33,6 +34,7 @@ export default function Layout() {
           <DialogProvider>
             <SessionProvider>
               <ProfileProvider>
+                <LanguageSync />
                 <CollectionProvider>
                   <NotificationProvider>
                     <Stack

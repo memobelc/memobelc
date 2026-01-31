@@ -77,7 +77,7 @@ export default function AllCollections() {
     setSelectedImageFromGallery(null);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permission denied, You need to allow access to the gallery.');
+      alert(t('Permission denied, You need to allow access to the gallery.'));
       return;
     }
 
@@ -188,7 +188,7 @@ export default function AllCollections() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }
@@ -273,7 +273,7 @@ export default function AllCollections() {
         });
       } else {
         toast({
-          message: 'An unexpected error has occurred',
+          message: t('An unexpected error has occurred'),
           variant: 'destructive',
         });
       }

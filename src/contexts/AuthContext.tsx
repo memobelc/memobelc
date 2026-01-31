@@ -11,6 +11,7 @@ import {
 } from '@/storage/useStorageState';
 import api from '@/services/api';
 import { useToast } from '@/components/Toast';
+import i18n from '@/locales/i18n';
 
 type User = {
   email: string;
@@ -128,10 +129,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             return { success: true, user };
           } catch (error: any) {
-            let errorMessage = 'An unexpected error has occurred';
+            let errorMessage = i18n.t('An unexpected error has occurred');
             
             if (error?.response?.status === 401) {
-              errorMessage = 'Invalid email or password, please enter again.';
+              errorMessage = i18n.t('Invalid email or password, please enter again.');
             } else if (error?.response?.data?.error) {
               errorMessage = error.response.data.error;
             } else if (error?.message) {
@@ -200,26 +201,26 @@ export function SessionProvider({ children }: PropsWithChildren) {
               await new Promise((resolve) => setTimeout(resolve, 100));
 
               toast({
-                message: `Conta verificada com sucesso!`,
+                message: i18n.t('Account verified successfully!'),
                 variant: 'success',
               });
 
               return { success: true };
             }
-            return { success: false, error: 'Verification failed' };
+            return { success: false, error: i18n.t('Verification failed') };
           } catch (error: any) {
             if (error.response?.status === 401) {
               toast({
-                message: `Código de verificação incorreto!`,
+                message: i18n.t('Incorrect verification code!'),
                 variant: 'destructive',
               });
-              return { success: false, error: 'Invalid code' };
+              return { success: false, error: i18n.t('Invalid code') };
             } else {
               toast({
-                message: `Ocorreu um erro inesperado.`,
+                message: i18n.t('An unexpected error has occurred.'),
                 variant: 'destructive',
               });
-              return { success: false, error: 'Unexpected error' };
+              return { success: false, error: i18n.t('Unexpected error') };
             }
           }
         },

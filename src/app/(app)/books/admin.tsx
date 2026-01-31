@@ -561,7 +561,7 @@ export default function BookAdminScreen() {
                   label={t('Payment Link')}
                   value={formData.payment_link}
                   onChangeText={(value) => setFormData({ ...formData, payment_link: value })}
-                  placeholder="https://..."
+                  placeholder={t('URL placeholder')}
                 />
                 {errors.payment_link && (
                   <Text className="text-xs mt-1" style={{ color: colors.error[500] }}>

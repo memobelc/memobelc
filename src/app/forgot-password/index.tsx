@@ -1,13 +1,16 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { AuthLanguagePicker } from '@/components/AuthLanguagePicker';
 import { colors } from '@/styles/colors';
 import api from '@/services/api';
 import { useToast } from '@/components/Toast';
-export default function Register() {
+
+export default function ForgotPassword() {
   const router = useRouter();
   const { toast } = useToast();
-
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
 
   const handleResetPassword = async () => {
@@ -16,7 +19,7 @@ export default function Register() {
         email,
       });
       toast({
-        message: 'Código de recuperação enviado para seu e-mail!',
+        message: t('Recovery code sent to your email!'),
         variant: 'success',
         showProgress: true,
       });
@@ -26,7 +29,7 @@ export default function Register() {
       });
     } catch (error: any) {
       toast({
-        message: error?.response?.data?.error || 'Erro ao enviar código de recuperação',
+        message: error?.response?.data?.error || t('Error sending recovery code.'),
         variant: 'destructive',
         showProgress: true,
       });
@@ -41,7 +44,7 @@ export default function Register() {
           style={{ color: colors.gray[100] }}
         >
           {' '}
-          ← Voltar
+          ← {t('Back')}
         </Text>
       </TouchableOpacity>
 
@@ -50,18 +53,20 @@ export default function Register() {
         style={{ width: 200, height: 200 }}
       />
 
+      <AuthLanguagePicker />
+
       <Text
         className="font-[ComicSans] font-bold text-xl mb-4"
         style={{ color: colors.gray[100] }}
       >
-        Redefinição de senha!
+        {t('Password reset!')}
       </Text>
 
       <Text
         className="font-[ComicSans] font-medium text-base mb-4"
         style={{ color: colors.gray[100] }}
       >
-        Informe um email e enviaremos um código para recuperação da sua senha.
+        {t('Enter your email and we\'ll send a recovery code.')}
       </Text>
 
       <View
@@ -70,7 +75,7 @@ export default function Register() {
       >
         <TextInput
           className="flex-1 h-14"
-          placeholder="E-mail"
+          placeholder={t('E-mail')}
           placeholderTextColor={colors.placeholder}
           value={email}
           onChangeText={setEmail}
@@ -86,7 +91,7 @@ export default function Register() {
           className="text-lg font-bold mr-3"
           style={{ color: colors.gray[100] }}
         >
-          Enviar código de recuperação
+          {t('Send recovery code')}
         </Text>
       </TouchableOpacity>
     </View>
