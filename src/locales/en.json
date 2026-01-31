@@ -152,6 +152,12 @@
     "Link copied to clipboard": "Link copied to clipboard",
     "Code copied to clipboard": "Code copied to clipboard",
 
+    "Enable daily reminders?": "Enable daily reminders?",
+    "Receive a daily notification to help you stay on track with your studies.": "Receive a daily notification to help you stay on track with your studies.",
+    "Not now": "Not now",
+    "Enable": "Enable",
+    "Enabling...": "Enabling...",
+
     "Notifications": "Notifications",
     "Mark all as read": "Mark all as read",
     "You have no notifications yet": "You have no notifications yet",

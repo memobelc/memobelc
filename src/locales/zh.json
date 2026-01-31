@@ -152,6 +152,12 @@
     "Link copied to clipboard": "链接已复制到剪贴板",
     "Code copied to clipboard": "代码已复制到剪贴板",
 
+    "Enable daily reminders?": "启用每日提醒？",
+    "Receive a daily notification to help you stay on track with your studies.": "接收每日通知，助你保持学习进度。",
+    "Not now": "暂不",
+    "Enable": "启用",
+    "Enabling...": "正在启用...",
+
     "Notifications": "通知",
     "Mark all as read": "全部标为已读",
     "You have no notifications yet": "你还没有通知",

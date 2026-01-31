@@ -152,6 +152,12 @@
     "Link copied to clipboard": "Link in die Zwischenablage kopiert",
     "Code copied to clipboard": "Code in die Zwischenablage kopiert",
 
+    "Enable daily reminders?": "Tägliche Erinnerungen aktivieren?",
+    "Receive a daily notification to help you stay on track with your studies.": "Erhalten Sie täglich eine Benachrichtigung, um Ihr Lernen im Blick zu behalten.",
+    "Not now": "Jetzt nicht",
+    "Enable": "Aktivieren",
+    "Enabling...": "Wird aktiviert...",
+
     "Notifications": "Benachrichtigungen",
     "Mark all as read": "Alle als gelesen markieren",
     "You have no notifications yet": "Sie haben noch keine Benachrichtigungen",

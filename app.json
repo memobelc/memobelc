@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/icon2.png",
         "backgroundColor": "#219ae7"
       },
-      "package": "com.anonymous.memobelc"
+      "package": "com.anonymous.memobelc",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +50,7 @@
         }
       ],
       "expo-secure-store",
+      "expo-notifications",
       "expo-font",
       "expo-web-browser",
       "expo-audio",

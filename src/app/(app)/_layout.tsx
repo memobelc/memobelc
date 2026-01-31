@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useSession } from '@/contexts/AuthContext';
+import { PushNotificationProvider } from '@/contexts/PushNotificationContext';
 import { Loading } from '@/components/Loading';
 import { colors } from '@/styles/colors';
 import HeaderWrapper from '@/components/organisms/header/HeaderWrapper';
@@ -24,14 +25,16 @@ export default function AppLayout() {
 
   // Always render Stack - let individual screens handle redirects
   return (
-    <View style={{ flex: 1 }}>
-      <HeaderWrapper />
-      <Stack
+    <PushNotificationProvider>
+      <View style={{ flex: 1 }}>
+        <HeaderWrapper />
+        <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor },
         }}
       />
-    </View>
+      </View>
+    </PushNotificationProvider>
   );
 }
