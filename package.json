@@ -19,6 +19,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@lexical/react": "^0.30.0",
+    "@react-native-community/slider": "^5.1.2",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/drawer": "^7.1.1",
