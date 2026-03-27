@@ -58,6 +58,12 @@ const MenuExploreDrawer = () => {
       icon: <Entypo name="chat" size={24} color="black" />,
       disabled: true,
     },
+    {
+      name: t('Memo'),
+      path: '/memo',
+      icon: <MaterialIcons name="description" size={24} color="black" />,
+      disabled: false,
+    },
   ];
 
   if (userInfo?.role === 'teacher') {
