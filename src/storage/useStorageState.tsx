@@ -31,6 +31,17 @@ export async function setStorageItemAsync(key: string, value: string | null) {
   }
 }
 
+export async function getStorageItemAsync(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+  return SecureStore.getItemAsync(key);
+}
+
 export function useStorageStateSession(key: string): UseStateHook<string | null> {
   const [state, setState] = useAsyncState<string | null>(null);
 

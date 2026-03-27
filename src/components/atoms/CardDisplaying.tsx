@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import AudioPlayer from '@/components/atoms/AudioPlayer';
@@ -7,11 +7,43 @@ interface CardDisplayingProps {
   front: string;
   back: string;
   audio?: string | null;
+  editMode?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export const CardDisplaying = ({ front, back, audio }: CardDisplayingProps) => {
+export const CardDisplaying = ({ 
+  front, 
+  back, 
+  audio, 
+  editMode = false,
+  onEdit,
+  onDelete 
+}: CardDisplayingProps) => {
   return (
     <View className="w-full min-h-[140px] flex-col justify-center bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3 p-5">
+      {editMode && (
+        <View className="absolute top-2 right-2 flex-row gap-2 z-10">
+          {onEdit && (
+            <TouchableOpacity
+              onPress={onEdit}
+              style={{ backgroundColor: colors.primary[500] }}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+            >
+              <MaterialIcons name="edit" size={16} color="white" />
+            </TouchableOpacity>
+          )}
+          {onDelete && (
+            <TouchableOpacity
+              onPress={onDelete}
+              style={{ backgroundColor: colors.error[500] }}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+            >
+              <MaterialIcons name="delete" size={16} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       <View className="flex flex-row items-center justify-start ">
         <View
           style={{ backgroundColor: colors.warning[100] }}

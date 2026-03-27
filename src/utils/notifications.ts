@@ -1,6 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+
+const projectId = Constants.expoConfig?.extra?.eas?.projectId;
 
 export async function registerForPushNotificationsAsync() {
   // No web não tenta registrar push (evita erros de permissão)
@@ -25,7 +28,11 @@ export async function registerForPushNotificationsAsync() {
       return undefined;
     }
 
-    token = (await Notifications.getExpoPushTokenAsync()).data;
+    token = (
+      await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      )
+    ).data;
     console.log('Expo Push Token:', token);
   }
 

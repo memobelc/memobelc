@@ -1,7 +1,13 @@
 export const colors = {
   primary: {
+    50: '#EFF6FF',
+    100: '#DBEAFE',
+    200: '#BFDBFE',
+    300: '#93C5FD',
+    400: '#60A5FA',
     500: '#219ae7',
     600: '#023374',
+    700: '#1E40AF',
   },
 
   gray: {
@@ -53,4 +59,13 @@ export const colors = {
   text: '#18181B',
   textSecondary: '#71717A',
   border: '#E4E4E7',
+  white: '#FFFFFF',
+  
+  // Shadow and overlay colors
+  shadow: '#000000',
+  overlay: {
+    light: 'rgba(0, 0, 0, 0.5)',
+    medium: 'rgba(0, 0, 0, 0.6)',
+    dark: 'rgba(0, 0, 0, 0.75)',
+  },
 };

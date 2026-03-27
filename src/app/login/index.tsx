@@ -30,7 +30,6 @@ if (Platform.OS !== 'web') {
 export default function SignIn() {
   const { t } = useTranslation();
   const router = useRouter();
-
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
 
   const validationSchema = yup.object().shape({
@@ -65,9 +64,13 @@ export default function SignIn() {
       const result = await signIn(formData.email, formData.password);
 
       if (result.success && result.user) {
+        let tokenToSend = expoPushToken;
+        if (Platform.OS !== 'web' && !tokenToSend) {
+          tokenToSend = (await registerForPushNotificationsAsync()) ?? undefined;
+        }
         const info = {
-          expoPushToken,
           user_id: result.user.user_id,
+          expoPushToken: tokenToSend,
           ...getDeviceInfo(),
         };
         try {
@@ -126,16 +129,10 @@ export default function SignIn() {
   };
 
   useEffect(() => {
-    // Só tenta registrar push notifications se não estiver no web
     if (Platform.OS !== 'web') {
       registerForPushNotificationsAsync()
-        .then((token: React.SetStateAction<string | undefined>) =>
-          setExpoPushToken(token),
-        )
-        .catch((error) => {
-          // Silenciosamente ignora erros ao registrar push notifications
-          console.warn('Failed to register push notifications:', error);
-        });
+        .then((token) => setExpoPushToken(token))
+        .catch((err) => console.warn('Push registration failed:', err));
     }
   }, []);
 

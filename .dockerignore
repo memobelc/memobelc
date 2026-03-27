@@ -1,0 +1,24 @@
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.git
+.gitignore
+.expo
+dist
+web-build
+
+# env local — use Build Args / secrets no Dokploy
+.env
+.env.*
+!.env.example
+
+android
+ios
+*.md
+
+.DS_Store
+coverage
+.nyc_output
+*.tsbuildinfo

@@ -28,7 +28,9 @@ type Chapter = {
   titulo: string;
   pdf_url: string;
   audio_url?: string;
+  intro_duration?: number;
   ordem: number;
+  deck_id?: string;
   pdf_file?: { uri: string; name: string };
   audio_file?: { uri: string; name: string };
   images_urls?: string[];
@@ -95,7 +97,9 @@ export default function BookAdminScreen() {
             titulo: ch.titulo || '',
             pdf_url: ch.pdf_url || '',
             audio_url: ch.audio_url || undefined,
+            intro_duration: ch.intro_duration ?? 0,
             ordem: ch.ordem || idx + 1,
+            deck_id: ch.deck_id || undefined,
             images_urls: ch.images_urls || [],
             images_files: [],
           }),
@@ -268,10 +272,14 @@ export default function BookAdminScreen() {
     setLoading(true);
 
     try {
-      // Upload capa
+      // Upload capa (ao editar, se a capa já for uma URL existente, não re-enviar)
       let capaUrl = '';
       if (selectedCapa) {
-        capaUrl = await uploadFile(selectedCapa, `books/covers/${Date.now()}`);
+        const isExistingUrl =
+          editingBookId && (selectedCapa.startsWith('http://') || selectedCapa.startsWith('https://'));
+        capaUrl = isExistingUrl
+          ? selectedCapa
+          : await uploadFile(selectedCapa, `books/covers/${Date.now()}`);
       }
 
       // Upload capítulos
@@ -312,13 +320,18 @@ export default function BookAdminScreen() {
           );
         }
 
-        processedChapters.push({
+        const payload: Record<string, unknown> = {
           titulo: chapter.titulo,
           pdf_url,
           audio_url,
+          intro_duration: Number(chapter.intro_duration) || 0,
           ordem: chapter.ordem,
           images_urls,
-        });
+        };
+        if (chapter.deck_id) {
+          payload.deck_id = chapter.deck_id;
+        }
+        processedChapters.push(payload as Chapter);
       }
 
       // Criar/atualizar livro na API
@@ -358,9 +371,15 @@ export default function BookAdminScreen() {
 
       router.back();
     } catch (error: any) {
-      console.error('Error creating book:', error);
+      console.error(editingBookId ? 'Error updating book:' : 'Error creating book:', error);
+      const backendError = error.response?.data?.error;
+      const message = backendError
+        ? String(backendError)
+        : editingBookId
+          ? t('Error updating book')
+          : t('Error creating book');
       toast({
-        message: error.response?.data?.error || t('Error creating book'),
+        message,
         variant: 'destructive',
       });
     } finally {
@@ -763,6 +782,25 @@ export default function BookAdminScreen() {
                             : t('Tap to select audio')}
                       </Text>
                     </TouchableOpacity>
+
+                    {/* Intro Duration Input - apenas no primeiro capítulo */}
+                    {index === 0 && (chapter.audio_file || chapter.audio_url) && (
+                      <View className="mt-3">
+                        <Input
+                          label={t('Intro Duration (seconds)')}
+                          value={chapter.intro_duration?.toString() ?? '0'}
+                          onChangeText={(value) => {
+                            const numValue = parseInt(value, 10);
+                            updateChapter(index, 'intro_duration', Number.isNaN(numValue) ? 0 : numValue);
+                          }}
+                          keyboardType="numeric"
+                          placeholder={t('Enter intro duration in seconds')}
+                        />
+                        <Text className="text-xs mt-1" style={{ color: colors.gray[500] }}>
+                          {t('Optional')}: {t('Enter intro duration in seconds')}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               ))

@@ -24,9 +24,17 @@ const SHEET_RADIUS = 20; // ponta arredondada da folha
 
 type FlipBookProps = {
   images: string[];
+  onLastPageReached?: () => void;
+  onToggleRead?: () => void;
+  isRead?: boolean;
 };
 
-export default function FlipBook({ images }: FlipBookProps) {
+export default function FlipBook({
+  images,
+  onLastPageReached,
+  onToggleRead,
+  isRead,
+}: FlipBookProps) {
   const { t } = useTranslation();
 
   const [layout, setLayout] = useState({ width: 400, height: 600 });
@@ -45,10 +53,14 @@ export default function FlipBook({ images }: FlipBookProps) {
   const commitSlide = useCallback(() => {
     setCurrentIndex((prev) => {
       const next = prev + direction.value;
-      return Math.max(0, Math.min(next, images.length - 1));
+      const clamped = Math.max(0, Math.min(next, images.length - 1));
+      if (clamped === images.length - 1 && clamped !== prev) {
+        onLastPageReached?.();
+      }
+      return clamped;
     });
     slideProgress.value = 0;
-  }, [images.length, direction]);
+  }, [images.length, direction, onLastPageReached]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
@@ -146,9 +158,21 @@ export default function FlipBook({ images }: FlipBookProps) {
       </GestureDetector>
 
       <View style={styles.indicator}>
-        <Text style={styles.indicatorText}>
-          {t('Page')} {currentIndex + 1} {t('of')} {images.length}
-        </Text>
+        <View style={styles.indicatorInner}>
+          <Text style={styles.indicatorText}>
+            {t('Page')} {currentIndex + 1} {t('of')} {images.length}
+          </Text>
+          {onToggleRead && currentIndex === images.length - 1 && (
+            <View style={styles.readButtonContainer}>
+              <Text
+                onPress={onToggleRead}
+                style={styles.readButtonText}
+              >
+                {isRead ? t('Mark as unread') : t('Mark as read')}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -190,12 +214,27 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  indicatorText: {
-    fontSize: 13,
-    color: colors.gray[400],
+  indicatorInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+  },
+  indicatorText: {
+    fontSize: 13,
+    color: colors.gray[400],
+  },
+  readButtonContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 16,
+    backgroundColor: colors.primary[500],
+  },
+  readButtonText: {
+    fontSize: 11,
+    color: '#FFFFFF',
   },
 });
