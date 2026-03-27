@@ -1,5 +1,6 @@
 # Build: Expo web static export (output: dist/)
-FROM node:20-alpine AS builder
+# Debian (glibc), não Alpine (musl): lightningcss/NativeWind precisa do binário linux-x64-gnu no Metro.
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -17,7 +18,7 @@ COPY . .
 RUN NODE_ENV=production npm run build
 
 # Run: arquivos estáticos + serve (SPA)
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
