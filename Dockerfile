@@ -12,7 +12,12 @@ ARG EXPO_PUBLIC_API_URL
 ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
 
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci
+# O lockfile (ex.: gerado no Windows) nem sempre grava os opcionais por plataforma; o lightningcss
+# (NativeWind) resolve primeiro o pacote lightningcss-linux-x64-gnu — instalação explícita.
+# Duas versões de lightningcss no lockfile: 1.31.1 (raiz) e 1.27.0 (react-native-css-interop).
+RUN npm ci && \
+    npm install --no-save lightningcss-linux-x64-gnu@1.31.1 && \
+    npm install --no-save --prefix node_modules/react-native-css-interop/node_modules/lightningcss lightningcss-linux-x64-gnu@1.27.0
 
 COPY . .
 RUN NODE_ENV=production npm run build
