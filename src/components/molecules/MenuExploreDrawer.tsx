@@ -60,20 +60,18 @@ const MenuExploreDrawer = () => {
     },
   ];
 
-  if (userInfo?.role === 'teacher') {
-    menuItems.push({
-      name: t('Classrooms'),
-      path: '/classrooms',
-      icon: (
-        <MaterialCommunityIcons
-          name="google-classroom"
-          size={24}
-          color="black"
-        />
-      ),
-      disabled: false,
-    });
-  }
+  menuItems.push({
+    name: t('Classrooms'),
+    path: '/classrooms',
+    icon: (
+      <MaterialCommunityIcons
+        name="google-classroom"
+        size={24}
+        color="black"
+      />
+    ),
+    disabled: false,
+  });
 
   const [open, setOpen] = useState(false);
   const router = useRouter();

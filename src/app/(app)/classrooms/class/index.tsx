@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Image,
@@ -27,7 +27,7 @@ import * as yup from 'yup';
 
 import api from '@/services/api';
 import { colors } from '@/styles/colors';
-import { IClassroom, useCollection } from '@/contexts/CollectionContext';
+import { IClassroom, ICourse, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 
@@ -80,13 +80,46 @@ export default function Classroom() {
     string | null
   >(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [tab, setTab] = useState<'content' | 'people'>('content');
+  const isTeacher = userInfo?.role === 'teacher';
+
+  const [tab, setTab] = useState<'content' | 'courses' | 'people'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
   const [openCardGenerator, setOpenCardGenerator] = useState(false);
   const [characterCounter, setCharacterCounter] = useState(0);
+  const [hasCourses, setHasCourses] = useState(false);
+
+  // ── Courses inline tab ────────────────────────────────────────────────────
+  const [courses, setCourses] = useState<ICourse[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [creatingCourse, setCreatingCourse] = useState(false);
+  const [newCourseName, setNewCourseName] = useState('');
+  const [newCourseDesc, setNewCourseDesc] = useState('');
 
   const [contentHeight, setContentHeight] = useState(0);
   const animation = useRef(new Animated.Value(0)).current;
+
+  const fetchCoursesCount = async (showLoader = false) => {
+    if (!currentClassroom?._id) return;
+    try {
+      if (showLoader) setCoursesLoading(true);
+      const res = await api.get(
+        `/course/by_classroom/${currentClassroom._id}`,
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      const list: ICourse[] = res.data.courses ?? [];
+      setCourses(list);
+      setHasCourses(list.length > 0);
+    } catch {
+      // silently fail — tab stays hidden for students
+    } finally {
+      if (showLoader) setCoursesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCoursesCount(tab === 'courses');
+  }, [currentClassroom?._id, tab]);
 
   const fetchData = async () => {
     try {
@@ -302,18 +335,34 @@ export default function Classroom() {
               {t('Content')}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setTab('people')}
-            className={`px-6 py-2 ${
-              tab === 'people' ? 'border-b-2 border-primary-500' : ''
-            }`}
-          >
-            <Text
-              className={`text-lg font-bold ${tab === 'people' ? 'text-primary-500' : 'text-gray-500'}`}
+          {(isTeacher || hasCourses) && (
+            <TouchableOpacity
+              onPress={() => setTab('courses')}
+              className={`px-6 py-2 ${
+                tab === 'courses' ? 'border-b-2 border-primary-500' : ''
+              }`}
             >
-              {t('People')}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className={`text-lg font-bold ${tab === 'courses' ? 'text-primary-500' : 'text-gray-500'}`}
+              >
+                {t('Courses')}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {isTeacher && (
+            <TouchableOpacity
+              onPress={() => setTab('people')}
+              className={`px-6 py-2 ${
+                tab === 'people' ? 'border-b-2 border-primary-500' : ''
+              }`}
+            >
+              <Text
+                className={`text-lg font-bold ${tab === 'people' ? 'text-primary-500' : 'text-gray-500'}`}
+              >
+                {t('People')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {tab === 'content' ? (
@@ -728,97 +777,380 @@ export default function Classroom() {
               </Dialog>
             )}
           </View>
-        ) : (
-          <View className="flex-1 p-5 bg-white">
-            <Text className="text-2xl font-bold mb-5">{t('Add New User')}</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-2 mb-3"
-              placeholder={t('Enter user email')}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-            <Pressable
-              onPress={handleAddUser}
-              className="bg-blue-500 px-4 py-2 rounded-lg mb-5 self-start"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loading />
-              ) : (
-                <Text className="text-white font-medium">{t('Add User')}</Text>
-              )}
-            </Pressable>
-
-            {currentClassroom && currentClassroom?.guests.length > 0 && (
-              <>
-                <Pressable onPress={toggleGuests}>
-                  <View className="flex-row items-center mb-2">
-                    <Text className="text-xl font-semibold mr-2">
-                      {t('Guests')}
-                    </Text>
-                    <Tooltip
-                      isVisible={showTooltip}
-                      content={
-                        <Text className="text-sm">
-                          {t('Users not registered on the platform yet.')}
+        ) : tab === 'courses' ? (
+          <View className="py-2">
+            {coursesLoading ? (
+              <View className="items-center py-16">
+                <Loading color={colors.primary[500]} />
+              </View>
+            ) : courses.length === 0 ? (
+              <View className="items-center py-16">
+                <MaterialCommunityIcons name="book-open-page-variant-outline" size={56} color={colors.gray[300]} />
+                <Text className="text-gray-400 text-base font-semibold mt-3 text-center">
+                  {isTeacher ? t('No courses yet. Create the first one!') : t('No courses available yet.')}
+                </Text>
+              </View>
+            ) : (
+              courses.map((course) => (
+                <TouchableOpacity
+                  key={course._id}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/classrooms/class/courses/[courseId]' as any,
+                      params: { courseId: course._id, courseName: course.name },
+                    });
+                  }}
+                  className="mb-4 rounded-2xl overflow-hidden"
+                  style={{
+                    backgroundColor: colors.white,
+                    shadowColor: colors.shadow,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 3,
+                  }}
+                >
+                  <View className="px-5 py-4" style={{ borderLeftWidth: 4, borderLeftColor: colors.primary[500] }}>
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-base font-bold text-gray-800" numberOfLines={1}>
+                          {course.name}
                         </Text>
-                      }
-                      placement="top"
-                      onClose={() => setShowTooltip(false)}
-                    >
-                      <Pressable onPress={() => setShowTooltip(true)}>
-                        <View
-                          // @ts-ignore
-                          onMouseEnter={() => setShowTooltip(true)}
-                          onMouseLeave={() => setShowTooltip(false)}
-                        >
-                          <Feather
-                            name="info"
-                            size={16}
-                            color={colors.primary[500]}
-                          />
-                        </View>
-                      </Pressable>
-                    </Tooltip>
+                        {!!course.description && (
+                          <Text className="text-sm text-gray-500 mt-1" numberOfLines={2}>
+                            {course.description}
+                          </Text>
+                        )}
+                      </View>
+                      <MaterialIcons name="chevron-right" size={24} color={colors.primary[500]} />
+                    </View>
                   </View>
-                </Pressable>
+                </TouchableOpacity>
+              ))
+            )}
+
+            {/* Create Course Modal */}
+            {showCreateCourse && (
+              <Modal visible={showCreateCourse} transparent animationType="fade">
+                <View className="flex-1 justify-center items-center px-4" style={{ backgroundColor: colors.overlay.medium }}>
+                  <View className="bg-white rounded-3xl w-full max-w-lg p-6" style={{ elevation: 10 }}>
+                    <View className="flex-row justify-between items-center mb-5">
+                      <Text className="text-xl font-bold" style={{ color: colors.primary[700] }}>{t('New Course')}</Text>
+                      <TouchableOpacity onPress={() => { setShowCreateCourse(false); setNewCourseName(''); setNewCourseDesc(''); }}
+                        className="rounded-full p-2" style={{ backgroundColor: colors.gray[100] }}>
+                        <MaterialIcons name="close" size={20} color={colors.gray[700]} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Course Name')} *</Text>
+                    <TextInput
+                      className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+                      placeholder={t('e.g. Introduction to Mathematics')}
+                      value={newCourseName}
+                      onChangeText={setNewCourseName}
+                      maxLength={80}
+                    />
+                    <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Description')}</Text>
+                    <TextInput
+                      className="border border-gray-300 rounded-xl px-4 py-3 mb-5 text-gray-800"
+                      placeholder={t('Brief description of the course')}
+                      value={newCourseDesc}
+                      onChangeText={setNewCourseDesc}
+                      multiline
+                      numberOfLines={3}
+                      style={{ textAlignVertical: 'top', minHeight: 72 }}
+                      maxLength={300}
+                    />
+                    <View className="flex-row gap-3">
+                      <TouchableOpacity onPress={() => { setShowCreateCourse(false); setNewCourseName(''); setNewCourseDesc(''); }}
+                        className="flex-1 rounded-xl py-3 items-center" style={{ backgroundColor: colors.gray[200] }}>
+                        <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        disabled={creatingCourse || !newCourseName.trim()}
+                        onPress={async () => {
+                          if (!newCourseName.trim()) return;
+                          try {
+                            setCreatingCourse(true);
+                            await api.post('/course/create',
+                              { name: newCourseName.trim(), description: newCourseDesc.trim(), classroom_id: currentClassroom?._id },
+                              { headers: { Authorization: `Bearer ${userInfo?.token}` } });
+                            setShowCreateCourse(false);
+                            setNewCourseName('');
+                            setNewCourseDesc('');
+                            fetchCoursesCount(true);
+                          } catch { toast({ message: t('Failed to create course'), variant: 'destructive' }); }
+                          finally { setCreatingCourse(false); }
+                        }}
+                        className="flex-[2] rounded-xl py-3 items-center"
+                        style={{ backgroundColor: newCourseName.trim() ? colors.primary[500] : colors.gray[300] }}>
+                        {creatingCourse ? <Loading /> : <Text className="font-bold text-white">{t('Create')}</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            )}
+          </View>
+        ) : (
+          <View style={{ flex: 1, backgroundColor: colors.background, padding: 16 }}>
+            {/* Invite section */}
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                shadowColor: colors.shadow,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.07,
+                shadowRadius: 6,
+                elevation: 2,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.gray[700], marginBottom: 12 }}>
+                {t('Add New User')}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: colors.gray[300],
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: colors.gray[800],
+                    backgroundColor: colors.gray[100],
+                  }}
+                  placeholder={t('Enter user email')}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={handleAddUser}
+                  disabled={loading}
+                  style={{
+                    backgroundColor: colors.primary[500],
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: 72,
+                  }}
+                >
+                  {loading ? (
+                    <Loading />
+                  ) : (
+                    <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>{t('Add')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Guests */}
+            {currentClassroom && currentClassroom.guests.length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <TouchableOpacity
+                  onPress={toggleGuests}
+                  style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.gray[700] }}>
+                    {t('Guests')}
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: colors.gray[200],
+                      borderRadius: 10,
+                      paddingHorizontal: 7,
+                      paddingVertical: 1,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.gray[600] }}>
+                      {currentClassroom.guests.length}
+                    </Text>
+                  </View>
+                  <Tooltip
+                    isVisible={showTooltip}
+                    content={
+                      <Text style={{ fontSize: 13 }}>
+                        {t('Users not registered on the platform yet.')}
+                      </Text>
+                    }
+                    placement="top"
+                    onClose={() => setShowTooltip(false)}
+                  >
+                    <Pressable onPress={() => setShowTooltip(true)}>
+                      <View
+                        // @ts-ignore
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                      >
+                        <Feather name="info" size={14} color={colors.gray[400]} />
+                      </View>
+                    </Pressable>
+                  </Tooltip>
+                  <MaterialIcons
+                    name={showGuests ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    size={20}
+                    color={colors.gray[400]}
+                  />
+                </TouchableOpacity>
 
                 {showGuests &&
                   currentClassroom.guests.map((item: string, index: number) => (
                     <View
                       key={item + index}
-                      className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200"
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: colors.white,
+                        borderRadius: 12,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        marginBottom: 6,
+                      }}
                     >
-                      <Text className="text-sm text-gray-600">{item}</Text>
-                      <Pressable className="p-2 rounded-full hover:bg-gray-100">
-                        <Menu size={20} color="#6b7280" />
-                      </Pressable>
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 17,
+                          backgroundColor: colors.gray[200],
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 10,
+                        }}
+                      >
+                        <Feather name="mail" size={16} color={colors.gray[500]} />
+                      </View>
+                      <Text style={{ flex: 1, fontSize: 14, color: colors.gray[600] }}>{item}</Text>
+                      <View
+                        style={{
+                          backgroundColor: colors.warning[100],
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: colors.warning[700] }}>
+                          {t('Pendente')}
+                        </Text>
+                      </View>
                     </View>
                   ))}
-              </>
+              </View>
             )}
 
-            <Pressable onPress={toggleStudents}>
-              <Text className="text-xl font-semibold mb-2">{t('Users')}</Text>
-            </Pressable>
-
-            {showStudents &&
-              currentClassroom &&
-              currentClassroom.students.map((item: any, index: number) => (
+            {/* Students */}
+            <View>
+              <TouchableOpacity
+                onPress={toggleStudents}
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.gray[700] }}>
+                  {t('Students')}
+                </Text>
                 <View
-                  key={item.email + index}
-                  className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200"
+                  style={{
+                    backgroundColor: colors.primary[100],
+                    borderRadius: 10,
+                    paddingHorizontal: 7,
+                    paddingVertical: 1,
+                  }}
                 >
-                  <View>
-                    <Text className="text-base font-semibold">{item.name}</Text>
-                    <Text className="text-sm text-gray-600">{item.email}</Text>
-                  </View>
-                  <Pressable className="p-2 rounded-full hover:bg-gray-100">
-                    <Menu size={20} color="#6b7280" />
-                  </Pressable>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary[600] }}>
+                    {currentClassroom?.students?.length ?? 0}
+                  </Text>
                 </View>
-              ))}
+                <MaterialIcons
+                  name={showStudents ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  size={20}
+                  color={colors.gray[400]}
+                />
+              </TouchableOpacity>
+
+              {showStudents &&
+                currentClassroom &&
+                currentClassroom.students.length === 0 && (
+                  <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                    <MaterialCommunityIcons name="account-group-outline" size={40} color={colors.gray[300]} />
+                    <Text style={{ color: colors.gray[400], marginTop: 8, fontSize: 14 }}>
+                      {t('No students yet.')}
+                    </Text>
+                  </View>
+                )}
+
+              {showStudents &&
+                currentClassroom &&
+                currentClassroom.students.map((item: any, index: number) => (
+                  <TouchableOpacity
+                    key={item.email + index}
+                    onPress={() => {
+                      if (!item._id) return;
+                      router.push({
+                        pathname: '/classrooms/class/people/[studentId]' as any,
+                        params: {
+                          studentId: item._id,
+                          studentName: item.name || item.email,
+                          classroomId: currentClassroom?._id,
+                        },
+                      });
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: colors.white,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      marginBottom: 8,
+                      shadowColor: colors.shadow,
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 4,
+                      elevation: 1,
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        backgroundColor: colors.primary[100],
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12,
+                      }}
+                    >
+                      <Text style={{ fontSize: 17, fontWeight: '800', color: colors.primary[600] }}>
+                        {(item.name || item.email)?.[0]?.toUpperCase() ?? '?'}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: colors.gray[800] }}>
+                        {item.name}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: colors.gray[500], marginTop: 1 }}>
+                        {item.email}
+                      </Text>
+                    </View>
+                    {item._id ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ fontSize: 12, color: colors.primary[500], fontWeight: '600' }}>
+                          {t('Ver perfil')}
+                        </Text>
+                        <MaterialIcons name="chevron-right" size={18} color={colors.primary[500]} />
+                      </View>
+                    ) : (
+                      <MaterialIcons name="chevron-right" size={20} color={colors.gray[300]} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+            </View>
           </View>
         )}
         <LinearGradient
@@ -828,12 +1160,22 @@ export default function Classroom() {
         />
       </ScrollView>
 
-      {tab === 'content' && (
+      {tab === 'content' && isTeacher && (
         <TouchableOpacity
           className="absolute bottom-7 right-7 bg-[#007AFF] rounded-full p-2.5"
           onPress={HandleOpenAddDeck}
         >
           <MaterialIcons name="add" size={40} color={colors.gray[100]} />
+        </TouchableOpacity>
+      )}
+      {tab === 'courses' && isTeacher && (
+        <TouchableOpacity
+          className="absolute bottom-7 right-0 rounded-full p-3 flex-row items-center gap-2"
+          style={{ backgroundColor: colors.primary[500] }}
+          onPress={() => setShowCreateCourse(true)}
+        >
+          <MaterialIcons name="add" size={28} color={colors.white} />
+          <Text className="text-white font-bold mr-2">{t('New Course')}</Text>
         </TouchableOpacity>
       )}
     </View>

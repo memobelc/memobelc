@@ -54,9 +54,66 @@ export type IClassroom = {
   guests: [];
   image: string;
   name: string;
-  students: { name: string; email: string }[];
+  students: { _id: string; name: string; email: string }[];
   teacher: string;
   updated_at: Date;
+  user_role?: 'teacher' | 'student';
+};
+
+export type IQuestion = {
+  _id: string;
+  text: string;
+  type: 'multiple_choice' | 'checkbox' | 'dropdown' | 'paragraph' | 'short_answer' | 'fill_in_blank';
+  options: string[];
+  correct_answer?: string | string[] | null;
+  show_answer: boolean;
+  points: number;
+  activity_id: string;
+  order: number;
+};
+
+export type IActivity = {
+  _id: string;
+  title: string;
+  description: string;
+  order: number;
+  module_id: string;
+  course_id: string;
+  visible: boolean;
+  scheduled_at: string | null;
+  questions?: IQuestion[];
+};
+
+export type ILesson = {
+  _id: string;
+  title: string;
+  video_url: string;
+  video_type: 'youtube' | 'upload' | 'vimeo' | 'other';
+  description: string;
+  order: number;
+  module_id: string;
+  course_id: string;
+  visible: boolean;
+  scheduled_at: string | null;
+};
+
+export type ICourseModule = {
+  _id: string;
+  name: string;
+  order: number;
+  course_id: string;
+  scheduled_at?: string | null;
+  lessons?: ILesson[];
+  activities?: IActivity[];
+};
+
+export type ICourse = {
+  _id: string;
+  name: string;
+  description: string;
+  classroom_id: string;
+  teacher_id: string;
+  modules?: ICourseModule[];
 };
 
 export type Chats = {
@@ -80,6 +137,7 @@ const CollectionContext = createContext<{
   currentDeck: Deck | null;
   progressUpdate: ProgressUpdate | null;
   currentClassroom: IClassroom | null;
+  currentCourse: ICourse | null;
   setCollections: React.Dispatch<React.SetStateAction<Collection[] | null>>;
   setCurrentCollection: React.Dispatch<React.SetStateAction<Collection | null>>;
   setCurrentDeck: React.Dispatch<React.SetStateAction<Deck | null>>;
@@ -87,17 +145,20 @@ const CollectionContext = createContext<{
     React.SetStateAction<ProgressUpdate | null>
   >;
   setCurrentClassroom: React.Dispatch<React.SetStateAction<IClassroom | null>>;
+  setCurrentCourse: React.Dispatch<React.SetStateAction<ICourse | null>>;
 }>({
   collections: null,
   currentCollection: null,
   currentDeck: null,
   progressUpdate: null,
   currentClassroom: null,
+  currentCourse: null,
   setCollections: () => {},
   setCurrentCollection: () => {},
   setCurrentDeck: () => {},
   setProgressUpdate: () => {},
   setCurrentClassroom: () => {},
+  setCurrentCourse: () => {},
 });
 
 export function useCollection() {
@@ -129,6 +190,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
     null,
   );
 
+  const [currentCourse, setCurrentCourse] = useState<ICourse | null>(null);
+
   return (
     <CollectionContext.Provider
       value={{
@@ -142,6 +205,8 @@ export function CollectionProvider({ children }: PropsWithChildren) {
         setProgressUpdate,
         currentClassroom,
         setCurrentClassroom,
+        currentCourse,
+        setCurrentCourse,
       }}
     >
       {children}

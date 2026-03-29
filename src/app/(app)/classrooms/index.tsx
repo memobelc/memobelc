@@ -299,11 +299,15 @@ export default function Classrooms() {
 
         <Text>{t('My classrooms')}</Text>
 
-        <TouchableOpacity onPress={() => handleAddNewClass()}>
-          <View className=" bg-white p-2 rounded-[12px] shadow-lg flex-row justify-center items-center">
-            <AntDesign name="plus-circle" size={24} color="black" />
-          </View>
-        </TouchableOpacity>
+        {userInfo?.role === 'teacher' ? (
+          <TouchableOpacity onPress={() => handleAddNewClass()}>
+            <View className=" bg-white p-2 rounded-[12px] shadow-lg flex-row justify-center items-center">
+              <AntDesign name="plus-circle" size={24} color="black" />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
       {loadingClassroom ? (
         <Loading classname="flex-1 items-center justify-center" />
