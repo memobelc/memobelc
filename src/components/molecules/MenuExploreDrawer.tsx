@@ -56,7 +56,7 @@ const MenuExploreDrawer = () => {
       name: t('Talk to me'),
       path: '/talk_to_me',
       icon: <Entypo name="chat" size={24} color="black" />,
-      disabled: true,
+      disabled: false,
     },
   ];
 
@@ -64,11 +64,7 @@ const MenuExploreDrawer = () => {
     name: t('Classrooms'),
     path: '/classrooms',
     icon: (
-      <MaterialCommunityIcons
-        name="google-classroom"
-        size={24}
-        color="black"
-      />
+      <MaterialCommunityIcons name="google-classroom" size={24} color="black" />
     ),
     disabled: false,
   });
