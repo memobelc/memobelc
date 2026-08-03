@@ -5,17 +5,29 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  createAudioPlayer,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 
 import { colors } from '@/styles/colors';
 import { useProfile } from '@/contexts/profileContext';
 import ChatExploreDrawer from '@/components/molecules/ChatExploreDrawer';
 import { Chats } from '@/contexts/CollectionContext';
+import {
+  VoiceRealtimeClient,
+  recordingToBase64,
+} from '@/services/voiceRealtime';
 
 type TextMessage = {
   text: string;
@@ -43,8 +55,31 @@ export default function ChatScreen() {
 
   const [setting_language, setSetting_language] = useState(language || 'en');
   const [menuItems, setMenuItems] = useState<Chats[] | null>();
+  const [callMode, setCallMode] = useState(false);
+  const [callStatus, setCallStatus] = useState<'disconnected' | 'connecting' | 'listening' | 'processing' | 'speaking'>('disconnected');
+  const [callError, setCallError] = useState<string | null>(null);
 
   const { userInfo } = useSession();
+  const voiceClientRef = useRef<VoiceRealtimeClient | null>(null);
+  const soundRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const streamAudioRef = useRef('');
+  const recorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    android: {
+      ...RecordingPresets.HIGH_QUALITY.android,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      extension: '.m4a',
+    },
+    ios: {
+      ...RecordingPresets.HIGH_QUALITY.ios,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      extension: '.m4a',
+    },
+  });
 
   const fetchDataChats = async () => {
     try {
@@ -91,6 +126,159 @@ export default function ChatScreen() {
     setChatId(response.data.chat_id);
   };
 
+  const stopSound = async () => {
+    if (!soundRef.current) return;
+    try {
+      soundRef.current.pause();
+      soundRef.current.seekTo(0);
+      soundRef.current.remove();
+    } catch {
+      // ignore unload errors for old sounds
+    } finally {
+      soundRef.current = null;
+    }
+  };
+
+  const connectVoiceSession = async () => {
+    if (!userInfo?.token) return;
+
+    setCallStatus('connecting');
+    setCallError(null);
+    streamAudioRef.current = '';
+    const client = new VoiceRealtimeClient({
+      onOpen: () => {
+        client.send('session.start', {
+          token: userInfo.token,
+          chat_id: chatId,
+          history: messages,
+          settings: { language_conversation: setting_language },
+        });
+      },
+      onClose: () => {
+        setCallMode(false);
+        setCallStatus('disconnected');
+      },
+      onError: (error) => {
+        setCallMode(false);
+        setCallStatus('disconnected');
+        setCallError(error);
+      },
+      onMessage: async (messageEvent) => {
+        const { event, data } = messageEvent;
+        if (event === 'session.started') {
+          setCallStatus('listening');
+          if (data?.chat_id) setChatId(data.chat_id);
+          return;
+        }
+        if (event === 'transcript.partial') {
+          setCallStatus('processing');
+          return;
+        }
+        if (event === 'transcript.final') {
+          setMessages((prev) => [
+            ...prev,
+            { role: 'user', parts: [{ text: data?.text ?? '' }] },
+          ]);
+          return;
+        }
+        if (event === 'assistant.text') {
+          setMessages((prev) => [
+            ...prev,
+            { role: 'model', parts: [{ text: data?.text ?? '' }] },
+          ]);
+          if (data?.chat_id) setChatId(data.chat_id);
+          return;
+        }
+        if (event === 'assistant.audio.chunk') {
+          setCallStatus('speaking');
+          streamAudioRef.current += data?.chunk ?? '';
+          return;
+        }
+        if (event === 'assistant.audio.end') {
+          if (!streamAudioRef.current) {
+            setCallStatus('listening');
+            return;
+          }
+          const mimeType = data?.mime_type ?? 'audio/mpeg';
+          const source = `data:${mimeType};base64,${streamAudioRef.current}`;
+          streamAudioRef.current = '';
+          await stopSound();
+          const player = createAudioPlayer({ uri: source });
+          soundRef.current = player;
+          player.addListener('playbackStatusUpdate', (status) => {
+            if (status.didJustFinish) {
+              setCallStatus('listening');
+            }
+          });
+          player.play();
+          return;
+        }
+        if (event === 'error') {
+          const errorMessage = data?.message ?? 'Unknown voice session error.';
+          console.error('Voice session error:', errorMessage);
+          setCallError(errorMessage);
+          setCallStatus('listening');
+        }
+      },
+    });
+
+    client.connect();
+    voiceClientRef.current = client;
+    setCallMode(true);
+  };
+
+  const startRecording = async () => {
+    if (!callMode || callStatus !== 'listening') return;
+    const { granted } = await requestRecordingPermissionsAsync();
+    if (!granted) {
+      setCallError('Microphone permission denied.');
+      return;
+    }
+    await setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      interruptionMode: 'duckOthers',
+      shouldPlayInBackground: false,
+    });
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+  };
+
+  const stopRecordingAndSend = async () => {
+    if (!recorder.isRecording || !voiceClientRef.current) return;
+    setCallStatus('processing');
+    await recorder.stop();
+    await setAudioModeAsync({ allowsRecording: false });
+    const uri = recorder.uri ?? recorder.getStatus().url;
+    if (!uri) {
+      setCallError('Failed to read recorded audio.');
+      setCallStatus('listening');
+      return;
+    }
+    const base64 = await recordingToBase64(uri);
+    const mimeType = Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4';
+    voiceClientRef.current.send('audio.input.chunk', {
+      chunk: base64,
+      mime_type: mimeType,
+    });
+    voiceClientRef.current.send('audio.input.commit', { mime_type: mimeType });
+  };
+
+  const disconnectVoiceSession = async () => {
+    try {
+      voiceClientRef.current?.send('session.end', {});
+    } catch {
+      // connection may already be closed
+    }
+    voiceClientRef.current?.close();
+    voiceClientRef.current = null;
+    streamAudioRef.current = '';
+    await stopSound();
+    setCallMode(false);
+    setCallStatus('disconnected');
+    setCallError(null);
+  };
+
   const handleSetChat = async (id: string) => {
     setChatId(id);
     setSelectedChatId(true);
@@ -127,6 +315,12 @@ export default function ChatScreen() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      disconnectVoiceSession();
+    };
+  }, []);
 
   return (
     <View className="flex-1 bg-white">
@@ -214,7 +408,33 @@ export default function ChatScreen() {
               <Ionicons name="send" size={24} color="white" />
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            className={`ml-2 p-3 rounded-full ${callMode ? 'bg-red-500' : 'bg-green-600'}`}
+            onPress={() => (callMode ? disconnectVoiceSession() : connectVoiceSession())}
+          >
+            <Ionicons name={callMode ? 'call' : 'call-outline'} size={22} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className={`ml-2 p-3 rounded-full ${callMode ? 'bg-purple-600' : 'bg-gray-400'}`}
+            disabled={!callMode}
+            onPressIn={startRecording}
+            onPressOut={stopRecordingAndSend}
+          >
+            <Ionicons name="mic" size={22} color="white" />
+          </TouchableOpacity>
         </View>
+        {callMode && (
+          <>
+            <Text className="text-center text-xs text-gray-600 mt-2">
+              Call mode: {callStatus}
+            </Text>
+            {callError && (
+              <Text className="text-center text-xs text-red-500 mt-1">
+                {callError}
+              </Text>
+            )}
+          </>
+        )}
       </View>
     </View>
   );
