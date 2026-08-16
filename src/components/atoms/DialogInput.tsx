@@ -1,13 +1,13 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
-import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
 
 interface OpenDialogProps {
   open: boolean;
   title?: string;
   subTitle?: string;
   children: React.ReactNode;
+  onClose?: () => void;
 }
 
 export const OpenDialogInput = ({
@@ -15,30 +15,48 @@ export const OpenDialogInput = ({
   title,
   subTitle,
   children,
+  onClose,
 }: OpenDialogProps) => {
-  const { setOpen } = useDialog();
+  const handleClose = () => {
+    onClose?.();
+  };
 
   return (
-    <Dialog>
-      <DialogContent
-        style={{
-          backgroundColor: colors.primary[500],
-          display: open ? 'flex' : 'none',
-        }}
-        className="rounded-t-lg w-full absolute items-center bottom-0 h-4/5 p-4"
+    <Modal
+      transparent
+      animationType="fade"
+      visible={open}
+      onRequestClose={handleClose}
+    >
+      <TouchableOpacity
+        className="w-full h-full"
+        activeOpacity={1}
+        onPress={handleClose}
       >
-        <View className="flex flex-row justify-between items-center mb-2 w-full">
-          <TouchableOpacity onPress={() => setOpen(false)}>
-            <MaterialIcons name="close" size={24} color={colors.gray[100]} />
+        <View className="flex flex-1 justify-end items-center bg-black/75">
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              backgroundColor: colors.primary[500],
+            }}
+            className="rounded-t-lg w-full items-center h-4/5 p-4"
+          >
+            <View className="flex flex-row justify-between items-center mb-2 w-full">
+              <TouchableOpacity onPress={handleClose}>
+                <MaterialIcons name="close" size={24} color={colors.gray[100]} />
+              </TouchableOpacity>
+            </View>
+
+            <View className="my-10">
+              <Text className="text-white text-3xl font-bold">{title}</Text>
+              {!!subTitle && (
+                <Text className="text-white text-xl">{subTitle}</Text>
+              )}
+            </View>
+            {children}
           </TouchableOpacity>
         </View>
-
-        <View className="my-10">
-          <Text className="text-white text-3xl font-bold">{title}</Text>
-          <Text className="text-white text-xl">{subTitle}</Text>
-        </View>
-        {children}
-      </DialogContent>
-    </Dialog>
+      </TouchableOpacity>
+    </Modal>
   );
 };

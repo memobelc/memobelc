@@ -29,9 +29,9 @@ import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { IClassroom, ICourse, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 
-import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
 import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
@@ -55,12 +55,13 @@ export default function Classroom() {
     setCurrentDeck,
     currentClassroom,
     setCurrentClassroom,
+    setCurrentCourse,
   } = useCollection();
 
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
   const { name } = useLocalSearchParams();
-  const { setOpen } = useDialog();
 
   const validationSchema = yup.object().shape({
     name: yup.string().required(t('Name is required')),
@@ -80,7 +81,7 @@ export default function Classroom() {
     string | null
   >(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const isTeacher = userInfo?.role === 'teacher';
+  const isTeacher = hasRole('teacher');
 
   const [tab, setTab] = useState<'content' | 'courses' | 'people'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
@@ -109,7 +110,7 @@ export default function Classroom() {
       );
       const list: ICourse[] = res.data.courses ?? [];
       setCourses(list);
-      setHasCourses(list.length > 0);
+      setHasCourses(list.some((course) => course.has_content));
     } catch {
       // silently fail — tab stays hidden for students
     } finally {
@@ -120,6 +121,12 @@ export default function Classroom() {
   useEffect(() => {
     fetchCoursesCount(tab === 'courses');
   }, [currentClassroom?._id, tab]);
+
+  useEffect(() => {
+    if (currentClassroom?._id) {
+      fetchCollectionData();
+    }
+  }, [currentClassroom?._id]);
 
   const fetchData = async () => {
     try {
@@ -150,7 +157,17 @@ export default function Classroom() {
       });
 
       if (response.status === 200) {
-        setCollections(response.data.collections);
+        const updatedCollections = response.data.collections;
+        setCollections(updatedCollections);
+        const updated = updatedCollections.find(
+          (item: { _id: string; classroom?: string | null }) =>
+            item._id === currentCollection?._id ||
+            item._id === currentClassroom?.collection ||
+            item.classroom === currentClassroom?._id,
+        );
+        if (updated) {
+          setCurrentCollection(updated);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -177,7 +194,6 @@ export default function Classroom() {
 
   const HandleOpenAddDeck = () => {
     setOpenAddDeck(true);
-    setOpen(true);
   };
 
   const HandleCreateDeck = async () => {
@@ -205,7 +221,7 @@ export default function Classroom() {
       await api.post('/deck/create', {
         name: formData.name,
         image: url,
-        collection_id: currentCollection?._id,
+        collection_id: currentCollection?._id || currentClassroom?.collection,
         cards: generatedCards.map(({ _id, ...rest }) => rest),
       });
 
@@ -214,8 +230,10 @@ export default function Classroom() {
         variant: 'success',
         showProgress: true,
       });
-      setOpen(false);
+      setOpenAddDeck(false);
       setSelectedImage(null);
+      setGeneratedCards([]);
+      handleInputChange('name', '');
     } catch (error) {
       if (error instanceof yup.ValidationError) {
         const newErrors: Record<string, string> = {};
@@ -238,6 +256,7 @@ export default function Classroom() {
       }
     } finally {
       fetchData();
+      fetchCollectionData();
       setLoading(false);
     }
   };
@@ -250,6 +269,50 @@ export default function Classroom() {
   };
 
   const [email, setEmail] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<{
+    type: 'student' | 'guest';
+    userId?: string;
+    email?: string;
+    name: string;
+  } | null>(null);
+  const [removingUser, setRemovingUser] = useState(false);
+
+  const handleRemoveUser = async () => {
+    if (!currentClassroom?._id || !removeTarget) return;
+    try {
+      setRemovingUser(true);
+      await api.post(
+        '/classroom/remove_user_in_classroom',
+        {
+          classroom_id: currentClassroom._id,
+          ...(removeTarget.userId ? { user_id: removeTarget.userId } : {}),
+          ...(removeTarget.email ? { email: removeTarget.email } : {}),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userInfo?.token}`,
+          },
+        },
+      );
+      toast({
+        message: t('User removed from classroom'),
+        variant: 'success',
+        showProgress: true,
+      });
+      setRemoveTarget(null);
+      fetchData();
+    } catch (error: any) {
+      toast({
+        message:
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          t('Error removing user'),
+        variant: 'destructive',
+      });
+    } finally {
+      setRemovingUser(false);
+    }
+  };
 
   const handleAddUser = async () => {
     try {
@@ -285,8 +348,9 @@ export default function Classroom() {
 
   const closeAddDeck = async () => {
     handleInputChange('name', '');
-    setOpen(false);
+    setOpenAddDeck(false);
     setSelectedImage(null);
+    setGeneratedCards([]);
   };
 
   const [showGuests, setShowGuests] = useState(true);
@@ -434,18 +498,18 @@ export default function Classroom() {
               </View>
             </View>
 
-            {openAddDeck && (
-              <Dialog>
-                <DialogContent
-                  className="w-full px-4"
-                  style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor:
-                      colors.overlay?.medium || 'rgba(0,0,0,0.5)',
-                  }}
-                >
+            <Modal
+              transparent
+              animationType="slide"
+              visible={openAddDeck}
+              onRequestClose={closeAddDeck}
+            >
+              <View
+                className="flex-1 justify-center items-center px-4"
+                style={{
+                  backgroundColor: colors.overlay?.medium || 'rgba(0,0,0,0.5)',
+                }}
+              >
                   <View
                     className="bg-white rounded-3xl w-full md:max-w-2xl p-6 md:p-8"
                     style={{
@@ -773,9 +837,8 @@ export default function Classroom() {
                       />
                     </ScrollView>
                   </View>
-                </DialogContent>
-              </Dialog>
-            )}
+              </View>
+            </Modal>
           </View>
         ) : tab === 'courses' ? (
           <View className="py-2">
@@ -795,6 +858,7 @@ export default function Classroom() {
                 <TouchableOpacity
                   key={course._id}
                   onPress={() => {
+                    setCurrentCourse(course);
                     router.push({
                       pathname: '/classrooms/class/courses/[courseId]' as any,
                       params: { courseId: course._id, courseName: course.name },
@@ -1033,12 +1097,21 @@ export default function Classroom() {
                           borderRadius: 8,
                           paddingHorizontal: 8,
                           paddingVertical: 2,
+                          marginRight: 8,
                         }}
                       >
                         <Text style={{ fontSize: 11, fontWeight: '700', color: colors.warning[700] }}>
                           {t('Pendente')}
                         </Text>
                       </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setRemoveTarget({ type: 'guest', email: item, name: item })
+                        }
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <MaterialIcons name="person-remove" size={20} color={colors.error[500]} />
+                      </TouchableOpacity>
                     </View>
                   ))}
               </View>
@@ -1148,6 +1221,21 @@ export default function Classroom() {
                     ) : (
                       <MaterialIcons name="chevron-right" size={20} color={colors.gray[300]} />
                     )}
+                    <TouchableOpacity
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setRemoveTarget({
+                          type: 'student',
+                          userId: item._id,
+                          email: item.email,
+                          name: item.name || item.email,
+                        });
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ marginLeft: 8, padding: 4 }}
+                    >
+                      <MaterialIcons name="person-remove" size={20} color={colors.error[500]} />
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 ))}
             </View>
@@ -1178,6 +1266,46 @@ export default function Classroom() {
           <Text className="text-white font-bold mr-2">{t('New Course')}</Text>
         </TouchableOpacity>
       )}
+
+      <Modal visible={!!removeTarget} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View className="bg-white rounded-3xl w-full max-w-lg p-6" style={{ elevation: 10 }}>
+            <Text className="text-xl font-bold mb-2" style={{ color: colors.gray[800] }}>
+              {t('Remove from classroom')}
+            </Text>
+            <Text className="text-sm mb-5" style={{ color: colors.gray[600] }}>
+              {t('Are you sure you want to remove {{name}} from this classroom?', {
+                name: removeTarget?.name || t('(sem nome)'),
+              })}
+            </Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setRemoveTarget(null)}
+                disabled={removingUser}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.gray[200] }}
+              >
+                <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleRemoveUser}
+                disabled={removingUser}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.error[500] }}
+              >
+                {removingUser ? (
+                  <Loading />
+                ) : (
+                  <Text className="font-bold text-white">{t('Remove user')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

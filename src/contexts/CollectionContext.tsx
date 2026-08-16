@@ -113,6 +113,7 @@ export type ICourse = {
   description: string;
   classroom_id: string;
   teacher_id: string;
+  has_content?: boolean;
   modules?: ICourseModule[];
 };
 

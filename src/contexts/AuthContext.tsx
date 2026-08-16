@@ -21,7 +21,36 @@ type User = {
   premium: boolean;
   image?: string;
   role?: string;
+  roles?: string[];
 };
+
+function parseUserRoles(data: { role?: string; roles?: string[] }): string[] {
+  if (Array.isArray(data.roles) && data.roles.length > 0) {
+    return data.roles;
+  }
+  return [data.role || 'user'];
+}
+
+function userFromAuthResponse(data: {
+  email: string;
+  name: string;
+  token: string;
+  user_id: string;
+  premium?: boolean;
+  role?: string;
+  roles?: string[];
+}): User {
+  const roles = parseUserRoles(data);
+  return {
+    email: data.email,
+    name: data.name,
+    token: data.token,
+    user_id: data.user_id,
+    premium: data.premium || false,
+    role: data.role || roles[0] || 'user',
+    roles,
+  };
+}
 
 type SignInResult = {
   success: boolean;
@@ -76,14 +105,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
           });
           if (response.data) {
             setSession(response.data.token);
-            setUserInfo({
-              email: response.data.email,
-              name: response.data.name,
-              token: response.data.token,
-              user_id: response.data.user_id,
-              premium: response.data.premium || false,
-              role: response.data.role || 'user',
-            });
+            setUserInfo(userFromAuthResponse(response.data));
           }
         } catch (error) {
           setSession(null);
@@ -116,14 +138,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             await setSession(response.data.token);
 
-            const user: User = {
-              email: response.data.email,
-              name: response.data.name,
-              token: response.data.token,
-              user_id: response.data.user_id,
-              premium: response.data.premium || false,
-              role: response.data.role || 'user',
-            };
+            const user = userFromAuthResponse(response.data);
 
             setUserInfo(user);
 
@@ -163,14 +178,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             if (response.data) {
               setSession(response.data.token);
 
-              setUserInfo({
-                email: response.data.email,
-                name: response.data.name,
-                token: response.data.token,
-                user_id: response.data.user_id,
-                premium: response.data.premium || false,
-                role: response.data.role || 'user',
-              });
+              setUserInfo(userFromAuthResponse(response.data));
 
               return { success: true };
             }

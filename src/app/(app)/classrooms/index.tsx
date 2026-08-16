@@ -23,6 +23,7 @@ import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { IClassroom, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { imageSources, setImageUrl } from '@/utils/imgSource';
 
 import { Input } from '@/components/Input';
@@ -36,6 +37,7 @@ import { storage } from '../../../../FirebaseConfig';
 
 export default function Classrooms() {
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const {
     collections,
     setCollections,
@@ -299,7 +301,7 @@ export default function Classrooms() {
 
         <Text>{t('My classrooms')}</Text>
 
-        {userInfo?.role === 'teacher' ? (
+        {hasRole('teacher') ? (
           <TouchableOpacity onPress={() => handleAddNewClass()}>
             <View className=" bg-white p-2 rounded-[12px] shadow-lg flex-row justify-center items-center">
               <AntDesign name="plus-circle" size={24} color="black" />
@@ -338,6 +340,10 @@ export default function Classrooms() {
       {addNewClass && (
         <OpenDialogInput
           open={addNewClass}
+          onClose={() => {
+            setAddNewClass(false);
+            setOpen(false);
+          }}
           title={t('Select the desired collection')}
         >
           <View className="w-full max-h-[80vh]">

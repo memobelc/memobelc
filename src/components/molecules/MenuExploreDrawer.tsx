@@ -22,10 +22,54 @@ import { colors } from '@/styles/colors';
 import { usePathname, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
+import api from '@/services/api';
 
 const MenuExploreDrawer = () => {
   const { t } = useTranslation();
   const { userInfo } = useSession();
+  const { hasRole, activeRoleView } = useHasRole();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [hasCourses, setHasCourses] = useState(false);
+  const [hasStudentClassroom, setHasStudentClassroom] = useState(false);
+
+  useEffect(() => {
+    if (!userInfo?.token) {
+      setHasCourses(false);
+      setHasStudentClassroom(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [coursesRes, classroomsRes] = await Promise.all([
+          api.get('/course/mine', {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }),
+          api.get('/classroom/get_classrooms', {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          }),
+        ]);
+        if (cancelled) return;
+        setHasCourses((coursesRes.data?.courses || []).length > 0);
+        setHasStudentClassroom(
+          (classroomsRes.data?.classrooms || []).some(
+            (classroom: { user_role?: string }) => classroom.user_role === 'student',
+          ),
+        );
+      } catch {
+        if (!cancelled) {
+          setHasCourses(false);
+          setHasStudentClassroom(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userInfo?.token, open, activeRoleView]);
 
   const menuItems = [
     {
@@ -60,18 +104,40 @@ const MenuExploreDrawer = () => {
     },
   ];
 
-  menuItems.push({
-    name: t('Classrooms'),
-    path: '/classrooms',
-    icon: (
-      <MaterialCommunityIcons name="google-classroom" size={24} color="black" />
-    ),
-    disabled: false,
-  });
+  if (hasRole('teacher') || hasStudentClassroom) {
+    menuItems.push({
+      name: t('Classrooms'),
+      path: '/classrooms',
+      icon: (
+        <MaterialCommunityIcons name="google-classroom" size={24} color="black" />
+      ),
+      disabled: false,
+    });
+  }
 
-  const [open, setOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
+  if (!hasRole('teacher') && hasCourses) {
+    menuItems.push({
+      name: t('Courses'),
+      path: '/courses',
+      icon: (
+        <MaterialCommunityIcons
+          name="book-open-page-variant"
+          size={24}
+          color="black"
+        />
+      ),
+      disabled: false,
+    });
+  }
+
+  if (hasRole('admin')) {
+    menuItems.push({
+      name: t('Users'),
+      path: '/admin/users',
+      icon: <MaterialIcons name="people" size={24} />,
+      disabled: false,
+    });
+  }
 
   const handleClose = () => {
     setOpen(false);

@@ -21,6 +21,7 @@ import { OpenStudy } from '@/components/atoms/openStudy';
 import { useCollection } from '@/contexts/CollectionContext';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 import { useTranslation } from 'react-i18next';
 import { setImageUrlDeck } from '@/utils/imgSource';
@@ -47,6 +48,7 @@ export default function Deck() {
   const [cards, setCards] = useState<IcardProps[] | []>([]);
 
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
 
   const [loadingCollection, setLoadingCollection] = useState(false);
@@ -126,7 +128,7 @@ export default function Deck() {
       // Verifica permissões baseado no tipo de collection
       const isBookCollection = currentCollection?.is_book_collection;
       const isClassroom = !!currentCollection?.classroom;
-      const isAdmin = userInfo?.role === 'admin';
+      const isAdmin = hasRole('admin');
 
       if (isAdmin) {
         setCanEditCards(true);

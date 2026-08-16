@@ -57,9 +57,10 @@ export default function CourseDetailScreen() {
   const { toast } = useToast();
   const { setCurrentCourse } = useCollection();
 
-  const isTeacher = userInfo?.role === 'teacher';
-
   const [course, setCourse] = useState<ICourse | null>(null);
+  const isTeacher =
+    !!course?.teacher_id &&
+    String(course.teacher_id) === String(userInfo?.user_id);
   const [loading, setLoading] = useState(true);
 
   // Module modal

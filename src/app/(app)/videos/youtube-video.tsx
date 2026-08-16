@@ -291,6 +291,10 @@ const YouTubeVideo = () => {
       {openAddVideo && (
         <OpenDialogInput
           open={openAddVideo}
+          onClose={() => {
+            setOpenAddVideo(false);
+            setOpen(false);
+          }}
           title={t('Select the desired collection')}
         >
           <View className="w-full max-h-[80vh]">

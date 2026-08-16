@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
 import { useFocusEffect } from '@react-navigation/native';
@@ -44,6 +45,7 @@ export default function BooksScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
 
   const [myBooks, setMyBooks] = useState<Book[]>([]);
@@ -76,7 +78,7 @@ export default function BooksScreen() {
   };
 
   const handleGenerateCollection = async (book: Book) => {
-    if (!userInfo?.token || userInfo?.role !== 'admin') return;
+    if (!userInfo?.token || !hasRole('admin')) return;
     setGeneratingId(book._id);
     try {
       const response = await api.post(
@@ -146,7 +148,7 @@ export default function BooksScreen() {
       }}
     >
       {/* Menu admin no canto superior do livro */}
-      {userInfo?.role === 'admin' && (
+      {hasRole('admin') && (
         <View className="absolute top-1 right-1 flex-row items-center z-10 gap-1">
           {!book.collection_id && (
             <TouchableOpacity
@@ -269,7 +271,7 @@ export default function BooksScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        {userInfo?.role === 'admin' && (
+        {hasRole('admin') && (
           <TouchableOpacity
             onPress={() => router.push('./books/admin')}
             className="flex-row items-center"

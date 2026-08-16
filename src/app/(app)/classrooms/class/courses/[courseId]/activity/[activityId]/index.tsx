@@ -52,9 +52,12 @@ export default function ActivityViewScreen() {
     activityTitle: string;
   }>();
   const { userInfo } = useSession();
+  const { currentCourse } = useCollection();
   const { toast } = useToast();
 
-  const isTeacher = userInfo?.role === 'teacher';
+  const isTeacher = currentCourse?.teacher_id
+    ? String(currentCourse.teacher_id) === String(userInfo?.user_id)
+    : false;
 
   const [activity, setActivity] = useState<IActivity | null>(null);
   const [questions, setQuestions] = useState<IQuestion[]>([]);

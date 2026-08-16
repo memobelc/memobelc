@@ -7,6 +7,7 @@ import {
   Animated,
   Pressable,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
@@ -15,8 +16,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageSelectWithFlags } from '@/components/atoms/LanguageSelectWithFlags';
+import { RoleViewSelect } from '@/components/atoms/RoleViewSelect';
 
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { Avatar, AvatarImage } from '@/components/Avatar';
 import { useProfile } from '@/contexts/profileContext';
 import { colors } from '@/styles/colors';
@@ -34,6 +37,7 @@ const menuItems: menuItem[] | [] = [];
 
 const AvatarProfileDrawer = () => {
   const { userInfo, signOut } = useSession();
+  const { roles, activeRoleView, setActiveRoleView } = useHasRole();
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
 
@@ -155,6 +159,7 @@ const AvatarProfileDrawer = () => {
               }}
               className="bg-white  h-full w-[300px] absolute right-0 top-0 p-4 rounded-l-2xl shadow-lg"
             >
+              <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity className="flex flex-row gap-2 items-center mb-3">
                 <Avatar>
                   <AvatarImage
@@ -247,6 +252,29 @@ const AvatarProfileDrawer = () => {
                   onValueChange={(v) => setLanguage(v ?? 'en')}
                 />
               </View>
+              {roles.length >= 2 && (
+                <View className="mb-3">
+                  <Text className="font-bold text-primary mb-1">
+                    {t('View as')}
+                  </Text>
+                  <RoleViewSelect
+                    value={activeRoleView}
+                    onValueChange={setActiveRoleView}
+                    options={[
+                      { value: 'all', label: t('All roles') },
+                      ...roles.map((role) => ({
+                        value: role,
+                        label:
+                          role === 'admin'
+                            ? t('Admin')
+                            : role === 'teacher'
+                              ? t('Teacher')
+                              : t('User'),
+                      })),
+                    ]}
+                  />
+                </View>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   setOpenInviteModal(true);
@@ -267,6 +295,7 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="logout" size={20} />
                 <Text className="text-primary text-xs">{t('Log out')}</Text>
               </TouchableOpacity>
+              </ScrollView>
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>

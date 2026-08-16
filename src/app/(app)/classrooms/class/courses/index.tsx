@@ -17,6 +17,7 @@ import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { ICourse, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 
 export default function CoursesScreen() {
@@ -24,9 +25,10 @@ export default function CoursesScreen() {
   const router = useRouter();
   const { currentClassroom, setCurrentCourse } = useCollection();
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
 
-  const isTeacher = userInfo?.role === 'teacher';
+  const isTeacher = hasRole('teacher');
 
   const [courses, setCourses] = useState<ICourse[]>([]);
   const [loading, setLoading] = useState(true);

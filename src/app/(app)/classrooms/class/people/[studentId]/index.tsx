@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons, Feather } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { useSession } from '@/contexts/AuthContext';
 import { useCollection } from '@/contexts/CollectionContext';
+import { useToast } from '@/components/Toast';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -377,13 +379,16 @@ export default function StudentProfileScreen() {
     classroomId: string;
   }>();
   const { userInfo } = useSession();
-  const { currentClassroom } = useCollection();
+  const { currentClassroom, setCurrentClassroom } = useCollection();
+  const { toast } = useToast();
 
   const classroomId = classroomIdParam || currentClassroom?._id;
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!classroomId || !studentId) {
@@ -404,6 +409,42 @@ export default function StudentProfileScreen() {
       })
       .finally(() => setLoading(false));
   }, [classroomId, studentId]);
+
+  const handleRemoveUser = async () => {
+    if (!classroomId || !studentId || !userInfo?.token) return;
+    try {
+      setRemoving(true);
+      await api.post(
+        '/classroom/remove_user_in_classroom',
+        { classroom_id: classroomId, user_id: studentId },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+      if (currentClassroom) {
+        setCurrentClassroom({
+          ...currentClassroom,
+          students: (currentClassroom.students || []).filter(
+            (student) => student._id !== studentId,
+          ),
+        });
+      }
+      toast({
+        message: t('User removed from classroom'),
+        variant: 'success',
+      });
+      setConfirmRemove(false);
+      router.back();
+    } catch (err: any) {
+      toast({
+        message:
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          t('Error removing user'),
+        variant: 'destructive',
+      });
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -431,6 +472,23 @@ export default function StudentProfileScreen() {
           </Text>
           <Text style={{ fontSize: 12, color: colors.gray[400] }}>{t('Desempenho & Engajamento')}</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => setConfirmRemove(true)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.error[100],
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            gap: 4,
+          }}
+        >
+          <MaterialIcons name="person-remove" size={18} color={colors.error[600]} />
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.error[600] }}>
+            {t('Remove user')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -701,6 +759,69 @@ export default function StudentProfileScreen() {
           )}
         </ScrollView>
       ) : null}
+
+      <Modal visible={confirmRemove} transparent animationType="fade">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            backgroundColor: colors.overlay.medium,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.white,
+              borderRadius: 24,
+              width: '100%',
+              maxWidth: 420,
+              padding: 24,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.gray[800], marginBottom: 8 }}>
+              {t('Remove from classroom')}
+            </Text>
+            <Text style={{ fontSize: 14, color: colors.gray[600], marginBottom: 20, lineHeight: 20 }}>
+              {t('Are you sure you want to remove {{name}} from this classroom?', {
+                name: profile?.student.name || studentName || t('(sem nome)'),
+              })}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setConfirmRemove(false)}
+                disabled={removing}
+                style={{
+                  flex: 1,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  backgroundColor: colors.gray[200],
+                }}
+              >
+                <Text style={{ fontWeight: '700', color: colors.gray[700] }}>{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleRemoveUser}
+                disabled={removing}
+                style={{
+                  flex: 1,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  backgroundColor: colors.error[500],
+                }}
+              >
+                {removing ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={{ fontWeight: '700', color: colors.white }}>{t('Remove user')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
