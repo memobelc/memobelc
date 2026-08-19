@@ -40,6 +40,7 @@ type LessonProgress = {
 type ActivityProgress = {
   _id: string;
   title: string;
+  feedback_mode?: 'immediate' | 'after_correction';
   submission_count: number;
   avg_score: number | null;
   submissions: Submission[];
@@ -383,12 +384,14 @@ function SubmissionRow({
   activityTitle,
   token,
   onRefresh,
+  feedbackMode,
 }: {
   submission: Submission;
   activityId: string;
   activityTitle: string;
   token: string;
   onRefresh: () => void;
+  feedbackMode?: 'immediate' | 'after_correction';
 }) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -430,7 +433,9 @@ function SubmissionRow({
         { headers },
       );
       toast({
-        message: newVal ? t('Student approved') : t('Approval removed'),
+        message: newVal
+          ? t('Correction released')
+          : t('Correction hidden again'),
         variant: 'success',
       });
     } catch {
@@ -560,12 +565,16 @@ function SubmissionRow({
             </View>
             <View>
               <Text className="text-base font-semibold text-gray-800">
-                {approved ? t('Remove approval') : t('Mark as Approved')}
+                {approved
+                  ? t('Hide correction')
+                  : feedbackMode === 'after_correction'
+                    ? t('Release correction')
+                    : t('Mark as Approved')}
               </Text>
               <Text className="text-sm text-gray-400">
                 {approved
-                  ? t('Remove the approved mark from this student')
-                  : t('Mark this student as approved for the activity')}
+                  ? t('Student will no longer see the score and answers')
+                  : t('Student will see the score and correct answers')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -631,6 +640,7 @@ function ByContentView({
   onRefresh: () => void;
   t: (k: string) => string;
 }) {
+  const { toast } = useToast();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     () => new Set(progress.map((m) => m.module_id)),
   );
@@ -813,6 +823,30 @@ function ByContentView({
 
                       {isOpen && (
                         <View className="px-5 pb-4">
+                          {activity.feedback_mode === 'after_correction' &&
+                            activity.submissions.length > 0 && (
+                            <TouchableOpacity
+                              onPress={async () => {
+                                try {
+                                  await api.post(
+                                    `/course/activity/${activity._id}/approve_all`,
+                                    {},
+                                    { headers: { Authorization: `Bearer ${token}` } },
+                                  );
+                                  toast({ message: t('Correction released'), variant: 'success' });
+                                  onRefresh();
+                                } catch {
+                                  toast({ message: t('Failed to update approval'), variant: 'destructive' });
+                                }
+                              }}
+                              className="rounded-xl py-2.5 items-center mb-3"
+                              style={{ backgroundColor: colors.success[100] }}
+                            >
+                              <Text className="text-sm font-bold" style={{ color: colors.success[700] }}>
+                                {t('Release correction for all')}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
                           {activity.submissions.length > 0 && (
                             <>
                               <Text className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
@@ -827,6 +861,7 @@ function ByContentView({
                                     activityTitle={activity.title}
                                     token={token}
                                     onRefresh={onRefresh}
+                                    feedbackMode={activity.feedback_mode}
                                   />
                                 ))}
                               </View>
@@ -1081,6 +1116,102 @@ function ByStudentView({
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
+function badgeLabel(t: (k: string) => string, badge: string) {
+  const map: Record<string, string> = {
+    first_step: t('First activity'),
+    perfect: t('Perfect score'),
+    podium: t('Podium'),
+    top_performer: t('Top student'),
+    at_risk: t('At risk'),
+  };
+  return map[badge] ?? badge;
+}
+
+function RankingView({
+  ranking,
+  t,
+}: {
+  ranking: {
+    _id: string;
+    name: string;
+    xp: number;
+    avg_score: number | null;
+    rank: number;
+    badges: string[];
+  }[];
+  t: (k: string) => string;
+}) {
+  if (ranking.length === 0) {
+    return (
+      <View className="items-center py-16">
+        <MaterialCommunityIcons name="trophy-outline" size={56} color={colors.gray[300]} />
+        <Text className="text-gray-400 text-base font-semibold mt-3">
+          {t('No ranking yet')}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {ranking.map((row) => (
+        <View
+          key={row._id}
+          className="mb-3 rounded-2xl px-5 py-4 flex-row items-center"
+          style={{
+            backgroundColor: colors.white,
+            shadowColor: colors.shadow,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            elevation: 2,
+          }}
+        >
+          <View
+            className="w-10 h-10 rounded-full items-center justify-center mr-3"
+            style={{
+              backgroundColor:
+                row.rank === 1
+                  ? colors.warning[100]
+                  : row.rank <= 3
+                    ? colors.primary[50]
+                    : colors.gray[100],
+            }}
+          >
+            <Text className="font-bold" style={{ color: colors.primary[700] }}>
+              {row.rank}
+            </Text>
+          </View>
+          <View className="flex-1">
+            <Text className="font-semibold text-gray-800">{row.name}</Text>
+            <View className="flex-row flex-wrap gap-1 mt-1">
+              {row.badges.filter((b) => b !== 'at_risk').map((badge) => (
+                <View
+                  key={badge}
+                  className="rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: colors.primary[50] }}
+                >
+                  <Text className="text-[10px] font-semibold" style={{ color: colors.primary[700] }}>
+                    {badgeLabel(t, badge)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <View className="items-end">
+            <Text className="font-bold" style={{ color: colors.primary[600] }}>
+              {row.xp} XP
+            </Text>
+            {row.avg_score != null && (
+              <Text className="text-xs text-gray-400">{row.avg_score.toFixed(1)}%</Text>
+            )}
+          </View>
+        </View>
+      ))}
+    </>
+  );
+}
+
 export default function StudentProgressScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -1091,11 +1222,14 @@ export default function StudentProgressScreen() {
   const { userInfo } = useSession();
   const { toast } = useToast();
 
-  type ViewMode = 'content' | 'student';
+  type ViewMode = 'content' | 'student' | 'ranking';
   const [viewMode, setViewMode] = useState<ViewMode>('content');
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
+  const [ranking, setRanking] = useState<
+    { _id: string; name: string; xp: number; avg_score: number | null; rank: number; badges: string[] }[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   const token = userInfo?.token ?? '';
@@ -1110,6 +1244,14 @@ export default function StudentProgressScreen() {
       setProgress(res.data.progress ?? []);
       setStudents(res.data.students ?? []);
       setTotalStudents(res.data.total_students ?? 0);
+      try {
+        const rankRes = await api.get(`/course/${courseId}/ranking`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRanking(rankRes.data.ranking ?? []);
+      } catch {
+        setRanking([]);
+      }
     } catch {
       toast({ message: t('Failed to load progress'), variant: 'destructive' });
     } finally {
@@ -1241,6 +1383,7 @@ export default function StudentProgressScreen() {
           [
             { key: 'content', label: t('By Content'), icon: 'book-open-variant' },
             { key: 'student', label: t('By Student'), icon: 'account-group' },
+            { key: 'ranking', label: t('Ranking'), icon: 'trophy-outline' },
           ] as const
         ).map((tab) => (
           <TouchableOpacity
@@ -1279,8 +1422,10 @@ export default function StudentProgressScreen() {
             onRefresh={fetchProgress}
             t={t}
           />
-        ) : (
+        ) : viewMode === 'student' ? (
           <ByStudentView students={students} token={token} onRefresh={fetchProgress} t={t} />
+        ) : (
+          <RankingView ranking={ranking} t={t} />
         )}
       </ScrollView>
     </View>

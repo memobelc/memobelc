@@ -70,6 +70,8 @@ interface StudentProfile {
     cards_reviewed: number;
     at_risk: boolean;
     top_performer: boolean;
+    xp?: number;
+    badges?: string[];
   };
   courses: CourseProgress[];
 }
@@ -698,6 +700,56 @@ export default function StudentProfileScreen() {
               tint={colors.success[500]}
             />
           </View>
+
+          {(profile.summary.xp != null || (profile.summary.badges?.length ?? 0) > 0) && (
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 16,
+                shadowColor: colors.shadow,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 6,
+                elevation: 2,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialCommunityIcons name="trophy-outline" size={22} color={colors.primary[600]} />
+                <Text style={{ marginLeft: 8, fontWeight: '700', color: colors.gray[800] }}>
+                  {profile.summary.xp ?? 0} XP
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {(profile.summary.badges ?? [])
+                  .filter((b) => b !== 'at_risk')
+                  .map((badge) => (
+                    <View
+                      key={badge}
+                      style={{
+                        backgroundColor: colors.primary[50],
+                        borderRadius: 99,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary[700] }}>
+                        {badge === 'first_step'
+                          ? t('First activity')
+                          : badge === 'perfect'
+                            ? t('Perfect score')
+                            : badge === 'podium'
+                              ? t('Podium')
+                              : badge === 'top_performer'
+                                ? t('Top student')
+                                : badge}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+          )}
 
           {/* ── Overall Progress Bar ──────────────────────────────────────── */}
           {(profile.summary.total_lessons > 0 || profile.summary.total_activities > 0) && (

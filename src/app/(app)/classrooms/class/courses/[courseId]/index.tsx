@@ -94,7 +94,12 @@ export default function CourseDetailScreen() {
   const [activityVisible, setActivityVisible] = useState(true);
   const [activityUseSchedule, setActivityUseSchedule] = useState(false);
   const [activityScheduledAt, setActivityScheduledAt] = useState('');
+  const [activityFeedbackMode, setActivityFeedbackMode] = useState<'immediate' | 'after_correction'>('immediate');
   const [savingActivity, setSavingActivity] = useState(false);
+  const [ranking, setRanking] = useState<{
+    ranking: { _id: string; name: string; xp: number; rank: number; badges: string[] }[];
+    me: { rank: number; xp: number; badges: string[] } | null;
+  } | null>(null);
 
   const fetchCourse = useCallback(async () => {
     if (!courseId) return;
@@ -105,6 +110,14 @@ export default function CourseDetailScreen() {
       });
       setCourse(res.data);
       setCurrentCourse(res.data);
+      try {
+        const rankRes = await api.get(`/course/${courseId}/ranking`, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+        setRanking(rankRes.data);
+      } catch {
+        setRanking(null);
+      }
     } catch {
       toast({ message: t('Failed to load course'), variant: 'destructive' });
     } finally {
@@ -349,6 +362,7 @@ export default function CourseDetailScreen() {
     setActivityVisible(true);
     setActivityUseSchedule(false);
     setActivityScheduledAt('');
+    setActivityFeedbackMode('immediate');
     setShowActivityModal(true);
   };
 
@@ -361,6 +375,7 @@ export default function CourseDetailScreen() {
     const hasSched = !!activity.scheduled_at;
     setActivityUseSchedule(hasSched);
     setActivityScheduledAt(hasSched ? activity.scheduled_at!.substring(0, 16) : '');
+    setActivityFeedbackMode(activity.feedback_mode || 'immediate');
     setShowActivityModal(true);
   };
 
@@ -375,6 +390,7 @@ export default function CourseDetailScreen() {
         module_id: activityModuleId,
         course_id: courseId,
         scheduled_at: activityUseSchedule && activityScheduledAt ? activityScheduledAt : null,
+        feedback_mode: activityFeedbackMode,
       };
       if (editingActivity) {
         await api.put(`/course/activity/${editingActivity._id}`, payload, {
@@ -497,6 +513,46 @@ export default function CourseDetailScreen() {
           {course.description}
         </Text>
       ) : null}
+
+      {ranking && ranking.ranking.length > 0 && (
+        <View
+          className="rounded-2xl px-5 py-4 mb-5 flex-row items-center justify-between"
+          style={{
+            backgroundColor: colors.primary[50],
+            borderWidth: 1,
+            borderColor: colors.primary[100],
+          }}
+        >
+          <View className="flex-row items-center gap-3 flex-1">
+            <MaterialCommunityIcons name="trophy-outline" size={28} color={colors.primary[600]} />
+            <View>
+              {ranking.me ? (
+                <>
+                  <Text className="font-bold text-gray-800">
+                    {t('Your rank')}: #{ranking.me.rank}
+                  </Text>
+                  <Text className="text-sm text-gray-600">{ranking.me.xp} XP</Text>
+                </>
+              ) : (
+                <>
+                  <Text className="font-bold text-gray-800">{t('Ranking')}</Text>
+                  <Text className="text-sm text-gray-600">{t('Top students')}</Text>
+                </>
+              )}
+            </View>
+          </View>
+          {ranking.ranking.slice(0, 3).map((row) => (
+            <View key={row._id} className="items-center mx-1">
+              <Text className="text-xs font-bold" style={{ color: colors.primary[600] }}>
+                #{row.rank}
+              </Text>
+              <Text className="text-[10px] text-gray-500" numberOfLines={1}>
+                {row.name.split(' ')[0]}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -653,6 +709,11 @@ export default function CourseDetailScreen() {
                 <View className="flex-1">
                   <Text className="text-gray-800 font-semibold text-sm" numberOfLines={1}>
                     {activity.title}
+                  </Text>
+                  <Text className="text-xs text-gray-400 mt-0.5">
+                    {activity.feedback_mode === 'after_correction'
+                      ? t('Teacher correction')
+                      : t('Gamified quiz')}
                   </Text>
                   {activity.scheduled_at && (
                     <View className="flex-row items-center mt-0.5 gap-1">
@@ -1098,6 +1159,64 @@ export default function CourseDetailScreen() {
                 />
               </View>
             )}
+
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              {t('When to show answers')}
+            </Text>
+            <View className="flex-row gap-2 mb-4">
+              <TouchableOpacity
+                onPress={() => setActivityFeedbackMode('immediate')}
+                className="flex-1 rounded-xl px-3 py-3"
+                style={{
+                  backgroundColor:
+                    activityFeedbackMode === 'immediate' ? colors.primary[50] : colors.gray[50],
+                  borderWidth: 1.5,
+                  borderColor:
+                    activityFeedbackMode === 'immediate' ? colors.primary[500] : colors.gray[200],
+                }}
+              >
+                <Text
+                  className="text-xs font-bold mb-1"
+                  style={{
+                    color:
+                      activityFeedbackMode === 'immediate' ? colors.primary[700] : colors.gray[600],
+                  }}
+                >
+                  {t('Gamified quiz')}
+                </Text>
+                <Text className="text-[11px] text-gray-500">
+                  {t('Show answers automatically after submit')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setActivityFeedbackMode('after_correction')}
+                className="flex-1 rounded-xl px-3 py-3"
+                style={{
+                  backgroundColor:
+                    activityFeedbackMode === 'after_correction' ? colors.warning[50] : colors.gray[50],
+                  borderWidth: 1.5,
+                  borderColor:
+                    activityFeedbackMode === 'after_correction'
+                      ? colors.warning[600]
+                      : colors.gray[200],
+                }}
+              >
+                <Text
+                  className="text-xs font-bold mb-1"
+                  style={{
+                    color:
+                      activityFeedbackMode === 'after_correction'
+                        ? colors.warning[700]
+                        : colors.gray[600],
+                  }}
+                >
+                  {t('Teacher correction')}
+                </Text>
+                <Text className="text-[11px] text-gray-500">
+                  {t('Release answers after you review')}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <View className="flex-row gap-3 mt-2">
               <TouchableOpacity

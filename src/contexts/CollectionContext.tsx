@@ -85,6 +85,7 @@ export type IActivity = {
   course_id: string;
   visible: boolean;
   scheduled_at: string | null;
+  feedback_mode?: 'immediate' | 'after_correction';
   questions?: IQuestion[];
 };
 
