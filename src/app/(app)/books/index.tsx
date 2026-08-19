@@ -17,6 +17,7 @@ import { useHasRole } from '@/hooks/useHasRole';
 import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
 import { useFocusEffect } from '@react-navigation/native';
+import BookCheckoutModal from '@/components/molecules/BookCheckoutModal';
 
 type Chapter = {
   titulo: string;
@@ -52,6 +53,7 @@ export default function BooksScreen() {
   const [discoverBooks, setDiscoverBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [checkoutBook, setCheckoutBook] = useState<Book | null>(null);
 
   const fetchBooks = async () => {
     if (!userInfo?.token) return;
@@ -109,22 +111,9 @@ export default function BooksScreen() {
         pathname: './books/book',
         params: { bookId: book._id },
       });
-    } else {
-      // Livro pago - abrir link de pagamento ou mostrar modal
-      if (book.payment_link) {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.open(book.payment_link, '_blank');
-        } else {
-          const { WebBrowser } = require('expo-web-browser');
-          await WebBrowser.openBrowserAsync(book.payment_link);
-        }
-      } else {
-        toast({
-          message: t('Payment link not available'),
-          variant: 'destructive',
-        });
-      }
+      return;
     }
+    setCheckoutBook(book);
   };
 
   // Recarrega automaticamente quando a tela ganha foco (por exemplo, após criar livro)
@@ -232,7 +221,7 @@ export default function BooksScreen() {
               className="text-xs font-semibold"
               style={{ color: '#FFFFFF' }}
             >
-              {book.price ? `$${book.price}` : t('Paid')}
+          {book.price ? `R$ ${book.price}` : t('Paid')}
             </Text>
           </View>
         )}
@@ -365,6 +354,12 @@ export default function BooksScreen() {
           )}
         </ScrollView>
       )}
+      <BookCheckoutModal
+        visible={!!checkoutBook}
+        book={checkoutBook}
+        onClose={() => setCheckoutBook(null)}
+        onUnlocked={() => fetchBooks()}
+      />
     </View>
   );
 }

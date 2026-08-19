@@ -55,7 +55,8 @@
       "expo-web-browser",
       "expo-audio",
       "expo-asset",
-      "expo-localization"
+      "expo-localization",
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true

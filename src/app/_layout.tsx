@@ -14,6 +14,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import '@/locales/i18n';
 import { ProfileProvider } from '@/contexts/profileContext';
 import { LanguageSync } from '@/components/LanguageSync';
+import { EntitlementProvider } from '@/contexts/EntitlementContext';
 // import StripeWrapper from '@/components/molecules/StripeWrapper';
 
 export default function Layout() {
@@ -37,12 +38,14 @@ export default function Layout() {
                 <LanguageSync />
                 <CollectionProvider>
                   <NotificationProvider>
+                    <EntitlementProvider>
                     <Stack
                       screenOptions={{
                         headerShown: false,
                         contentStyle: { backgroundColor },
                       }}
                     />
+                    </EntitlementProvider>
                   </NotificationProvider>
                 </CollectionProvider>
               </ProfileProvider>

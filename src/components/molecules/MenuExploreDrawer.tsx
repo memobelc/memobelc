@@ -14,8 +14,9 @@ import {
   Octicons,
   MaterialCommunityIcons,
   Entypo,
+  Ionicons,
 } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/styles/colors';
@@ -24,14 +25,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import api from '@/services/api';
+import { useEntitlements, type ServiceAction } from '@/contexts/EntitlementContext';
+import SubscribeModal from '@/components/molecules/SubscribeModal';
+
+function menuAction(action: ServiceAction | string): ServiceAction {
+  if (action === 'redirect_plans') return 'disabled_upgrade';
+  return action as ServiceAction;
+}
 
 const MenuExploreDrawer = () => {
   const { t } = useTranslation();
   const { userInfo } = useSession();
   const { hasRole, activeRoleView } = useHasRole();
+  const { serviceAction, configuredAction, entitlements } = useEntitlements();
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [hasCourses, setHasCourses] = useState(false);
   const [hasStudentClassroom, setHasStudentClassroom] = useState(false);
 
@@ -77,30 +87,35 @@ const MenuExploreDrawer = () => {
       path: '/',
       icon: <Octicons name="home" size={24} />,
       disabled: false,
+      serviceKey: 'home',
     },
     {
       name: t('Videos'),
       path: '/videos',
       icon: <MaterialIcons name="video-library" size={24} />,
       disabled: false,
+      serviceKey: 'videos',
     },
     {
       name: t('Books'),
       path: '/books',
       icon: <MaterialCommunityIcons name="bookshelf" size={24} />,
       disabled: false,
+      serviceKey: 'books',
     },
     {
       name: t('Collections'),
       path: '/collections',
       icon: <MaterialIcons name="collections-bookmark" size={24} />,
       disabled: false,
+      serviceKey: 'collections',
     },
     {
       name: t('Talk to me'),
       path: '/talk_to_me',
       icon: <Entypo name="chat" size={24} color="black" />,
       disabled: false,
+      serviceKey: 'talk_to_me',
     },
   ];
 
@@ -112,6 +127,7 @@ const MenuExploreDrawer = () => {
         <MaterialCommunityIcons name="google-classroom" size={24} color="black" />
       ),
       disabled: false,
+      serviceKey: 'classrooms',
     });
   }
 
@@ -127,16 +143,28 @@ const MenuExploreDrawer = () => {
         />
       ),
       disabled: false,
+      serviceKey: 'courses',
     });
   }
 
+  menuItems.push({
+    name: t('Plans'),
+    path: '/plans',
+    icon: <MaterialCommunityIcons name="crown" size={24} />,
+    disabled: false,
+    serviceKey: '',
+  });
+
   if (hasRole('admin')) {
-    menuItems.push({
-      name: t('Users'),
-      path: '/admin/users',
-      icon: <MaterialIcons name="people" size={24} />,
-      disabled: false,
-    });
+    menuItems.push(
+      { name: t('Users'), path: '/admin/users', icon: <MaterialIcons name="people" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Plans admin'), path: '/admin/plans', icon: <MaterialIcons name="workspace-premium" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Purchases and subscriptions'), path: '/admin/subscriptions', icon: <MaterialIcons name="receipt-long" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Coupons'), path: '/admin/coupons', icon: <MaterialIcons name="local-offer" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Book bundles'), path: '/admin/bundles', icon: <MaterialCommunityIcons name="bookshelf" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Service access'), path: '/admin/access', icon: <MaterialIcons name="lock" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('External sales'), path: '/admin/external-sales', icon: <MaterialIcons name="point-of-sale" size={24} />, disabled: false, serviceKey: '' },
+    );
   }
 
   const handleClose = () => {
@@ -196,8 +224,8 @@ const MenuExploreDrawer = () => {
                   {t('Explore')}
                 </Text>
               </View>
-              {/* {!userInfo?.premium && (
-                <TouchableOpacity className="mb-3">
+              {!entitlements?.is_subscriber && (
+                <TouchableOpacity className="mb-3" onPress={() => { router.push('/plans'); handleClose(); }}>
                   <LinearGradient
                     start={{ x: 1, y: 0 }}
                     end={{ x: 0, y: 1 }}
@@ -225,18 +253,35 @@ const MenuExploreDrawer = () => {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
-              )} */}
+              )}
               <View>
-                {menuItems.map((item) => {
-                  const isActive = pathname === item.path;
+                {menuItems.filter((item) => {
+                  if (!item.serviceKey) return true;
+                  return configuredAction(item.serviceKey) !== 'hide' && menuAction(serviceAction(item.serviceKey)) !== 'hide';
+                }).map((item) => {
+                  const configured = item.serviceKey ? configuredAction(item.serviceKey) : 'allow';
+                  const action = item.serviceKey ? menuAction(serviceAction(item.serviceKey)) : 'allow';
+                  const isDisabled = item.disabled || configured === 'disabled' || action === 'disabled';
+                  const isGated = configured === 'disabled_upgrade' && action !== 'allow';
+                  const isMuted = isDisabled || isGated;
+                  const isActive = pathname === item.path && !isMuted;
+                  const iconColor = isMuted ? colors.gray[400] : undefined;
+                  const icon = isValidElement(item.icon) && iconColor
+                    ? cloneElement(item.icon, { color: iconColor } as any)
+                    : item.icon;
                   return (
                     <Pressable
-                      key={item.name}
-                      className={`flex-row mb-3 -left-4 w-[90%] px-5 py-1 rounded-r-3xl ${
+                      key={item.path + item.name}
+                      className={`flex-row items-center mb-3 -left-4 w-[90%] px-5 py-1 rounded-r-3xl ${
                         isActive ? 'bg-orange-400' : ''
                       }`}
-                      disabled={item.disabled}
+                      disabled={isDisabled}
                       onPress={() => {
+                        if (isGated) {
+                          handleClose();
+                          setTimeout(() => setSubscribeOpen(true), 320);
+                          return;
+                        }
                         router.push(item.path as `./${string}`);
                         handleClose();
                       }}
@@ -244,14 +289,22 @@ const MenuExploreDrawer = () => {
                         ? { onMouseLeave: () => {} }
                         : {})}
                     >
-                      {item.icon}
+                      {icon}
                       <Text
                         className={`font-[ComicSans] ml-3 ${
-                          item.disabled ? 'text-gray-300' : 'text-primary-600'
+                          isMuted ? 'text-gray-400' : 'text-primary-600 font-bold'
                         }`}
                       >
                         {item.name}
                       </Text>
+                      {isGated ? (
+                        <Ionicons
+                          name="star"
+                          size={16}
+                          color={colors.warning[500]}
+                          style={{ marginLeft: 8 }}
+                        />
+                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -260,6 +313,7 @@ const MenuExploreDrawer = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      <SubscribeModal visible={subscribeOpen} onClose={() => setSubscribeOpen(false)} />
     </View>
   );
 };

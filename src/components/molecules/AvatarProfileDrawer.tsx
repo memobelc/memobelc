@@ -25,6 +25,7 @@ import { useProfile } from '@/contexts/profileContext';
 import { colors } from '@/styles/colors';
 import api from '@/services/api';
 import { InviteFriendsModal } from './InviteFriendsModal';
+import { useEntitlements } from '@/contexts/EntitlementContext';
 
 type menuItem = {
   name: string;
@@ -40,6 +41,7 @@ const AvatarProfileDrawer = () => {
   const { roles, activeRoleView, setActiveRoleView } = useHasRole();
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
+  const { entitlements } = useEntitlements();
 
   const [open, setOpen] = useState(false);
   const [openInviteModal, setOpenInviteModal] = useState(false);
@@ -179,40 +181,40 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
-              {/*{!userInfo?.premium && (
-                <TouchableOpacity
-                  className="mb-3"
-                  disabled={loading}
-                  onPress={handleSubscribe}
+              <TouchableOpacity
+                className="mb-3"
+                onPress={() => {
+                  router.push('/subscription');
+                  handleClose();
+                }}
+              >
+                <LinearGradient
+                  start={{ x: 1, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  colors={[colors.warning[500], colors.warning[100]]}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    borderRadius: 25,
+                    width: '100%',
+                    paddingVertical: 8,
+                    alignItems: 'center',
+                  }}
                 >
-                  <LinearGradient
-                    start={{ x: 1, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    colors={[colors.warning[500], colors.warning[100]]}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      borderRadius: 25,
-                      width: '100%',
-                      paddingVertical: 8,
-                      alignItems: 'center',
-                    }}
+                  <MaterialCommunityIcons
+                    className="px-3"
+                    name="crown-circle"
+                    size={20}
+                    color="black"
+                  />
+                  <Text
+                    className="text-sm font-bold"
+                    style={{ color: colors.gray[950] }}
                   >
-                    <MaterialCommunityIcons
-                      className="px-3"
-                      name="crown-circle"
-                      size={20}
-                      color="black"
-                    />
-                    <Text
-                      className="text-sm font-bold"
-                      style={{ color: colors.gray[950] }}
-                    >
-                      {t('Go premium')}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )} */}
+                    {entitlements?.is_subscriber ? t('My subscription') : t('Go premium')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
               <View>
                 {menuItems &&

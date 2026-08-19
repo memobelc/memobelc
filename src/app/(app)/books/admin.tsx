@@ -60,6 +60,9 @@ export default function BookAdminScreen() {
     is_free: true,
     price: '',
     payment_link: '',
+    sale_mode: 'both',
+    is_published: true,
+    google_play_product_id: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedCapa, setSelectedCapa] = useState<string | null>(null);
@@ -87,6 +90,9 @@ export default function BookAdminScreen() {
           is_free: !!book.is_free,
           price: book.price ? String(book.price) : '',
           payment_link: book.payment_link || '',
+          sale_mode: book.sale_mode || 'both',
+          is_published: book.is_published !== false,
+          google_play_product_id: book.google_play_product_id || '',
         });
         if (book.capa) {
           setSelectedCapa(book.capa);
@@ -345,6 +351,9 @@ export default function BookAdminScreen() {
         is_free: formData.is_free,
         price: formData.price ? parseFloat(formData.price) : undefined,
         payment_link: formData.payment_link || undefined,
+        sale_mode: formData.sale_mode,
+        is_published: formData.is_published,
+        google_play_product_id: formData.google_play_product_id || undefined,
         chapters: processedChapters,
       };
 
@@ -576,12 +585,33 @@ export default function BookAdminScreen() {
                     {errors.price}
                   </Text>
                 )}
+                <Text className="text-xs mb-3" style={{ color: colors.gray[600] }}>
+                  {t('Paid books use Asaas')}
+                </Text>
                 <Input
-                  label={t('Payment Link')}
-                  value={formData.payment_link}
-                  onChangeText={(value) => setFormData({ ...formData, payment_link: value })}
-                  placeholder={t('URL placeholder')}
+                  label={t('Google Play SKU')}
+                  value={formData.google_play_product_id}
+                  onChangeText={(value) => setFormData({ ...formData, google_play_product_id: value })}
                 />
+                <Text className="mt-2 mb-1">{t('Sale mode')}</Text>
+                <View className="flex-row flex-wrap mb-2">
+                  {(['separate', 'plans_only', 'both'] as const).map((mode) => (
+                    <TouchableOpacity
+                      key={mode}
+                      onPress={() => setFormData({ ...formData, sale_mode: mode })}
+                      className="px-3 py-1 rounded-full mr-2 mb-2"
+                      style={{ backgroundColor: formData.sale_mode === mode ? colors.primary[500] : colors.gray[200] }}
+                    >
+                      <Text style={{ color: formData.sale_mode === mode ? '#FFFFFF' : colors.gray[700] }}>{t(mode)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  onPress={() => setFormData({ ...formData, is_published: !formData.is_published })}
+                  className="mb-2"
+                >
+                  <Text>{formData.is_published ? t('Published') : t('Unpublished')}</Text>
+                </TouchableOpacity>
                 {errors.payment_link && (
                   <Text className="text-xs mt-1" style={{ color: colors.error[500] }}>
                     {errors.payment_link}
