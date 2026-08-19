@@ -1,4 +1,5 @@
 import FlipCard from '@/components/atoms/FlipCard';
+import { MultipleChoiceCard } from '@/components/atoms/MultipleChoiceCard';
 import { useEffect, useState } from 'react';
 import { View, Modal, TouchableOpacity, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ export default function Study() {
   const [valueProgress, setValueProgress] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const sendCardsStudied = () => {
     if (progressUpdate && progressUpdate.cards.length > 0) {
@@ -79,6 +81,7 @@ export default function Study() {
 
     setValueProgress((prev) => prev + 1);
     setFlipped(false);
+    setSelectedIndex(null);
 
     setProgressUpdate((prev) => {
       const updatedProgress = prev
@@ -100,7 +103,14 @@ export default function Study() {
     }
   }, [progressUpdate]);
 
+  useEffect(() => {
+    setFlipped(false);
+    setSelectedIndex(null);
+  }, [currentIndex]);
+
   const currentCard = currentCollection?.review_collections_cards[currentIndex];
+  const isMultipleChoice = currentCard?.card_type === 'multiple_choice';
+  const showRecall = isMultipleChoice ? selectedIndex !== null : flipped;
 
   return (
     <Modal transparent animationType="fade" visible={open}>
@@ -118,15 +128,27 @@ export default function Study() {
           </View>
           <Progress value={valueProgress} range={range} />
         </View>
-        {currentCard && (
+        {currentCard && isMultipleChoice ? (
+          <View className="w-full flex-1 justify-start pt-4">
+            <MultipleChoiceCard
+              question={currentCard.front}
+              options={currentCard.options || []}
+              correctIndex={currentCard.correct_index ?? 0}
+              selectedIndex={selectedIndex}
+              onSelect={setSelectedIndex}
+              showResult={selectedIndex !== null}
+            />
+          </View>
+        ) : currentCard ? (
           <FlipCard
             frontSide={currentCard.front}
             backSide={currentCard.back}
             audio={currentCard.audio}
+            image={currentCard.image}
             onFlip={() => setFlipped(true)}
           />
-        )}
-        {flipped && (
+        ) : null}
+        {showRecall && (
           <View className="flex-row justify-between p-4 mb-10 md:w-[50%]">
             {['Easy', 'Good', 'Difficult', "I don't remember"].map((level) => (
               <TouchableOpacity

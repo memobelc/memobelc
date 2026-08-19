@@ -12,6 +12,10 @@ type card = {
   audio: string;
   last_reviewed: string;
   next_review: string;
+  card_type?: 'text' | 'multiple_choice' | 'image';
+  options?: string[];
+  correct_index?: number | null;
+  image?: string | null;
 };
 
 type DefaultDeck = {

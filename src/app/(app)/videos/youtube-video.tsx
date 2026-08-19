@@ -40,6 +40,10 @@ interface ICardProps {
   front: string;
   media_type: any;
   updated_at: string;
+  card_type?: string;
+  options?: string[];
+  image?: string | null;
+  audio?: string;
 }
 
 const YouTubeVideo = () => {
@@ -279,6 +283,10 @@ const YouTubeVideo = () => {
               key={item._id}
               front={item.front}
               back={item.back}
+              audio={item.audio}
+              cardType={item.card_type}
+              options={item.options}
+              image={item.image}
             />
           ))}
       </ScrollView>

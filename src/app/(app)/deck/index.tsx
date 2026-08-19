@@ -3,20 +3,20 @@ import { View, Image, Text, TouchableOpacity, ScrollView, Modal } from 'react-na
 import {
   MaterialIcons,
   MaterialCommunityIcons,
-  FontAwesome,
   Feather,
 } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import * as DocumentPicker from 'expo-document-picker';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/colors';
-// Dialog removido, agora usando Modal diretamente
 import { CardDisplaying } from '@/components/atoms/CardDisplaying';
-import { Input } from '@/components/Input';
-import FlipCard from '@/components/atoms/FlipCard';
+import {
+  CardFormModal,
+  CardFormPayload,
+  ICardProps,
+} from '@/components/atoms/CardFormModal';
 import { OpenStudy } from '@/components/atoms/openStudy';
 import { useCollection } from '@/contexts/CollectionContext';
 import api from '@/services/api';
@@ -29,23 +29,13 @@ import { Loading } from '@/components/Loading';
 
 import { storage } from '../../../../FirebaseConfig';
 
-interface IcardProps {
-  _id: string;
-  back: string;
-  created_at: string;
-  front: string;
-  audio?: string;
-  media_type: any;
-  updated_at: string;
-}
-
 export default function Deck() {
   const { t } = useTranslation();
   const router = useRouter();
 
   const { currentDeck, setCollections, currentCollection } = useCollection();
 
-  const [cards, setCards] = useState<IcardProps[] | []>([]);
+  const [cards, setCards] = useState<ICardProps[] | []>([]);
 
   const { userInfo } = useSession();
   const { hasRole } = useHasRole();
@@ -64,13 +54,8 @@ export default function Deck() {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const { name } = useLocalSearchParams();
 
-  const [frontSide, setFrontSide] = useState('');
-  const [backSide, setBackSide] = useState('');
-  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
-  const [currentEditingCard, setCurrentEditingCard] = useState<IcardProps | null>(null);
-  const [cardToDelete, setCardToDelete] = useState<IcardProps | null>(null);
-
-  const [viewCArd, setViewCArd] = useState(false);
+  const [currentEditingCard, setCurrentEditingCard] = useState<ICardProps | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<ICardProps | null>(null);
 
   const handleLongPressEdit = () => {
     setShowEditTooltip(true);
@@ -79,15 +64,18 @@ export default function Deck() {
     }, 2000); // Fecha após 2 segundos
   };
 
-  const pickAndUploadAudio = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: 'audio/*',
-      copyToCacheDirectory: true,
-    });
-
-    if (result.assets) {
-      setSelectedAudio(result.assets[0].uri);
+  const uploadIfLocal = async (uri: string | null, folder: string) => {
+    if (!uri) {
+      return '';
     }
+    if (uri.startsWith('http')) {
+      return uri;
+    }
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const storageRef = ref(storage, `${folder}/${Date.now()}`);
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
   };
 
   const HandleOpenAddCard = () => {
@@ -103,22 +91,15 @@ export default function Deck() {
   const HandleClose = () => {
     setOpenAddCard(false);
     setOpenEditCard(false);
-    setFrontSide('');
-    setBackSide('');
-    setSelectedAudio(null);
     setCurrentEditingCard(null);
-    setViewCArd(false);
   };
 
-  const HandleOpenEditCard = (card: IcardProps) => {
+  const HandleOpenEditCard = (card: ICardProps) => {
     setCurrentEditingCard(card);
-    setFrontSide(card.front);
-    setBackSide(card.back);
-    setSelectedAudio(card.audio || null);
     setOpenEditCard(true);
   };
 
-  const HandleOpenDeleteConfirm = (card: IcardProps) => {
+  const HandleOpenDeleteConfirm = (card: ICardProps) => {
     setCardToDelete(card);
     setOpenDeleteConfirm(true);
   };
@@ -207,31 +188,27 @@ export default function Deck() {
     }
   };
 
-  const HandleCreateCard = async () => {
-    // Previne múltiplos cliques
+  const HandleCreateCard = async (payload: CardFormPayload) => {
     if (loadingCreateCard) {
       return;
     }
 
     setLoadingCreateCard(true);
-    let urlAudio = '';
-    
-    try {
-      if (selectedAudio) {
-        const response = await fetch(selectedAudio);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `audios/cards/${Date.now()}`);
 
-        await uploadBytes(storageRef, blob);
-        urlAudio = await getDownloadURL(storageRef);
-      }
+    try {
+      const urlAudio = await uploadIfLocal(payload.audioUri, 'audios/cards');
+      const urlImage = await uploadIfLocal(payload.imageUri, 'images/cards');
 
       await api.post('/card/create', {
-        front: frontSide,
-        back: backSide,
+        front: payload.front,
+        back: payload.back,
         deck_id: currentDeck?._id,
         user_id: userInfo?.user_id,
-        audio: urlAudio,
+        audio: urlAudio || undefined,
+        card_type: payload.card_type,
+        options: payload.card_type === 'multiple_choice' ? payload.options : undefined,
+        correct_index: payload.card_type === 'multiple_choice' ? payload.correct_index : undefined,
+        image: payload.card_type === 'image' ? urlImage : undefined,
       });
 
       toast({
@@ -261,29 +238,31 @@ export default function Deck() {
     }
   };
 
-  const HandleUpdateCard = async () => {
+  const HandleUpdateCard = async (payload: CardFormPayload) => {
     if (loadingCreateCard || !currentEditingCard) {
       return;
     }
 
     setLoadingCreateCard(true);
-    let urlAudio = currentEditingCard.audio || '';
-    
-    try {
-      // Se há um novo áudio selecionado
-      if (selectedAudio && selectedAudio !== currentEditingCard.audio) {
-        const response = await fetch(selectedAudio);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `audios/cards/${Date.now()}`);
 
-        await uploadBytes(storageRef, blob);
-        urlAudio = await getDownloadURL(storageRef);
-      }
+    try {
+      const urlAudio = await uploadIfLocal(
+        payload.audioUri,
+        'audios/cards',
+      );
+      const urlImage = await uploadIfLocal(
+        payload.imageUri,
+        'images/cards',
+      );
 
       await api.put(`/card/${currentEditingCard._id}`, {
-        front: frontSide,
-        back: backSide,
-        audio: urlAudio,
+        front: payload.front,
+        back: payload.back,
+        audio: urlAudio || undefined,
+        card_type: payload.card_type,
+        options: payload.card_type === 'multiple_choice' ? payload.options : undefined,
+        correct_index: payload.card_type === 'multiple_choice' ? payload.correct_index : undefined,
+        image: payload.card_type === 'image' ? urlImage : undefined,
       }, {
         headers: {
           Authorization: `Bearer ${userInfo?.token}`,
@@ -526,6 +505,9 @@ export default function Deck() {
                 front={item.front}
                 back={item.back}
                 audio={item.audio}
+                cardType={item.card_type}
+                options={item.options}
+                image={item.image}
                 editMode={editModeEnabled}
                 onEdit={canEditCards ? () => HandleOpenEditCard(item) : undefined}
                 onDelete={canEditCards ? () => HandleOpenDeleteConfirm(item) : undefined}
@@ -566,194 +548,14 @@ export default function Deck() {
         />
       )}
 
-      <Modal
-        transparent
-        animationType="slide"
-        visible={openAddCard}
-        onRequestClose={HandleClose}
-      >
-        <View className="flex-1 justify-end items-center bg-black/75">
-          <TouchableOpacity
-            className="bg-white rounded-t-lg flex w-full h-full absolute items-center bottom-0 p-4"
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="flex flex-row justify-between items-center mb-2 w-full">
-              <TouchableOpacity onPress={HandleClose}>
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={24}
-                  color="black"
-                />
-              </TouchableOpacity>
-              <View className="flex-row w-[60%] items-center justify-between">
-                <Text className="font-semibold text-xl text-primary justify-center">
-                  {t('New card')}
-                </Text>
-                <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
-                  <MaterialCommunityIcons
-                    name={!viewCArd ? 'eye' : 'eye-off'}
-                    size={24}
-                    color="black"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={HandleCreateCard}
-                  style={{ 
-                    backgroundColor: loadingCreateCard ? colors.gray[400] : colors.primary[500] 
-                  }}
-                  className="rounded-2xl p-2.5"
-                  disabled={loadingCreateCard}
-                >
-                  {loadingCreateCard ? (
-                    <Loading />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={24}
-                      color="white"
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="border-b border-gray-300 mb-4 w-full" />
-            {!viewCArd ? (
-              <ScrollView
-                className="w-full"
-                showsVerticalScrollIndicator={false}
-              >
-                <Input
-                  label={t('Front Side')}
-                  className="py-6 w-full"
-                  inputClasses="h-40"
-                  value={frontSide}
-                  onChangeText={(text) => setFrontSide(text)}
-                />
-                <Input
-                  label={t('Back Side')}
-                  className="py-6 w-full"
-                  inputClasses="h-40"
-                  value={backSide}
-                  onChangeText={(text) => setBackSide(text)}
-                />
-                <TouchableOpacity
-                  onPress={pickAndUploadAudio}
-                  className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
-                >
-                  <FontAwesome name="file-audio-o" size={24} color="black" />
-                  <Text className="text-gray-500 mt-2">
-                    {t('Tap to attach audio')}
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-            ) : (
-              <FlipCard
-                frontSide={frontSide}
-                backSide={backSide}
-                audio={selectedAudio}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-      </Modal>
-
-      {/* Modal de Edição */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={openEditCard}
-        onRequestClose={HandleClose}
-      >
-        <View className="flex-1 justify-end items-center bg-black/75">
-          <TouchableOpacity
-            className="bg-white rounded-t-lg flex w-full h-full absolute items-center bottom-0 p-4"
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="flex flex-row justify-between items-center mb-2 w-full">
-              <TouchableOpacity onPress={HandleClose}>
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={24}
-                  color="black"
-                />
-              </TouchableOpacity>
-              <View className="flex-row w-[60%] items-center justify-between">
-                <Text className="font-semibold text-xl text-primary justify-center">
-                  {t('Edit card')}
-                </Text>
-                <TouchableOpacity onPress={() => setViewCArd(!viewCArd)}>
-                  <MaterialCommunityIcons
-                    name={!viewCArd ? 'eye' : 'eye-off'}
-                    size={24}
-                    color="black"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={HandleUpdateCard}
-                  style={{ 
-                    backgroundColor: loadingCreateCard ? colors.gray[400] : colors.primary[500] 
-                  }}
-                  className="rounded-2xl p-2.5"
-                  disabled={loadingCreateCard}
-                >
-                  {loadingCreateCard ? (
-                    <Loading />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={24}
-                      color="white"
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="border-b border-gray-300 mb-4 w-full" />
-            {!viewCArd ? (
-              <ScrollView
-                className="w-full"
-                showsVerticalScrollIndicator={false}
-              >
-                <Input
-                  label={t('Front Side')}
-                  className="py-6 w-full"
-                  inputClasses="h-40"
-                  value={frontSide}
-                  onChangeText={(text) => setFrontSide(text)}
-                />
-                <Input
-                  label={t('Back Side')}
-                  className="py-6 w-full"
-                  inputClasses="h-40"
-                  value={backSide}
-                  onChangeText={(text) => setBackSide(text)}
-                />
-                <TouchableOpacity
-                  onPress={pickAndUploadAudio}
-                  className="border border-dashed border-gray-400 rounded-lg p-10 flex items-center justify-center"
-                >
-                  <FontAwesome name="file-audio-o" size={24} color="black" />
-                  <Text className="text-gray-500 mt-2">
-                    {selectedAudio ? t('Change audio') : t('Tap to attach audio')}
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-            ) : (
-              <FlipCard
-                frontSide={frontSide}
-                backSide={backSide}
-                audio={selectedAudio}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-      </Modal>
+      <CardFormModal
+        visible={openAddCard || openEditCard}
+        mode={openEditCard ? 'edit' : 'create'}
+        loading={loadingCreateCard}
+        card={openEditCard ? currentEditingCard : null}
+        onClose={HandleClose}
+        onSubmit={openEditCard ? HandleUpdateCard : HandleCreateCard}
+      />
 
       {/* Modal de Confirmação de Exclusão */}
       <Modal
