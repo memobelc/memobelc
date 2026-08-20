@@ -27,6 +27,7 @@ import { useHasRole } from '@/hooks/useHasRole';
 import api from '@/services/api';
 import { useEntitlements, type ServiceAction } from '@/contexts/EntitlementContext';
 import SubscribeModal from '@/components/molecules/SubscribeModal';
+import { supportApi } from '@/services/support';
 
 function menuAction(action: ServiceAction | string): ServiceAction {
   if (action === 'redirect_plans') return 'disabled_upgrade';
@@ -37,6 +38,7 @@ const MenuExploreDrawer = () => {
   const { t } = useTranslation();
   const { userInfo } = useSession();
   const { hasRole, activeRoleView } = useHasRole();
+  const isAdmin = hasRole('admin');
   const { serviceAction, configuredAction, entitlements } = useEntitlements();
   const router = useRouter();
   const pathname = usePathname();
@@ -44,6 +46,7 @@ const MenuExploreDrawer = () => {
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [hasCourses, setHasCourses] = useState(false);
   const [hasStudentClassroom, setHasStudentClassroom] = useState(false);
+  const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     if (!userInfo?.token) {
@@ -80,6 +83,22 @@ const MenuExploreDrawer = () => {
       cancelled = true;
     };
   }, [userInfo?.token, open, activeRoleView]);
+
+  useEffect(() => {
+    if (!open || !isAdmin || !userInfo?.token) return;
+    let cancelled = false;
+    supportApi
+      .adminListTickets(userInfo.token)
+      .then((response) => {
+        if (!cancelled) setSupportUnread(response.data.unread_total || 0);
+      })
+      .catch(() => {
+        if (!cancelled) setSupportUnread(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, userInfo?.token, isAdmin]);
 
   const menuItems = [
     {
@@ -164,6 +183,7 @@ const MenuExploreDrawer = () => {
       { name: t('Book bundles'), path: '/admin/bundles', icon: <MaterialCommunityIcons name="bookshelf" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Service access'), path: '/admin/access', icon: <MaterialIcons name="lock" size={24} />, disabled: false, serviceKey: '' },
       { name: t('External sales'), path: '/admin/external-sales', icon: <MaterialIcons name="point-of-sale" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Support'), path: '/admin/support', icon: <MaterialIcons name="headset-mic" size={24} />, disabled: false, serviceKey: '' },
     );
   }
 
@@ -297,6 +317,16 @@ const MenuExploreDrawer = () => {
                       >
                         {item.name}
                       </Text>
+                      {item.path === '/admin/support' && supportUnread > 0 ? (
+                        <View
+                          className="min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center ml-2"
+                          style={{ backgroundColor: colors.error[500] }}
+                        >
+                          <Text className="text-white text-[10px] font-bold">
+                            {supportUnread > 99 ? '99+' : supportUnread}
+                          </Text>
+                        </View>
+                      ) : null}
                       {isGated ? (
                         <Ionicons
                           name="star"

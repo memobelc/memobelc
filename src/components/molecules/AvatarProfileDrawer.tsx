@@ -26,6 +26,7 @@ import { colors } from '@/styles/colors';
 import api from '@/services/api';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { useEntitlements } from '@/contexts/EntitlementContext';
+import { useSupportChat } from '@/contexts/SupportChatContext';
 
 type menuItem = {
   name: string;
@@ -42,6 +43,8 @@ const AvatarProfileDrawer = () => {
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
   const { entitlements } = useEntitlements();
+  const { openChat, unreadCount, refreshUnread } = useSupportChat();
+  const isAssignedAdmin = roles.includes('admin');
 
   const [open, setOpen] = useState(false);
   const [openInviteModal, setOpenInviteModal] = useState(false);
@@ -287,6 +290,29 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="person-add" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('Invite Friends')}</Text>
               </TouchableOpacity>
+              {!isAssignedAdmin && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleClose();
+                    refreshUnread();
+                    openChat();
+                  }}
+                  className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+                >
+                  <MaterialIcons name="headset-mic" size={20} color={colors.primary[500]} />
+                  <Text className="text-primary text-xs">{t('Support')}</Text>
+                  {unreadCount > 0 ? (
+                    <View
+                      className="min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center"
+                      style={{ backgroundColor: colors.error[500] }}
+                    >
+                      <Text className="text-white text-[10px] font-bold">
+                        {unreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   signOut();

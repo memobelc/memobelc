@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AvatarProfileDrawer from '@/components/molecules/AvatarProfileDrawer';
 import MenuExploreDrawer from '@/components/molecules/MenuExploreDrawer';
 import NotificationBell from '@/components/molecules/NotificationBell';
+import SupportChatModal from '@/components/molecules/SupportChatModal';
 import { colors } from '@/styles/colors';
 
 const Header = () => {
@@ -25,6 +26,7 @@ const Header = () => {
           </View>
         </View>
       </View>
+      <SupportChatModal />
     </SafeAreaView>
   );
 };

@@ -4,13 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useNotification } from '@/contexts/NotificationContext';
+import { useSupportChat } from '@/contexts/SupportChatContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 
 const NotificationsScreen = () => {
   const router = useRouter();
   const { notifications, markAllAsRead, markAsRead } = useNotification();
+  const { openChat } = useSupportChat();
+  const { roles } = useHasRole();
   const { t } = useTranslation();
+  const isAssignedAdmin = roles.includes('admin');
 
   const handleBack = () => {
     router.back();
@@ -72,6 +77,17 @@ const NotificationsScreen = () => {
             const handlePressItem = async () => {
               if (!isRead) {
                 await markAsRead(item._id);
+              }
+              if (item.type === 'support') {
+                const ticketId = item.data?.ticket_id;
+                if (isAssignedAdmin && ticketId) {
+                  router.push({
+                    pathname: '/admin/support/[ticketId]' as any,
+                    params: { ticketId },
+                  });
+                } else {
+                  openChat();
+                }
               }
             };
 

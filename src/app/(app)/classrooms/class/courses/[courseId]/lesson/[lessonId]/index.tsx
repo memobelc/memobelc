@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   Linking,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -41,11 +42,13 @@ export default function LessonViewScreen() {
   }>();
   const { userInfo } = useSession();
   const { toast } = useToast();
+  const { width: windowWidth } = useWindowDimensions();
 
   const [lesson, setLesson] = useState<ILesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerReady, setPlayerReady] = useState(false);
   const [markedViewed, setMarkedViewed] = useState(false);
+  const [playerSize, setPlayerSize] = useState({ width: 0, height: 0 });
 
   const fetchLesson = useCallback(async () => {
     if (!lessonId) return;
@@ -112,15 +115,38 @@ export default function LessonViewScreen() {
           </TouchableOpacity>
         );
       }
+      const playerWidth =
+        playerSize.width > 0 ? playerSize.width : Math.min(windowWidth * 0.8, 1440);
+      const playerHeight =
+        playerSize.height > 0 ? playerSize.height : (playerWidth * 9) / 16;
       return (
-        <View className="w-full rounded-2xl overflow-hidden" style={{ aspectRatio: 16 / 9 }}>
-          <YoutubeIframe
-            height={0}
-            width={0}
-            videoId={videoId}
-            onReady={() => setPlayerReady(true)}
-            webViewStyle={{ flex: 1 }}
-          />
+        <View
+          className="w-full rounded-2xl overflow-hidden"
+          style={{ aspectRatio: 16 / 9, backgroundColor: colors.gray[900] }}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            if (width !== playerSize.width || height !== playerSize.height) {
+              setPlayerSize({ width, height });
+            }
+          }}
+        >
+          {Platform.OS === 'web' ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={lesson.title || 'YouTube video'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{ width: '100%', height: '100%', border: 0 }}
+              onLoad={() => setPlayerReady(true)}
+            />
+          ) : (
+            <YoutubeIframe
+              height={playerHeight}
+              width={playerWidth}
+              videoId={videoId}
+              onReady={() => setPlayerReady(true)}
+            />
+          )}
           {!playerReady && (
             <View
               className="absolute inset-0 items-center justify-center"
