@@ -24,6 +24,10 @@ export const billingApi = {
     api.post('/billing/checkout', payload, auth(token)),
   publicCheckout: (payload: Record<string, unknown>) =>
     api.post('/billing/public/checkout', payload),
+  publicSyncPayment: (paymentId: string, payload: Record<string, unknown>) =>
+    api.post(`/billing/public/payments/${paymentId}/sync`, payload),
+  publicPixQr: (paymentId: string, payload: Record<string, unknown>) =>
+    api.post(`/billing/public/payments/${paymentId}/pix`, payload),
   cancel: (token?: string) => api.post('/billing/cancel', {}, auth(token)),
   changePlan: (token: string | undefined, planId: string) =>
     api.post('/billing/change-plan', { plan_id: planId }, auth(token)),

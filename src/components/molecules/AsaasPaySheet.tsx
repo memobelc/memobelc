@@ -44,7 +44,6 @@ type AsaasPaySheetProps = {
   publicCheckout?: {
     name: string;
     email: string;
-    password?: string;
   };
   initialCpf?: string;
   initialCoupon?: string;
@@ -157,7 +156,10 @@ export default function AsaasPaySheet({
 
   const pollUntilPaid = async (id: string, pollToken?: string) => {
     try {
-      const granted = await waitForPayment(pollToken || authToken, id);
+      const guest = publicCheckout?.email
+        ? { email: publicCheckout.email, cpfCnpj }
+        : undefined;
+      const granted = await waitForPayment(pollToken || authToken, id, 12, guest);
       if (granted) {
         await finishSuccess({ granted: true, payment: { _id: id } });
       }
@@ -200,7 +202,7 @@ export default function AsaasPaySheet({
       }
       if (!productId) return;
       const result = await startCheckout({
-        token: authToken,
+        token: publicCheckout ? undefined : authToken,
         productType,
         productId,
         couponCode: coupon || undefined,
@@ -210,7 +212,7 @@ export default function AsaasPaySheet({
       });
       if (result?.token) {
         setAuthToken(result.token);
-        if (onAuthPayload) await onAuthPayload(result);
+        if (onAuthPayload && !publicCheckout) await onAuthPayload(result);
       }
       if (result?.granted || result?.provider === 'free') {
         await finishSuccess(result);
@@ -222,7 +224,12 @@ export default function AsaasPaySheet({
         const sessionToken = result?.token || authToken;
         if (!pixData && id) {
           try {
-            const pixRes = await billingApi.pixQr(sessionToken, id);
+            const pixRes = publicCheckout?.email
+              ? await billingApi.publicPixQr(id, {
+                  email: publicCheckout.email,
+                  cpf_cnpj: cpfCnpj,
+                })
+              : await billingApi.pixQr(sessionToken, id);
             pixData = pixRes.data?.pix;
           } catch {
             pixData = null;
@@ -270,7 +277,12 @@ export default function AsaasPaySheet({
     if (!paymentId) return;
     try {
       setBuying(true);
-      const response = await billingApi.syncPayment(authToken, paymentId);
+      const response = publicCheckout?.email
+        ? await billingApi.publicSyncPayment(paymentId, {
+            email: publicCheckout.email,
+            cpf_cnpj: cpfCnpj,
+          })
+        : await billingApi.syncPayment(authToken, paymentId);
       if (response.data?.granted || response.data?.payment?.status === 'confirmed') {
         await finishSuccess(response.data);
       } else {
@@ -290,7 +302,12 @@ export default function AsaasPaySheet({
     if (!paymentId) return;
     try {
       setBuying(true);
-      const response = await billingApi.pixQr(authToken, paymentId);
+      const response = publicCheckout?.email
+        ? await billingApi.publicPixQr(paymentId, {
+            email: publicCheckout.email,
+            cpf_cnpj: cpfCnpj,
+          })
+        : await billingApi.pixQr(authToken, paymentId);
       if (response.data?.pix) setPix(response.data.pix);
     } finally {
       setBuying(false);

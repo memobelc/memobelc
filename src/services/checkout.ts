@@ -14,10 +14,20 @@ export type CreditCardPayload = {
   phone: string;
 };
 
-export async function waitForPayment(token: string | undefined, paymentId: string, attempts = 12) {
+export async function waitForPayment(
+  token: string | undefined,
+  paymentId: string,
+  attempts = 12,
+  guest?: { email: string; cpfCnpj: string },
+) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 2000 : 3000));
-    const response = await billingApi.syncPayment(token, paymentId);
+    const response = guest?.email
+      ? await billingApi.publicSyncPayment(paymentId, {
+          email: guest.email,
+          cpf_cnpj: guest.cpfCnpj,
+        })
+      : await billingApi.syncPayment(token, paymentId);
     if (response.data?.granted || response.data?.payment?.status === 'confirmed') {
       return true;
     }
@@ -36,7 +46,6 @@ export async function startCheckout(options: {
   publicCheckout?: {
     name: string;
     email: string;
-    password?: string;
   };
 }) {
   const payload: Record<string, unknown> = {
@@ -51,6 +60,7 @@ export async function startCheckout(options: {
   if (options.publicCheckout) {
     payload.name = options.publicCheckout.name;
     payload.email = options.publicCheckout.email;
+    delete payload.password;
   }
   const response = options.publicCheckout
     ? await billingApi.publicCheckout(payload)
