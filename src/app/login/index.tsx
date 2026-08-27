@@ -99,7 +99,11 @@ export default function SignIn() {
           }
         }
         
-        router.replace('/');
+        if (result.user.must_change_password) {
+          router.replace('/change-password');
+        } else {
+          router.replace('/');
+        }
       } else if (result.pending) {
         router.push({
           pathname: '/verify-code',

@@ -22,6 +22,7 @@ type User = {
   image?: string;
   role?: string;
   roles?: string[];
+  must_change_password?: boolean;
 };
 
 function parseUserRoles(data: { role?: string; roles?: string[] }): string[] {
@@ -39,6 +40,7 @@ function userFromAuthResponse(data: {
   premium?: boolean;
   role?: string;
   roles?: string[];
+  must_change_password?: boolean;
 }): User {
   const roles = parseUserRoles(data);
   return {
@@ -49,6 +51,7 @@ function userFromAuthResponse(data: {
     premium: data.premium || false,
     role: data.role || roles[0] || 'user',
     roles,
+    must_change_password: Boolean(data.must_change_password),
   };
 }
 
@@ -61,6 +64,15 @@ type SignInResult = {
 
 const AuthContext = createContext<{
   signIn: (email: string, password: string) => Promise<SignInResult>;
+  acceptAuth: (data: {
+    token: string;
+    name: string;
+    email: string;
+    user_id: string;
+    role?: string;
+    roles?: string[];
+    must_change_password?: boolean;
+  }) => Promise<void>;
   signOut: () => void;
   refresh_token: () => Promise<{ success: boolean; needsLogin?: boolean }>;
   verify_code: (token: any, code: string) => Promise<{ success: boolean; error?: string }>;
@@ -69,6 +81,7 @@ const AuthContext = createContext<{
   userInfo?: User | null;
 }>({
   signIn: async () => ({ success: false }),
+  acceptAuth: async () => undefined,
   signOut: () => null,
   refresh_token: async () => ({ success: false }),
   verify_code: async () => ({ success: false }),
@@ -168,6 +181,11 @@ export function SessionProvider({ children }: PropsWithChildren) {
           }
         },
 
+        acceptAuth: async (data) => {
+          await setSession(data.token);
+          setUserInfo(userFromAuthResponse({ ...data, token: data.token }));
+        },
+
         refresh_token: async () => {
           if (!session) return { success: false, needsLogin: true };
           try {
@@ -205,6 +223,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             if (response.status === 200) {
               await setSession(response.data.token);
+              if (response.data?.email && response.data?.user_id) {
+                setUserInfo(userFromAuthResponse(response.data));
+              }
 
               await new Promise((resolve) => setTimeout(resolve, 100));
 

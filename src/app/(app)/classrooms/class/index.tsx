@@ -9,6 +9,7 @@ import {
   Pressable,
   TextInput,
   Animated,
+  Switch,
 } from 'react-native';
 import { Menu } from 'lucide-react-native';
 import {
@@ -26,6 +27,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as yup from 'yup';
 
 import api from '@/services/api';
+import { copyText } from '@/services/checkout';
 import { colors } from '@/styles/colors';
 import { IClassroom, ICourse, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
@@ -88,6 +90,12 @@ export default function Classroom() {
   const [openCardGenerator, setOpenCardGenerator] = useState(false);
   const [characterCounter, setCharacterCounter] = useState(0);
   const [hasCourses, setHasCourses] = useState(false);
+  const [checkoutEnabled, setCheckoutEnabled] = useState(false);
+  const [checkoutPrice, setCheckoutPrice] = useState('');
+  const [savingCheckout, setSavingCheckout] = useState(false);
+  const isClassroomOwner =
+    String(currentClassroom?.teacher || '') === String(userInfo?.user_id || '');
+  const canManageCheckout = isClassroomOwner || hasRole('admin');
 
   // ── Courses inline tab ────────────────────────────────────────────────────
   const [courses, setCourses] = useState<ICourse[]>([]);
@@ -127,6 +135,15 @@ export default function Classroom() {
       fetchCollectionData();
     }
   }, [currentClassroom?._id]);
+
+  useEffect(() => {
+    setCheckoutEnabled(!!currentClassroom?.checkout_enabled);
+    setCheckoutPrice(
+      currentClassroom?.price === 0 || currentClassroom?.price
+        ? String(currentClassroom.price)
+        : '',
+    );
+  }, [currentClassroom?._id, currentClassroom?.checkout_enabled, currentClassroom?.price]);
 
   const fetchData = async () => {
     try {
@@ -353,6 +370,43 @@ export default function Classroom() {
     setGeneratedCards([]);
   };
 
+  const handleSaveCheckout = async () => {
+    if (!currentClassroom?._id) return;
+    const parsed =
+      checkoutPrice.trim() === '' ? null : Number(checkoutPrice.replace(',', '.'));
+    if (checkoutEnabled && (parsed === null || Number.isNaN(parsed) || parsed <= 0)) {
+      toast({ message: t('Enter a valid classroom price'), variant: 'destructive' });
+      return;
+    }
+    try {
+      setSavingCheckout(true);
+      const res = await api.put(
+        `/classroom/${currentClassroom._id}`,
+        { checkout_enabled: checkoutEnabled, price: parsed },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      setCurrentClassroom((prev) => (prev ? { ...prev, ...res.data } : res.data));
+      toast({ message: t('Checkout settings saved'), variant: 'success' });
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Failed to save checkout settings'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingCheckout(false);
+    }
+  };
+
+  const handleCopyCheckoutUrl = async () => {
+    const url = currentClassroom?.checkout_url;
+    if (!url) return;
+    const copied = await copyText(url);
+    toast({
+      message: copied ? t('Checkout link copied') : url,
+      variant: copied ? 'success' : 'destructive',
+    });
+  };
+
   const [showGuests, setShowGuests] = useState(true);
   const [showStudents, setShowStudents] = useState(true);
 
@@ -382,6 +436,77 @@ export default function Classroom() {
           {name}
         </Text>
       </View>
+      {canManageCheckout ? (
+        <View
+          className="rounded-2xl px-5 py-4 mb-4"
+          style={{
+            backgroundColor: colors.gray[100],
+            borderWidth: 1,
+            borderColor: colors.gray[300],
+          }}
+        >
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-1 pr-3">
+              <Text className="font-bold text-gray-800">{t('External checkout')}</Text>
+              <Text className="text-xs text-gray-500 mt-1">
+                {currentClassroom?.checkout_allowed
+                  ? t('Enable a public checkout link for this classroom')
+                  : t('Checkout not allowed')}
+              </Text>
+            </View>
+            {currentClassroom?.checkout_allowed ? (
+              <Switch
+                value={checkoutEnabled}
+                onValueChange={setCheckoutEnabled}
+                trackColor={{ false: colors.gray[300], true: colors.primary[200] }}
+                thumbColor={checkoutEnabled ? colors.primary[500] : colors.gray[400]}
+              />
+            ) : null}
+          </View>
+          {currentClassroom?.checkout_url ? (
+            <View className="flex-row items-center gap-2 mb-3">
+              <Text className="flex-1 text-xs text-gray-600" numberOfLines={2} selectable>
+                {currentClassroom.checkout_url}
+              </Text>
+              <TouchableOpacity
+                onPress={handleCopyCheckoutUrl}
+                className="px-3 py-2 rounded-xl"
+                style={{ backgroundColor: colors.primary[50] }}
+              >
+                <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
+                  {t('Copy link')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {currentClassroom?.checkout_allowed ? (
+            <>
+              <Text className="text-xs text-gray-600 mb-1">{t('Price')}</Text>
+              <TextInput
+                value={checkoutPrice}
+                onChangeText={setCheckoutPrice}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={colors.placeholder}
+                className="h-11 px-3 rounded-xl mb-3 bg-white"
+                style={{ borderWidth: 1, borderColor: colors.gray[300] }}
+              />
+              <TouchableOpacity
+                onPress={handleSaveCheckout}
+                disabled={savingCheckout}
+                className="items-center py-3 rounded-xl"
+                style={{ backgroundColor: colors.primary[500], opacity: savingCheckout ? 0.7 : 1 }}
+              >
+                {savingCheckout ? (
+                  <Loading />
+                ) : (
+                  <Text className="text-white font-semibold">{t('Save checkout settings')}</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : null}
+        </View>
+      ) : null}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}

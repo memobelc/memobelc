@@ -588,11 +588,6 @@ export default function BookAdminScreen() {
                 <Text className="text-xs mb-3" style={{ color: colors.gray[600] }}>
                   {t('Paid books use Asaas')}
                 </Text>
-                <Input
-                  label={t('Google Play SKU')}
-                  value={formData.google_play_product_id}
-                  onChangeText={(value) => setFormData({ ...formData, google_play_product_id: value })}
-                />
                 <Text className="mt-2 mb-1">{t('Sale mode')}</Text>
                 <View className="flex-row flex-wrap mb-2">
                   {(['separate', 'plans_only', 'both'] as const).map((mode) => (

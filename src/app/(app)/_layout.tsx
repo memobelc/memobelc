@@ -1,5 +1,5 @@
-import { Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { View } from 'react-native';
+import { Redirect, Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useSession } from '@/contexts/AuthContext';
@@ -21,6 +21,10 @@ export default function AppLayout() {
 
   if (isLoading) {
     return <Loading classname="flex-1 items-center justify-center" />;
+  }
+
+  if (session && userInfo?.must_change_password) {
+    return <Redirect href="/change-password" />;
   }
 
   // Always render Stack - let individual screens handle redirects

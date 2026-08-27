@@ -62,6 +62,10 @@ export type IClassroom = {
   teacher: string;
   updated_at: Date;
   user_role?: 'teacher' | 'student';
+  checkout_allowed?: boolean;
+  checkout_enabled?: boolean;
+  price?: number | null;
+  checkout_url?: string;
 };
 
 export type IQuestion = {
@@ -119,6 +123,9 @@ export type ICourse = {
   classroom_id: string;
   teacher_id: string;
   has_content?: boolean;
+  checkout_enabled?: boolean;
+  price?: number | null;
+  checkout_url?: string;
   modules?: ICourseModule[];
 };
 

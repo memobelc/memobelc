@@ -72,7 +72,6 @@ export default function AdminBundlesScreen() {
         <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-2" placeholder={t('name')} value={form.name} onChangeText={(name) => setForm((prev) => ({ ...prev, name }))} />
         <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-2" placeholder={t('description')} value={form.description} onChangeText={(description) => setForm((prev) => ({ ...prev, description }))} />
         <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-2" placeholder={t('Price')} value={form.price} onChangeText={(price) => setForm((prev) => ({ ...prev, price }))} />
-        <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-2" placeholder={t('Google Play SKU')} value={form.google_play_product_id} onChangeText={(google_play_product_id) => setForm((prev) => ({ ...prev, google_play_product_id }))} />
         <Text className="mb-1">{t('Books')}</Text>
         {books.map((book) => (
           <TouchableOpacity key={book._id} onPress={() => toggleBook(book._id)} className="mb-1">

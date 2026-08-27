@@ -183,6 +183,7 @@ const MenuExploreDrawer = () => {
       { name: t('Book bundles'), path: '/admin/bundles', icon: <MaterialCommunityIcons name="bookshelf" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Service access'), path: '/admin/access', icon: <MaterialIcons name="lock" size={24} />, disabled: false, serviceKey: '' },
       { name: t('External sales'), path: '/admin/external-sales', icon: <MaterialIcons name="point-of-sale" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Classroom checkouts'), path: '/admin/checkouts', icon: <MaterialIcons name="link" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Support'), path: '/admin/support', icon: <MaterialIcons name="headset-mic" size={24} />, disabled: false, serviceKey: '' },
     );
   }

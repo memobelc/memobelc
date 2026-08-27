@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { billingApi } from '@/services/billing';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import { openPlaySubscriptions } from '@/services/playBilling';
+import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
 
 const STATUS_COPY: Record<string, string> = {
   active: 'Subscription active',
@@ -28,6 +29,7 @@ export default function SubscriptionScreen() {
   const { entitlements, refresh } = useEntitlements();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCardUpdate, setShowCardUpdate] = useState(false);
 
   const load = useCallback(async () => {
     if (!userInfo?.token) return;
@@ -44,6 +46,10 @@ export default function SubscriptionScreen() {
   }, [userInfo?.token, refresh, t]);
 
   useEffect(() => { load(); }, [load]);
+
+  const sub = entitlements?.subscription;
+  const plan = entitlements?.plan;
+  const statusKey = entitlements?.status_code || entitlements?.status || '';
 
   const cancel = async () => {
     Alert.alert(
@@ -69,25 +75,20 @@ export default function SubscriptionScreen() {
   };
 
   const updatePayment = async () => {
-    try {
-      const res = await billingApi.updatePayment(userInfo?.token);
-      if (res.data.manage_url) {
+    if (sub?.provider === 'google_play') {
+      try {
         if (Platform.OS === 'android') {
           await openPlaySubscriptions();
         } else if (typeof window !== 'undefined') {
-          window.open(res.data.manage_url, '_blank');
+          window.open('https://play.google.com/store/account/subscriptions', '_blank');
         }
-      } else if (res.data.checkout_url && typeof window !== 'undefined') {
-        window.open(res.data.checkout_url, '_blank');
+      } catch (error: any) {
+        toast({ message: error.message || t('Error updating payment'), variant: 'destructive' });
       }
-    } catch (error: any) {
-      toast({ message: error.response?.data?.error || t('Error updating payment'), variant: 'destructive' });
+      return;
     }
+    setShowCardUpdate(true);
   };
-
-  const sub = entitlements?.subscription;
-  const plan = entitlements?.plan;
-  const statusKey = entitlements?.status_code || entitlements?.status || '';
 
   return (
     <ScrollView className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8" contentContainerStyle={{ paddingBottom: 80 }}>
@@ -135,6 +136,16 @@ export default function SubscriptionScreen() {
           <Text style={{ color: colors.gray[500] }}>{payment.paid_at || payment.created_at}</Text>
         </View>
       ))}
+      <AsaasPaySheet
+        visible={showCardUpdate}
+        onClose={() => setShowCardUpdate(false)}
+        token={userInfo?.token}
+        mode="update-card"
+        title={t('Update payment')}
+        onSuccess={async () => {
+          await load();
+        }}
+      />
     </ScrollView>
   );
 }

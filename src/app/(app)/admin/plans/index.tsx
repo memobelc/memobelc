@@ -145,11 +145,11 @@ export default function AdminPlansScreen() {
       {editing && (
         <View className="bg-white rounded-xl p-4 mt-2">
           <Text className="font-semibold mb-2">{editing._id ? t('Edit plan') : t('New plan')}</Text>
-          {['name', 'description', 'price', 'trial_days', 'google_play_product_id'].map((field) => (
+          {['name', 'description', 'price', 'trial_days'].map((field) => (
             <TextInput
               key={field}
               className="border border-gray-200 rounded-lg px-3 py-2 mb-2"
-              placeholder={t(field === 'google_play_product_id' ? 'Google Play SKU' : field)}
+              placeholder={t(field)}
               value={(form as any)[field]}
               onChangeText={(value) => setForm((prev) => ({ ...prev, [field]: value }))}
             />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +7,8 @@ import { colors } from '@/styles/colors';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { billingApi } from '@/services/billing';
-import { startCheckout } from '@/services/checkout';
 import { useEntitlements } from '@/contexts/EntitlementContext';
+import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
 
 export default function PlansCatalogScreen() {
   const { t } = useTranslation();
@@ -18,10 +18,13 @@ export default function PlansCatalogScreen() {
   const { entitlements, refresh } = useEntitlements();
   const [plans, setPlans] = useState<any[]>([]);
   const [bundles, setBundles] = useState<any[]>([]);
-  const [coupon, setCoupon] = useState('');
-  const [cpfCnpj, setCpfCnpj] = useState('');
   const [loading, setLoading] = useState(true);
-  const [buying, setBuying] = useState<string | null>(null);
+  const [changing, setChanging] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<{
+    productType: 'plan' | 'bundle';
+    productId: string;
+    title: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,43 +44,16 @@ export default function PlansCatalogScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const buy = async (productType: 'plan' | 'bundle', productId: string) => {
-    if (Platform.OS === 'ios') {
-      toast({ message: t('Please subscribe on the website'), variant: 'destructive' });
-      return;
-    }
-    if (!cpfCnpj.replace(/\D/g, '').match(/^(\d{11}|\d{14})$/)) {
-      toast({ message: t('Enter a valid CPF or CNPJ'), variant: 'destructive' });
-      return;
-    }
-    try {
-      setBuying(productId);
-      await startCheckout({
-        token: userInfo?.token,
-        productType,
-        productId,
-        couponCode: coupon || undefined,
-        cpfCnpj,
-      });
-      toast({ message: t('Checkout started'), variant: 'success' });
-      await refresh();
-    } catch (error: any) {
-      toast({ message: error.response?.data?.error || error.message || t('Error starting checkout'), variant: 'destructive' });
-    } finally {
-      setBuying(null);
-    }
-  };
-
   const changePlan = async (planId: string) => {
     try {
-      setBuying(planId);
+      setChanging(planId);
       await billingApi.changePlan(userInfo?.token, planId);
       toast({ message: t('Plan updated'), variant: 'success' });
       await refresh();
     } catch (error: any) {
       toast({ message: error.response?.data?.error || t('Error changing plan'), variant: 'destructive' });
     } finally {
-      setBuying(null);
+      setChanging(null);
     }
   };
 
@@ -88,11 +64,6 @@ export default function PlansCatalogScreen() {
         <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
       </TouchableOpacity>
       <Text className="text-2xl font-bold mb-2">{t('Plans')}</Text>
-      {Platform.OS === 'ios' && (
-        <Text className="mb-3" style={{ color: colors.gray[600] }}>{t('Please subscribe on the website')}</Text>
-      )}
-      <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-2 bg-white" placeholder={t('Coupon code')} value={coupon} onChangeText={setCoupon} />
-      <TextInput className="border border-gray-200 rounded-lg px-3 py-2 mb-4 bg-white" placeholder={t('CPF or CNPJ')} value={cpfCnpj} onChangeText={setCpfCnpj} keyboardType="numeric" />
       {loading ? <ActivityIndicator color={colors.primary[500]} /> : plans.map((plan) => {
         const current = entitlements?.plan?._id === plan._id;
         return (
@@ -104,11 +75,15 @@ export default function PlansCatalogScreen() {
             {current ? (
               <Text className="mt-2" style={{ color: colors.primary[600] }}>{t('Current plan')}</Text>
             ) : entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas' ? (
-              <TouchableOpacity disabled={buying === plan._id} onPress={() => changePlan(plan._id)} className="mt-2 px-3 py-2 rounded-lg self-start" style={{ backgroundColor: colors.primary[500] }}>
+              <TouchableOpacity disabled={changing === plan._id} onPress={() => changePlan(plan._id)} className="mt-2 px-3 py-2 rounded-lg self-start" style={{ backgroundColor: colors.primary[500] }}>
                 <Text className="text-white">{t('Switch to this plan')}</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity disabled={buying === plan._id} onPress={() => buy('plan', plan._id)} className="mt-2 px-3 py-2 rounded-lg self-start" style={{ backgroundColor: colors.primary[500] }}>
+              <TouchableOpacity
+                onPress={() => setCheckout({ productType: 'plan', productId: plan._id, title: plan.name })}
+                className="mt-2 px-3 py-2 rounded-lg self-start"
+                style={{ backgroundColor: colors.primary[500] }}
+              >
                 <Text className="text-white">{t('Subscribe')}</Text>
               </TouchableOpacity>
             )}
@@ -120,11 +95,27 @@ export default function PlansCatalogScreen() {
         <View key={bundle._id} className="bg-white rounded-xl p-4 mb-3">
           <Text className="font-semibold">{bundle.name}</Text>
           <Text>R$ {bundle.price}</Text>
-          <TouchableOpacity disabled={buying === bundle._id} onPress={() => buy('bundle', bundle._id)} className="mt-2 px-3 py-2 rounded-lg self-start" style={{ backgroundColor: colors.primary[500] }}>
+          <TouchableOpacity
+            onPress={() => setCheckout({ productType: 'bundle', productId: bundle._id, title: bundle.name })}
+            className="mt-2 px-3 py-2 rounded-lg self-start"
+            style={{ backgroundColor: colors.primary[500] }}
+          >
             <Text className="text-white">{t('Buy')}</Text>
           </TouchableOpacity>
         </View>
       ))}
+      <AsaasPaySheet
+        visible={!!checkout}
+        onClose={() => setCheckout(null)}
+        token={userInfo?.token}
+        productType={checkout?.productType}
+        productId={checkout?.productId}
+        title={checkout?.title}
+        onSuccess={async () => {
+          toast({ message: t('Payment confirmed'), variant: 'success' });
+          await refresh();
+        }}
+      />
     </ScrollView>
   );
 }

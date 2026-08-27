@@ -22,10 +22,15 @@ export const billingApi = {
   publicPlans: () => api.get('/plans/public'),
   checkout: (token: string | undefined, payload: Record<string, unknown>) =>
     api.post('/billing/checkout', payload, auth(token)),
+  publicCheckout: (payload: Record<string, unknown>) =>
+    api.post('/billing/public/checkout', payload),
   cancel: (token?: string) => api.post('/billing/cancel', {}, auth(token)),
   changePlan: (token: string | undefined, planId: string) =>
     api.post('/billing/change-plan', { plan_id: planId }, auth(token)),
-  updatePayment: (token?: string) => api.post('/billing/update-payment', {}, auth(token)),
+  updatePayment: (token: string | undefined, payload?: Record<string, unknown>) =>
+    api.post('/billing/update-payment', payload || {}, auth(token)),
+  pixQr: (token: string | undefined, paymentId: string) =>
+    api.get(`/billing/payments/${paymentId}/pix`, auth(token)),
   validateCoupon: (token: string | undefined, payload: Record<string, unknown>) =>
     api.post('/coupons/validate', payload, auth(token)),
   googleVerify: (token: string | undefined, payload: Record<string, unknown>) =>
@@ -70,6 +75,12 @@ export const billingApi = {
   externalSales: (token?: string) => api.get('/admin/billing/external-sales', auth(token)),
   createExternalSale: (token: string | undefined, payload: Record<string, unknown>) =>
     api.post('/admin/billing/external-sales', payload, auth(token)),
+  adminClassrooms: (token?: string) =>
+    api.get('/admin/billing/classrooms', auth(token)),
+  updateClassroomCheckout: (token: string | undefined, id: string, payload: Record<string, unknown>) =>
+    api.put(`/admin/billing/classrooms/${id}`, payload, auth(token)),
+  classroomCheckouts: (token: string | undefined, params?: Record<string, unknown>) =>
+    api.get('/admin/billing/classroom-checkouts', { ...auth(token), params }),
   adminUsers: (token?: string, search?: string) =>
     api.get('/admin/users', { ...auth(token), params: search ? { search } : undefined }),
   adminBooks: (token?: string) => api.get('/books/admin/list', auth(token)),
