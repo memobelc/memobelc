@@ -165,7 +165,13 @@ const AvatarProfileDrawer = () => {
               className="bg-white  h-full w-[300px] absolute right-0 top-0 p-4 rounded-l-2xl shadow-lg"
             >
               <ScrollView showsVerticalScrollIndicator={false}>
-              <TouchableOpacity className="flex flex-row gap-2 items-center mb-3">
+              <TouchableOpacity
+                className="flex flex-row gap-2 items-center mb-3"
+                onPress={() => {
+                  router.push('/profile');
+                  handleClose();
+                }}
+              >
                 <Avatar>
                   <AvatarImage
                     source={
@@ -218,7 +224,16 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
-
+              <TouchableOpacity
+                onPress={() => {
+                  router.push('/profile');
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="person" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('My profile')}</Text>
+              </TouchableOpacity>
               <View>
                 {menuItems &&
                   menuItems.map((item) => {

@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  TextInput,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -9,16 +17,44 @@ import { colors } from '@/styles/colors';
 import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { Loading } from '@/components/Loading';
+import { useToast } from '@/components/Toast';
+import { adminProfileApi, emptyAddress, type ProfileBadge } from '@/services/profile';
+import { formatCpfCnpj } from '@/services/checkout';
 
 type AdminProfile = {
   user: {
     _id: string;
     name: string;
     email: string;
+    image?: string | null;
+    cpf_cnpj?: string | null;
+    address?: {
+      postal_code?: string;
+      street?: string;
+      number?: string;
+      complement?: string;
+      neighborhood?: string;
+      city?: string;
+      state?: string;
+    };
+    coins?: number;
     role: string;
     roles: string[];
     member_since: string | null;
   };
+  badges?: {
+    _id: string;
+    name: string;
+    description?: string;
+    image?: string | null;
+    awarded_at?: string | null;
+  }[];
+  missions?: {
+    _id: string;
+    title: string;
+    coins?: number;
+    completed_at?: string | null;
+  }[];
   access: {
     last_access: string | null;
     total_logins: number;
@@ -109,6 +145,32 @@ export default function AdminUserProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openChatId, setOpenChatId] = useState<string | null>(null);
+  const [coinAmount, setCoinAmount] = useState('');
+  const [coinReason, setCoinReason] = useState('');
+  const [granting, setGranting] = useState(false);
+  const [catalogBadges, setCatalogBadges] = useState<ProfileBadge[]>([]);
+  const [awardingId, setAwardingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const loadProfile = useCallback(async () => {
+    if (!userInfo?.token || !userId || !isAssignedAdmin) return;
+    try {
+      setLoading(true);
+      const [profileRes, badgesRes] = await Promise.all([
+        api.get(`/admin/users/${userId}/profile`, {
+          headers: { Authorization: `Bearer ${userInfo.token}` },
+        }),
+        adminProfileApi.badges(userInfo.token),
+      ]);
+      setProfile(profileRes.data);
+      setCatalogBadges(badgesRes.data.badges || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || t('Error loading user profile'));
+    } finally {
+      setLoading(false);
+    }
+  }, [userInfo?.token, userId, isAssignedAdmin, t]);
 
   useEffect(() => {
     if (userInfo && !isAssignedAdmin) {
@@ -117,29 +179,49 @@ export default function AdminUserProfileScreen() {
   }, [userInfo, isAssignedAdmin, router]);
 
   useEffect(() => {
-    if (!userInfo?.token || !userId || !isAssignedAdmin) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(`/admin/users/${userId}/profile`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        });
-        if (!cancelled) setProfile(response.data);
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(
-            err?.response?.data?.error || t('Error loading user profile'),
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userInfo?.token, userId, isAssignedAdmin, t]);
+    loadProfile();
+  }, [loadProfile]);
+
+  const grantCoins = async () => {
+    if (!userId) return;
+    const amount = parseInt(coinAmount, 10);
+    if (!amount || amount <= 0) {
+      toast({ message: t('Enter a valid coin amount'), variant: 'destructive' });
+      return;
+    }
+    try {
+      setGranting(true);
+      await adminProfileApi.grantCoins(userInfo?.token, userId, amount, coinReason);
+      setCoinAmount('');
+      setCoinReason('');
+      toast({ message: t('Coins added'), variant: 'success' });
+      await loadProfile();
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error adding coins'),
+        variant: 'destructive',
+      });
+    } finally {
+      setGranting(false);
+    }
+  };
+
+  const awardBadge = async (badgeId: string) => {
+    if (!userId) return;
+    try {
+      setAwardingId(badgeId);
+      await adminProfileApi.awardBadge(userInfo?.token, userId, badgeId);
+      toast({ message: t('Badge awarded'), variant: 'success' });
+      await loadProfile();
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error awarding badge'),
+        variant: 'destructive',
+      });
+    } finally {
+      setAwardingId(null);
+    }
+  };
 
   if (!isAssignedAdmin) {
     return (
@@ -180,10 +262,22 @@ export default function AdminUserProfileScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
           <View className="bg-white rounded-2xl p-4 mb-4">
-            <Text className="text-lg font-extrabold text-gray-800">
-              {profile.user.name || t('(sem nome)')}
-            </Text>
-            <Text className="text-sm text-gray-500 mt-1">{profile.user.email}</Text>
+            <View className="flex-row items-center">
+              <Image
+                source={
+                  profile.user.image
+                    ? { uri: profile.user.image }
+                    : require('@/assets/fallback.png')
+                }
+                style={{ width: 64, height: 64, borderRadius: 32, marginRight: 12 }}
+              />
+              <View className="flex-1">
+                <Text className="text-lg font-extrabold text-gray-800">
+                  {profile.user.name || t('(sem nome)')}
+                </Text>
+                <Text className="text-sm text-gray-500 mt-1">{profile.user.email}</Text>
+              </View>
+            </View>
             <View className="flex-row flex-wrap mt-2 gap-1">
               {profile.user.roles.map((role) => (
                 <View
@@ -200,6 +294,123 @@ export default function AdminUserProfileScreen() {
             <Text className="text-xs text-gray-400 mt-2">
               {t('Membro desde')} {formatDate(profile.user.member_since)}
             </Text>
+            <Text className="text-sm text-gray-700 mt-3">
+              {t('CPF or CNPJ')}: {profile.user.cpf_cnpj ? formatCpfCnpj(profile.user.cpf_cnpj) : t('Not provided')}
+            </Text>
+            <Text className="text-sm text-gray-700 mt-1">
+              {t('Coins')}: {profile.user.coins ?? 0}
+            </Text>
+            {(() => {
+              const address = { ...emptyAddress(), ...(profile.user.address || {}) };
+              const hasAddress = Object.values(address).some((value) => value);
+              return (
+                <Text className="text-xs text-gray-500 mt-2">
+                  {t('Address')}:{' '}
+                  {hasAddress
+                    ? [
+                        address.street,
+                        address.number,
+                        address.complement,
+                        address.neighborhood,
+                        address.city,
+                        address.state,
+                        address.postal_code,
+                      ]
+                        .filter(Boolean)
+                        .join(', ')
+                    : t('Not provided')}
+                </Text>
+              );
+            })()}
+          </View>
+
+          <View className="bg-white rounded-2xl p-4 mb-4">
+            <Text className="font-bold text-gray-700 mb-3">{t('Add coins')}</Text>
+            <TextInput
+              value={coinAmount}
+              onChangeText={setCoinAmount}
+              keyboardType="numeric"
+              placeholder={t('Amount')}
+              placeholderTextColor={colors.gray[400]}
+              className="border border-gray-200 rounded-lg px-3 py-2 mb-2"
+            />
+            <TextInput
+              value={coinReason}
+              onChangeText={setCoinReason}
+              placeholder={t('Reason')}
+              placeholderTextColor={colors.gray[400]}
+              className="border border-gray-200 rounded-lg px-3 py-2 mb-2"
+            />
+            <TouchableOpacity
+              onPress={grantCoins}
+              disabled={granting}
+              className="py-2.5 rounded-lg items-center"
+              style={{ backgroundColor: colors.primary[500] }}
+            >
+              {granting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-bold">{t('Add coins')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View className="bg-white rounded-2xl p-4 mb-4">
+            <Text className="font-bold text-gray-700 mb-3">{t('Badges')}</Text>
+            {!profile.badges?.length ? (
+              <Text className="text-gray-400 mb-3">{t('No badges yet')}</Text>
+            ) : (
+              profile.badges.map((badge) => (
+                <View key={badge._id} className="flex-row items-center mb-2">
+                  {badge.image ? (
+                    <Image source={{ uri: badge.image }} className="w-8 h-8 rounded-full mr-2" />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="medal"
+                      size={22}
+                      color={colors.primary[500]}
+                      style={{ marginRight: 8 }}
+                    />
+                  )}
+                  <Text className="text-sm text-gray-800">{badge.name}</Text>
+                </View>
+              ))
+            )}
+            <Text className="font-bold text-gray-700 mt-3 mb-2">{t('Award badge')}</Text>
+            {catalogBadges
+              .filter(
+                (badge) =>
+                  badge.is_active !== false &&
+                  !(profile.badges || []).some((owned) => owned._id === badge._id),
+              )
+              .map((badge) => (
+                <TouchableOpacity
+                  key={badge._id}
+                  onPress={() => awardBadge(badge._id)}
+                  disabled={awardingId === badge._id}
+                  className="flex-row items-center py-2"
+                >
+                  {awardingId === badge._id ? (
+                    <ActivityIndicator color={colors.primary[500]} />
+                  ) : (
+                    <MaterialIcons name="add-circle-outline" size={20} color={colors.primary[500]} />
+                  )}
+                  <Text className="ml-2 text-primary">{badge.name}</Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+
+          <View className="bg-white rounded-2xl p-4 mb-4">
+            <Text className="font-bold text-gray-700 mb-3">{t('Completed missions')}</Text>
+            {!profile.missions?.length ? (
+              <Text className="text-gray-400">{t('No missions yet')}</Text>
+            ) : (
+              profile.missions.map((mission) => (
+                <Text key={mission._id} className="text-sm text-gray-700 mb-1">
+                  {mission.title} · +{mission.coins || 0} {t('coins')}
+                </Text>
+              ))
+            )}
           </View>
 
           <View className="bg-white rounded-2xl p-4 mb-4">

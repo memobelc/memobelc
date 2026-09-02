@@ -37,6 +37,8 @@ type Book = {
   genero?: string;
   is_free: boolean;
   price?: number;
+  coins_enabled?: boolean;
+  coin_price?: number;
   payment_link?: string;
   chapters: Chapter[];
   collection_id?: string | null;
@@ -221,7 +223,11 @@ export default function BooksScreen() {
               className="text-xs font-semibold"
               style={{ color: '#FFFFFF' }}
             >
-          {book.price ? `R$ ${book.price}` : t('Paid')}
+          {book.price
+            ? `R$ ${book.price}`
+            : book.coins_enabled && book.coin_price
+              ? `${book.coin_price} ${t('coins')}`
+              : t('Paid')}
             </Text>
           </View>
         )}

@@ -24,6 +24,7 @@ type AdminUser = {
   email?: string;
   role?: string;
   roles: string[];
+  coins?: number;
 };
 
 function roleLabel(role: string, t: (key: string) => string) {
@@ -223,6 +224,9 @@ export default function AdminUsersScreen() {
                         {user.name || t('(sem nome)')}
                       </Text>
                       <Text className="text-xs text-gray-500">{user.email}</Text>
+                      <Text className="text-xs mt-1" style={{ color: colors.warning[700] }}>
+                        {user.coins ?? 0} {t('coins')}
+                      </Text>
                       <View className="flex-row flex-wrap mt-2 gap-1">
                         {(user.roles || []).map((role) => (
                           <View

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '@/styles/colors';
 import { useToast } from '@/components/Toast';
+import { useSession } from '@/contexts/AuthContext';
 import { billingApi } from '@/services/billing';
 import {
   copyText,
@@ -104,9 +105,11 @@ export default function AsaasPaySheet({
 }: AsaasPaySheetProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { userInfo, updateUserInfo } = useSession();
+  const resolvedCpf = formatCpfCnpj(initialCpf || userInfo?.cpf_cnpj || '');
   const updateCard = mode === 'update-card';
   const [coupon, setCoupon] = useState(initialCoupon);
-  const [cpfCnpj, setCpfCnpj] = useState(initialCpf);
+  const [cpfCnpj, setCpfCnpj] = useState(resolvedCpf);
   const [showCoupon, setShowCoupon] = useState(!!initialCoupon);
   const [method, setMethod] = useState<BillingType>(updateCard ? 'CREDIT_CARD' : 'PIX');
   const [card, setCard] = useState(emptyCard);
@@ -118,7 +121,7 @@ export default function AsaasPaySheet({
 
   const reset = () => {
     setCoupon(initialCoupon);
-    setCpfCnpj(initialCpf);
+    setCpfCnpj(resolvedCpf);
     setShowCoupon(!!initialCoupon);
     setMethod(updateCard ? 'CREDIT_CARD' : 'PIX');
     setCard({ ...emptyCard, phone: initialPhone });
@@ -136,13 +139,13 @@ export default function AsaasPaySheet({
   useEffect(() => {
     if (visible) {
       setCoupon(initialCoupon);
-      setCpfCnpj(initialCpf);
+      setCpfCnpj(resolvedCpf);
       setShowCoupon(!!initialCoupon);
       setCard((prev) => ({ ...prev, phone: initialPhone || prev.phone }));
       return;
     }
     reset();
-  }, [visible, updateCard, initialCpf, initialCoupon, initialPhone]);
+  }, [visible, updateCard, resolvedCpf, initialCoupon, initialPhone]);
 
   const close = () => {
     reset();
@@ -150,6 +153,12 @@ export default function AsaasPaySheet({
   };
 
   const finishSuccess = async (result?: any) => {
+    if (!userInfo?.cpf_cnpj && cpfCnpj) {
+      const digits = cpfCnpj.replace(/\D/g, '');
+      if (digits.match(/^(\d{11}|\d{14})$/)) {
+        updateUserInfo({ cpf_cnpj: digits });
+      }
+    }
     await onSuccess(result);
     close();
   };

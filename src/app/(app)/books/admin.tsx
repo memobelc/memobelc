@@ -63,6 +63,8 @@ export default function BookAdminScreen() {
     sale_mode: 'both',
     is_published: true,
     google_play_product_id: '',
+    coins_enabled: false,
+    coin_price: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedCapa, setSelectedCapa] = useState<string | null>(null);
@@ -93,6 +95,8 @@ export default function BookAdminScreen() {
           sale_mode: book.sale_mode || 'both',
           is_published: book.is_published !== false,
           google_play_product_id: book.google_play_product_id || '',
+          coins_enabled: !!book.coins_enabled,
+          coin_price: book.coin_price ? String(book.coin_price) : '',
         });
         if (book.capa) {
           setSelectedCapa(book.capa);
@@ -252,6 +256,14 @@ export default function BookAdminScreen() {
       return;
     }
 
+    if (!formData.is_free && formData.coins_enabled) {
+      const coinPrice = parseInt(formData.coin_price, 10);
+      if (Number.isNaN(coinPrice) || coinPrice < 1) {
+        toast({ message: t('Enter a valid coin amount'), variant: 'destructive' });
+        return;
+      }
+    }
+
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
       if (!chapter.titulo) {
@@ -354,6 +366,13 @@ export default function BookAdminScreen() {
         sale_mode: formData.sale_mode,
         is_published: formData.is_published,
         google_play_product_id: formData.google_play_product_id || undefined,
+        coins_enabled: formData.is_free ? false : formData.coins_enabled,
+        coin_price:
+          formData.is_free || !formData.coins_enabled
+            ? 0
+            : formData.coin_price
+              ? parseInt(formData.coin_price, 10)
+              : 0,
         chapters: processedChapters,
       };
 
@@ -545,7 +564,9 @@ export default function BookAdminScreen() {
 
             <View className="flex-row items-center mb-4">
               <TouchableOpacity
-                onPress={() => setFormData({ ...formData, is_free: true })}
+                onPress={() =>
+                  setFormData({ ...formData, is_free: true, coins_enabled: false })
+                }
                 className={`flex-1 px-4 py-3 mr-2 rounded-lg ${
                   formData.is_free ? 'bg-primary-500' : 'bg-gray-200'
                 }`}
@@ -588,6 +609,35 @@ export default function BookAdminScreen() {
                 <Text className="text-xs mb-3" style={{ color: colors.gray[600] }}>
                   {t('Paid books use Asaas')}
                 </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setFormData({ ...formData, coins_enabled: !formData.coins_enabled })
+                  }
+                  className="mb-2 px-3 py-2 rounded-lg"
+                  style={{
+                    backgroundColor: formData.coins_enabled
+                      ? colors.primary[500]
+                      : colors.gray[200],
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: formData.coins_enabled ? '#FFFFFF' : colors.gray[700],
+                    }}
+                  >
+                    {t('Sell with coins')}
+                  </Text>
+                </TouchableOpacity>
+                {formData.coins_enabled && (
+                  <Input
+                    label={t('Coin price')}
+                    value={formData.coin_price}
+                    onChangeText={(value) =>
+                      setFormData({ ...formData, coin_price: value })
+                    }
+                    keyboardType="numeric"
+                  />
+                )}
                 <Text className="mt-2 mb-1">{t('Sale mode')}</Text>
                 <View className="flex-row flex-wrap mb-2">
                   {(['separate', 'plans_only', 'both'] as const).map((mode) => (

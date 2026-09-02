@@ -4,6 +4,7 @@ import {
   createContext,
   type PropsWithChildren,
   useState,
+  useCallback,
 } from 'react';
 import {
   useStorageStateSession,
@@ -12,8 +13,9 @@ import {
 import api from '@/services/api';
 import { useToast } from '@/components/Toast';
 import i18n from '@/locales/i18n';
+import { emptyAddress, profileApi, type UserAddress } from '@/services/profile';
 
-type User = {
+export type User = {
   email: string;
   name: string;
   token: string;
@@ -23,6 +25,9 @@ type User = {
   role?: string;
   roles?: string[];
   must_change_password?: boolean;
+  cpf_cnpj?: string;
+  coins?: number;
+  address?: UserAddress;
 };
 
 function parseUserRoles(data: { role?: string; roles?: string[] }): string[] {
@@ -55,6 +60,24 @@ function userFromAuthResponse(data: {
   };
 }
 
+async function hydrateUserProfile(user: User): Promise<User> {
+  try {
+    const response = await profileApi.me(user.token);
+    const profile = response.data;
+    return {
+      ...user,
+      name: profile.name || user.name,
+      email: profile.email || user.email,
+      image: profile.image || undefined,
+      cpf_cnpj: profile.cpf_cnpj || undefined,
+      coins: profile.coins ?? 0,
+      address: profile.address || emptyAddress(),
+    };
+  } catch {
+    return user;
+  }
+}
+
 type SignInResult = {
   success: boolean;
   user?: User;
@@ -76,6 +99,7 @@ const AuthContext = createContext<{
   signOut: () => void;
   refresh_token: () => Promise<{ success: boolean; needsLogin?: boolean }>;
   verify_code: (token: any, code: string) => Promise<{ success: boolean; error?: string }>;
+  updateUserInfo: (partial: Partial<User>) => void;
   session?: string | null;
   isLoading: boolean;
   userInfo?: User | null;
@@ -85,6 +109,7 @@ const AuthContext = createContext<{
   signOut: () => null,
   refresh_token: async () => ({ success: false }),
   verify_code: async () => ({ success: false }),
+  updateUserInfo: () => undefined,
   session: null,
   isLoading: false,
   userInfo: null,
@@ -108,6 +133,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [userInfo, setUserInfo] = useState<User | null>(null);
   const { toast } = useToast();
 
+  const updateUserInfo = useCallback((partial: Partial<User>) => {
+    setUserInfo((current) => (current ? { ...current, ...partial } : current));
+  }, []);
+
   useEffect(() => {
     if (session && !userInfo) {
       (async () => {
@@ -118,7 +147,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
           });
           if (response.data) {
             setSession(response.data.token);
-            setUserInfo(userFromAuthResponse(response.data));
+            const user = userFromAuthResponse(response.data);
+            setUserInfo(await hydrateUserProfile(user));
           }
         } catch (error) {
           setSession(null);
@@ -151,7 +181,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
             await setSession(response.data.token);
 
-            const user = userFromAuthResponse(response.data);
+            const user = await hydrateUserProfile(userFromAuthResponse(response.data));
 
             setUserInfo(user);
 
@@ -183,7 +213,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
         acceptAuth: async (data) => {
           await setSession(data.token);
-          setUserInfo(userFromAuthResponse({ ...data, token: data.token }));
+          setUserInfo(await hydrateUserProfile(userFromAuthResponse({ ...data, token: data.token })));
         },
 
         refresh_token: async () => {
@@ -196,7 +226,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             if (response.data) {
               setSession(response.data.token);
 
-              setUserInfo(userFromAuthResponse(response.data));
+              setUserInfo(await hydrateUserProfile(userFromAuthResponse(response.data)));
 
               return { success: true };
             }
@@ -224,7 +254,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             if (response.status === 200) {
               await setSession(response.data.token);
               if (response.data?.email && response.data?.user_id) {
-                setUserInfo(userFromAuthResponse(response.data));
+                setUserInfo(await hydrateUserProfile(userFromAuthResponse(response.data)));
               }
 
               await new Promise((resolve) => setTimeout(resolve, 100));
@@ -253,6 +283,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             }
           }
         },
+        updateUserInfo,
         signOut: () => {
           const token = userInfo?.token;
 
