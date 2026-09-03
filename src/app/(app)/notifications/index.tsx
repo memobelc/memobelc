@@ -43,13 +43,22 @@ const NotificationsScreen = () => {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        {notifications.length > 0 && (
-          <TouchableOpacity onPress={handleMarkAll}>
-            <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
-              {t('Mark all as read')}
-            </Text>
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.push('/settings' as any)}
+            className="mr-4"
+            accessibilityLabel={t('Notification settings')}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.primary[500]} />
           </TouchableOpacity>
-        )}
+          {notifications.length > 0 && (
+            <TouchableOpacity onPress={handleMarkAll}>
+              <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
+                {t('Mark all as read')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <Text
@@ -87,6 +96,19 @@ const NotificationsScreen = () => {
                   });
                 } else {
                   openChat();
+                }
+              }
+              if (item.type === 'affiliate_sales') {
+                router.push('/affiliate/sales' as any);
+              }
+              if (item.type === 'affiliate' && isAssignedAdmin) {
+                const kind = item.data?.kind;
+                if (kind === 'application') {
+                  router.push('/admin/affiliates/applications' as any);
+                } else if (kind === 'withdrawal') {
+                  router.push('/admin/affiliates/withdrawals' as any);
+                } else {
+                  router.push('/admin/affiliates/commissions' as any);
                 }
               }
             };

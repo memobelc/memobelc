@@ -22,6 +22,7 @@ type AdminUser = {
   _id: string;
   name?: string;
   email?: string;
+  cpf_cnpj?: string | null;
   role?: string;
   roles: string[];
   coins?: number;
@@ -30,6 +31,7 @@ type AdminUser = {
 function roleLabel(role: string, t: (key: string) => string) {
   if (role === 'admin') return t('Admin');
   if (role === 'teacher') return t('Teacher');
+  if (role === 'affiliate') return t('Affiliate');
   return t('User');
 }
 
@@ -97,13 +99,15 @@ export default function AdminUsersScreen() {
     }));
   };
 
-  const toggleDraftRole = (userId: string, role: 'admin' | 'teacher') => {
+  const toggleDraftRole = (userId: string, role: 'admin' | 'teacher' | 'affiliate') => {
     setDraftRoles((prev) => {
       const current = prev[userId] || [];
       const hasRole = current.includes(role);
       let next = hasRole
         ? current.filter((item) => item !== role)
-        : [...current.filter((item) => item !== 'user'), role];
+        : role === 'affiliate'
+          ? [...current, role]
+          : [...current.filter((item) => item !== 'user'), role];
       if (next.length === 0) {
         next = ['user'];
       }
@@ -183,7 +187,7 @@ export default function AdminUsersScreen() {
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder={t('Search users...')}
+        placeholder={t('Search by name, email or CPF')}
         placeholderTextColor={colors.gray[400]}
         className="border border-gray-200 rounded-lg px-4 py-2.5 mb-4 bg-white"
       />
@@ -224,6 +228,11 @@ export default function AdminUsersScreen() {
                         {user.name || t('(sem nome)')}
                       </Text>
                       <Text className="text-xs text-gray-500">{user.email}</Text>
+                      {user.cpf_cnpj ? (
+                        <Text className="text-xs text-gray-500">
+                          {t('CPF')}: {user.cpf_cnpj}
+                        </Text>
+                      ) : null}
                       <Text className="text-xs mt-1" style={{ color: colors.warning[700] }}>
                         {user.coins ?? 0} {t('coins')}
                       </Text>
@@ -256,7 +265,7 @@ export default function AdminUsersScreen() {
                       <Text className="font-bold text-primary mb-2">
                         {t('Roles')}
                       </Text>
-                      {(['admin', 'teacher'] as const).map((role) => {
+                      {(['admin', 'teacher', 'affiliate'] as const).map((role) => {
                         const checked = currentDraft.includes(role);
                         const lockOwnAdmin = isSelf && role === 'admin' && checked;
                         return (

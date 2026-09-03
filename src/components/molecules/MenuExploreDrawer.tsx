@@ -3,10 +3,10 @@ import {
   TouchableOpacity,
   Text,
   Modal,
-  TouchableWithoutFeedback,
   Animated,
   Pressable,
   Platform,
+  ScrollView,
 } from 'react-native';
 import {
   MaterialIcons,
@@ -174,6 +174,16 @@ const MenuExploreDrawer = () => {
     serviceKey: '',
   });
 
+  if (hasRole('affiliate')) {
+    menuItems.push({
+      name: t('Affiliate'),
+      path: '/affiliate',
+      icon: <MaterialCommunityIcons name="handshake-outline" size={24} />,
+      disabled: false,
+      serviceKey: '',
+    });
+  }
+
   if (hasRole('admin')) {
     menuItems.push(
       { name: t('Users'), path: '/admin/users', icon: <MaterialIcons name="people" size={24} />, disabled: false, serviceKey: '' },
@@ -185,6 +195,7 @@ const MenuExploreDrawer = () => {
       { name: t('Book bundles'), path: '/admin/bundles', icon: <MaterialCommunityIcons name="bookshelf" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Service access'), path: '/admin/access', icon: <MaterialIcons name="lock" size={24} />, disabled: false, serviceKey: '' },
       { name: t('External sales'), path: '/admin/external-sales', icon: <MaterialIcons name="point-of-sale" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Affiliates'), path: '/admin/affiliates', icon: <MaterialCommunityIcons name="handshake-outline" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Classroom checkouts'), path: '/admin/checkouts', icon: <MaterialIcons name="link" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Support'), path: '/admin/support', icon: <MaterialIcons name="headset-mic" size={24} />, disabled: false, serviceKey: '' },
     );
@@ -211,6 +222,75 @@ const MenuExploreDrawer = () => {
       }).start();
     }
   }, [open]);
+
+  const visibleItems = menuItems.filter((item) => {
+    if (!item.serviceKey) return true;
+    return configuredAction(item.serviceKey) !== 'hide' && menuAction(serviceAction(item.serviceKey)) !== 'hide';
+  });
+  const userItems = visibleItems.filter((item) => !item.path.startsWith('/admin'));
+  const adminItems = visibleItems.filter((item) => item.path.startsWith('/admin'));
+
+  const renderMenuItem = (item: (typeof menuItems)[number]) => {
+    const configured = item.serviceKey ? configuredAction(item.serviceKey) : 'allow';
+    const action = item.serviceKey ? menuAction(serviceAction(item.serviceKey)) : 'allow';
+    const isDisabled = item.disabled || configured === 'disabled' || action === 'disabled';
+    const isGated = configured === 'disabled_upgrade' && action !== 'allow';
+    const isMuted = isDisabled || isGated;
+    const isActive = pathname === item.path && !isMuted;
+    const iconColor = isMuted ? colors.gray[400] : undefined;
+    const icon = isValidElement(item.icon) && iconColor
+      ? cloneElement(item.icon, { color: iconColor } as any)
+      : item.icon;
+    return (
+      <Pressable
+        key={item.path + item.name}
+        className={`flex-row items-center mb-1 px-3 py-2 rounded-r-3xl ${
+          isActive ? 'bg-orange-400' : ''
+        }`}
+        disabled={isDisabled}
+        onPress={() => {
+          if (isGated) {
+            handleClose();
+            setTimeout(() => setSubscribeOpen(true), 320);
+            return;
+          }
+          router.push(item.path as `./${string}`);
+          handleClose();
+        }}
+        {...(Platform.OS === 'web'
+          ? { onMouseLeave: () => {} }
+          : {})}
+      >
+        {icon}
+        <Text
+          className={`font-[ComicSans] ml-3 flex-1 ${
+            isMuted ? 'text-gray-400' : 'text-primary-600 font-bold'
+          }`}
+        >
+          {item.name}
+        </Text>
+        {item.path === '/admin/support' && supportUnread > 0 ? (
+          <View
+            className="min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center ml-2"
+            style={{ backgroundColor: colors.error[500] }}
+          >
+            <Text className="text-white text-[10px] font-bold">
+              {supportUnread > 99 ? '99+' : supportUnread}
+            </Text>
+          </View>
+        ) : null}
+        {isGated ? (
+          <Ionicons
+            name="star"
+            size={16}
+            color={colors.warning[500]}
+            style={{ marginLeft: 8 }}
+          />
+        ) : null}
+      </Pressable>
+    );
+  };
+
   return (
     <View>
       <TouchableOpacity onPress={() => setOpen(true)}>
@@ -222,8 +302,18 @@ const MenuExploreDrawer = () => {
         visible={open}
         onRequestClose={handleClose}
       >
-        <TouchableWithoutFeedback onPress={handleClose}>
           <View className="flex-1 relative">
+            <Pressable
+              onPress={handleClose}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.35)',
+              }}
+            />
             <Animated.View
               style={{
                 backgroundColor: 'white',
@@ -231,21 +321,31 @@ const MenuExploreDrawer = () => {
                 padding: 20,
                 height: '100%',
                 transform: [{ translateX }],
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 1,
               }}
               className="bg-white h-full w-[300px] absolute left-0 top-0 p-4 rounded-r-2xl shadow-lg"
             >
-              <View className="flex-row mb-6">
+              <View className="flex-row items-center mb-6">
                 <FontAwesome6
                   name="bars-staggered"
                   size={24}
                   color={colors.gray[300]}
                 />
                 <Text
-                  className="font-[ComicSans] font-bold ml-3"
+                  className="font-[ComicSans] font-bold ml-3 flex-1"
                   style={{ color: colors.primary[600] }}
                 >
                   {t('Explore')}
                 </Text>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={t('Close')}
+                >
+                  <Ionicons name="close" size={24} color={colors.gray[600]} />
+                </TouchableOpacity>
               </View>
               {!entitlements?.is_subscriber && (
                 <TouchableOpacity className="mb-3" onPress={() => { router.push('/plans'); handleClose(); }}>
@@ -277,74 +377,32 @@ const MenuExploreDrawer = () => {
                   </LinearGradient>
                 </TouchableOpacity>
               )}
-              <View>
-                {menuItems.filter((item) => {
-                  if (!item.serviceKey) return true;
-                  return configuredAction(item.serviceKey) !== 'hide' && menuAction(serviceAction(item.serviceKey)) !== 'hide';
-                }).map((item) => {
-                  const configured = item.serviceKey ? configuredAction(item.serviceKey) : 'allow';
-                  const action = item.serviceKey ? menuAction(serviceAction(item.serviceKey)) : 'allow';
-                  const isDisabled = item.disabled || configured === 'disabled' || action === 'disabled';
-                  const isGated = configured === 'disabled_upgrade' && action !== 'allow';
-                  const isMuted = isDisabled || isGated;
-                  const isActive = pathname === item.path && !isMuted;
-                  const iconColor = isMuted ? colors.gray[400] : undefined;
-                  const icon = isValidElement(item.icon) && iconColor
-                    ? cloneElement(item.icon, { color: iconColor } as any)
-                    : item.icon;
-                  return (
-                    <Pressable
-                      key={item.path + item.name}
-                      className={`flex-row items-center mb-3 -left-4 w-[90%] px-5 py-1 rounded-r-3xl ${
-                        isActive ? 'bg-orange-400' : ''
-                      }`}
-                      disabled={isDisabled}
-                      onPress={() => {
-                        if (isGated) {
-                          handleClose();
-                          setTimeout(() => setSubscribeOpen(true), 320);
-                          return;
-                        }
-                        router.push(item.path as `./${string}`);
-                        handleClose();
-                      }}
-                      {...(Platform.OS === 'web'
-                        ? { onMouseLeave: () => {} }
-                        : {})}
-                    >
-                      {icon}
-                      <Text
-                        className={`font-[ComicSans] ml-3 ${
-                          isMuted ? 'text-gray-400' : 'text-primary-600 font-bold'
-                        }`}
-                      >
-                        {item.name}
-                      </Text>
-                      {item.path === '/admin/support' && supportUnread > 0 ? (
-                        <View
-                          className="min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center ml-2"
-                          style={{ backgroundColor: colors.error[500] }}
-                        >
-                          <Text className="text-white text-[10px] font-bold">
-                            {supportUnread > 99 ? '99+' : supportUnread}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {isGated ? (
-                        <Ionicons
-                          name="star"
-                          size={16}
-                          color={colors.warning[500]}
-                          style={{ marginLeft: 8 }}
-                        />
-                      ) : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 24 }}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+              >
+                {isAdmin ? (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.gray[200],
+                      borderRadius: 16,
+                      paddingVertical: 8,
+                      paddingHorizontal: 4,
+                      marginBottom: adminItems.length > 0 ? 12 : 0,
+                    }}
+                  >
+                    {userItems.map(renderMenuItem)}
+                  </View>
+                ) : (
+                  userItems.map(renderMenuItem)
+                )}
+                {adminItems.map(renderMenuItem)}
+              </ScrollView>
             </Animated.View>
           </View>
-        </TouchableWithoutFeedback>
       </Modal>
       <SubscribeModal visible={subscribeOpen} onClose={() => setSubscribeOpen(false)} />
     </View>

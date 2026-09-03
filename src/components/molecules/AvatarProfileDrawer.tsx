@@ -224,6 +224,15 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
+                            <View className="mb-3">
+                <Text className="font-bold text-primary mb-1">
+                  {t('Language')}
+                </Text>
+                <LanguageSelectWithFlags
+                  value={language ?? i18n.language ?? 'en'}
+                  onValueChange={(v) => setLanguage(v ?? 'en')}
+                />
+              </View>
               <TouchableOpacity
                 onPress={() => {
                   router.push('/profile');
@@ -233,6 +242,16 @@ const AvatarProfileDrawer = () => {
               >
                 <MaterialIcons name="person" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('My profile')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  router.push('/settings' as any);
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="settings" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('Settings')}</Text>
               </TouchableOpacity>
               <View>
                 {menuItems &&
@@ -263,16 +282,8 @@ const AvatarProfileDrawer = () => {
                     );
                   })}
               </View>
-              <View className="mb-3">
-                <Text className="font-bold text-primary mb-1">
-                  {t('Language')}
-                </Text>
-                <LanguageSelectWithFlags
-                  value={language ?? i18n.language ?? 'en'}
-                  onValueChange={(v) => setLanguage(v ?? 'en')}
-                />
-              </View>
-              {roles.length >= 2 && (
+
+              {roles.includes("admin") && roles.length >= 2 && (
                 <View className="mb-3">
                   <Text className="font-bold text-primary mb-1">
                     {t('View as')}
@@ -289,11 +300,25 @@ const AvatarProfileDrawer = () => {
                             ? t('Admin')
                             : role === 'teacher'
                               ? t('Teacher')
-                              : t('User'),
+                              : role === 'affiliate'
+                                ? t('Affiliate')
+                                : t('User'),
                       })),
                     ]}
                   />
                 </View>
+              )}
+              {roles.includes('affiliate') && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleClose();
+                    router.push('/affiliate' as any);
+                  }}
+                  className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+                >
+                  <MaterialCommunityIcons name="handshake-outline" size={20} color={colors.primary[500]} />
+                  <Text className="text-primary text-xs">{t('Affiliate')}</Text>
+                </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => {

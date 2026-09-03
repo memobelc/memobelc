@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { billingApi } from '@/services/billing';
+import { getStoredAffiliateCode } from '@/utils/affiliateRef';
 
 export type BillingType = 'PIX' | 'CREDIT_CARD';
 
@@ -40,6 +41,7 @@ export async function startCheckout(options: {
   productType: 'plan' | 'book' | 'bundle' | 'course' | 'classroom';
   productId: string;
   couponCode?: string;
+  affiliateCode?: string;
   cpfCnpj?: string;
   billingType: BillingType;
   creditCard?: CreditCardPayload;
@@ -54,6 +56,7 @@ export async function startCheckout(options: {
     // Legacy APIs routed android → Google Play. Checkout is Asaas-only.
     platform: 'web',
     coupon_code: options.couponCode,
+    affiliate_code: options.affiliateCode || getStoredAffiliateCode(),
     billing_type: options.billingType,
     cpf_cnpj: options.cpfCnpj,
   };

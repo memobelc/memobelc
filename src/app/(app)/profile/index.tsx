@@ -249,7 +249,6 @@ export default function ProfileScreen() {
               value={cpf}
               onChangeText={(value) => setCpf(formatCpfCnpj(value))}
               keyboardType="numeric"
-              placeholder={t('Type your CPF or CNPJ')}
               placeholderTextColor={colors.gray[400]}
               className="border border-gray-200 rounded-lg px-3 py-2"
             />

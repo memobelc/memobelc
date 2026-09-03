@@ -5,7 +5,7 @@ function auth(token?: string) {
 }
 
 export type SupportTicketStatus = 'open' | 'in_progress' | 'closed';
-export type SupportAuthorRole = 'user' | 'admin';
+export type SupportAuthorRole = 'user' | 'admin' | 'system';
 
 export type SupportTicket = {
   _id: string;

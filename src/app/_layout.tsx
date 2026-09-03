@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { colors } from '@/styles/colors';
 import { Stack } from 'expo-router';
-import { SessionProvider, useSession } from '@/contexts/AuthContext';
+import { SessionProvider } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -16,6 +16,7 @@ import { ProfileProvider } from '@/contexts/profileContext';
 import { LanguageSync } from '@/components/LanguageSync';
 import { EntitlementProvider } from '@/contexts/EntitlementContext';
 import { SupportChatProvider } from '@/contexts/SupportChatContext';
+import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
 // import StripeWrapper from '@/components/molecules/StripeWrapper';
 
 export default function Layout() {
@@ -24,6 +25,10 @@ export default function Layout() {
   const [fontsLoaded] = useFonts({
     ComicSans: require('../../assets/fonts/ComicSans-MS-400.ttf'),
   });
+
+  useEffect(() => {
+    captureAffiliateRefFromUrl();
+  }, []);
 
   if (!fontsLoaded) {
     return <Loading classname="flex-1 items-center justify-center" />;

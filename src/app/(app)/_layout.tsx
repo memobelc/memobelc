@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { useEffect } from 'react';
+import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
 
 import { useSession } from '@/contexts/AuthContext';
 import { PushNotificationProvider } from '@/contexts/PushNotificationContext';
@@ -12,6 +13,10 @@ import React from 'react';
 export default function AppLayout() {
   const { session, isLoading, refresh_token, userInfo } = useSession();
   const backgroundColor = colors.gray[100];
+
+  useEffect(() => {
+    captureAffiliateRefFromUrl();
+  }, []);
 
   useEffect(() => {
     if (!userInfo && session && !isLoading) {
