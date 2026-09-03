@@ -10,6 +10,7 @@ import {
   TextInput,
   Animated,
   Switch,
+  Alert,
 } from 'react-native';
 import { Menu } from 'lucide-react-native';
 import {
@@ -39,6 +40,11 @@ import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
+import {
+  PublishStatus,
+  PublishStatusFields,
+  toDatetimeLocalValue,
+} from '@/components/atoms/PublishStatusFields';
 
 import { storage } from '../../../../../FirebaseConfig';
 
@@ -78,6 +84,15 @@ export default function Classroom() {
   const [loadingCollection, setLoadingCollection] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openAddDeck, setOpenAddDeck] = useState(false);
+  const [editingDeck, setEditingDeck] = useState<{
+    _id: string;
+    name: string;
+    image?: string | null;
+    status?: string;
+    scheduled_at?: string | null;
+  } | null>(null);
+  const [deckStatus, setDeckStatus] = useState<PublishStatus>('published');
+  const [deckScheduledAt, setDeckScheduledAt] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageFromGallery, setSelectedImageFromGallery] = useState<
     string | null
@@ -210,7 +225,49 @@ export default function Classroom() {
   };
 
   const HandleOpenAddDeck = () => {
+    setEditingDeck(null);
+    setDeckStatus('published');
+    setDeckScheduledAt('');
     setOpenAddDeck(true);
+  };
+
+  const HandleOpenEditDeck = (item: {
+    _id: string;
+    name: string;
+    image?: string | null;
+    status?: string;
+    scheduled_at?: string | null;
+  }) => {
+    setEditingDeck(item);
+    handleInputChange('name', item.name || '');
+    setSelectedImage(item.image || null);
+    setSelectedImageFromGallery(item.image || null);
+    setDeckStatus((item.status as PublishStatus) || 'published');
+    setDeckScheduledAt(toDatetimeLocalValue(item.scheduled_at));
+    setGeneratedCards([]);
+    setOpenAddDeck(true);
+  };
+
+  const HandleDeleteDeck = (deckId: string) => {
+    Alert.alert(t('Delete deck'), t('Are you sure?'), [
+      { text: t('Cancel'), style: 'cancel' },
+      {
+        text: t('Delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/deck/${deckId}`, {
+              headers: { Authorization: `Bearer ${userInfo?.token}` },
+            });
+            toast({ message: t('Deck deleted successfully'), variant: 'success' });
+            fetchData();
+            fetchCollectionData();
+          } catch {
+            toast({ message: t('Failed to delete deck'), variant: 'destructive' });
+          }
+        },
+      },
+    ]);
   };
 
   const HandleCreateDeck = async () => {
@@ -235,21 +292,35 @@ export default function Classroom() {
     try {
       setLoading(true);
       await validateForm();
-      await api.post('/deck/create', {
+      const payload: Record<string, unknown> = {
         name: formData.name,
         image: url,
-        collection_id: currentCollection?._id || currentClassroom?.collection,
-        cards: generatedCards.map(({ _id, ...rest }) => rest),
-      });
+        status: deckStatus,
+        scheduled_at: deckStatus === 'scheduled' && deckScheduledAt ? deckScheduledAt : null,
+      };
+      if (editingDeck) {
+        await api.put(`/deck/${editingDeck._id}`, payload, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+      } else {
+        await api.post('/deck/create', {
+          ...payload,
+          collection_id: currentCollection?._id || currentClassroom?.collection,
+          cards: generatedCards.map(({ _id, ...rest }) => rest),
+        });
+      }
 
       toast({
-        message: t('Deck created successfully'),
+        message: editingDeck ? t('Deck updated successfully') : t('Deck created successfully'),
         variant: 'success',
         showProgress: true,
       });
       setOpenAddDeck(false);
       setSelectedImage(null);
       setGeneratedCards([]);
+      setEditingDeck(null);
+      setDeckStatus('published');
+      setDeckScheduledAt('');
       handleInputChange('name', '');
     } catch (error) {
       if (error instanceof yup.ValidationError) {
@@ -368,6 +439,9 @@ export default function Classroom() {
     setOpenAddDeck(false);
     setSelectedImage(null);
     setGeneratedCards([]);
+    setEditingDeck(null);
+    setDeckStatus('published');
+    setDeckScheduledAt('');
   };
 
   const handleSaveCheckout = async () => {
@@ -601,7 +675,19 @@ export default function Classroom() {
                         classroom={item._id}
                         pending_cards={item.pending_cards}
                         total_cards={item.total_cards}
+                        status={item.status}
+                        lessonLinked={item.lesson_linked}
                         onPress={() => setCurrentDeck(item)}
+                        onEdit={
+                          isClassroomOwner
+                            ? () => HandleOpenEditDeck(item)
+                            : undefined
+                        }
+                        onDelete={
+                          isClassroomOwner
+                            ? () => HandleDeleteDeck(item._id)
+                            : undefined
+                        }
                       />
                     ))}
                   </>
@@ -663,7 +749,7 @@ export default function Classroom() {
                             className="font-bold text-2xl md:text-3xl"
                             style={{ color: colors.primary[700] }}
                           >
-                            {t('New deck')}
+                            {t(editingDeck ? 'Edit deck' : 'New deck')}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -872,6 +958,16 @@ export default function Classroom() {
                         )}
                       </View>
 
+                      {isTeacher && (
+                        <PublishStatusFields
+                          status={deckStatus}
+                          scheduledAt={deckScheduledAt}
+                          onStatusChange={setDeckStatus}
+                          onScheduledAtChange={setDeckScheduledAt}
+                        />
+                      )}
+
+                      {!editingDeck && (
                       <TouchableOpacity
                         style={{
                           borderColor:
@@ -911,6 +1007,7 @@ export default function Classroom() {
                           </Text>
                         </View>
                       </TouchableOpacity>
+                      )}
 
                       <View className="flex-col md:flex-row gap-3 mt-4">
                         <TouchableOpacity
@@ -936,7 +1033,7 @@ export default function Classroom() {
                                 color={colors.white}
                               />
                               <Text className="text-white text-base font-bold">
-                                {t('Create New deck')}
+                                {t(editingDeck ? 'Save deck' : 'Create New deck')}
                               </Text>
                             </View>
                           )}

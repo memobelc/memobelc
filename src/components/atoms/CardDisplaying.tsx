@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/styles/colors';
 import AudioPlayer from '@/components/atoms/AudioPlayer';
 
@@ -15,6 +16,7 @@ interface CardDisplayingProps {
   editMode?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  status?: string | null;
 }
 
 export const CardDisplaying = ({
@@ -27,7 +29,9 @@ export const CardDisplaying = ({
   editMode = false,
   onEdit,
   onDelete,
+  status,
 }: CardDisplayingProps) => {
+  const { t } = useTranslation();
   const isMultipleChoice = cardType === 'multiple_choice';
   const isImage = cardType === 'image' || !!image;
 
@@ -53,6 +57,21 @@ export const CardDisplaying = ({
               <MaterialIcons name="delete" size={16} color="white" />
             </TouchableOpacity>
           )}
+        </View>
+      )}
+      {status && status !== 'published' && (
+        <View
+          className="self-start px-2 py-0.5 rounded-full mb-2"
+          style={{
+            backgroundColor: status === 'draft' ? colors.gray[200] : colors.warning[100],
+          }}
+        >
+          <Text
+            className="text-[10px] font-semibold"
+            style={{ color: status === 'draft' ? colors.gray[700] : colors.warning[700] }}
+          >
+            {status === 'draft' ? t('Draft') : t('Scheduled')}
+          </Text>
         </View>
       )}
       {isImage && image ? (

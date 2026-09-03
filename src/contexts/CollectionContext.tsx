@@ -16,6 +16,8 @@ type card = {
   options?: string[];
   correct_index?: number | null;
   image?: string | null;
+  status?: 'draft' | 'published' | 'scheduled';
+  scheduled_at?: string | null;
 };
 
 type DefaultDeck = {
@@ -26,6 +28,9 @@ type DefaultDeck = {
   pending_cards: number;
   total_cards: number;
   updated_at: Date;
+  status?: 'draft' | 'published' | 'scheduled';
+  scheduled_at?: string | null;
+  lesson_linked?: boolean;
 };
 
 type Deck = DefaultDeck & {
@@ -93,6 +98,21 @@ export type IActivity = {
   questions?: IQuestion[];
 };
 
+export type ILessonDeck = {
+  deck_id: string;
+  lesson_id: string;
+  name: string;
+  image?: string | null;
+  status: 'draft' | 'published' | 'scheduled';
+  scheduled_at?: string | null;
+  card_ids: string[];
+  whole_deck: boolean;
+  total_cards: number;
+  unlocked: boolean;
+  viewed: boolean;
+  can_unlock: boolean;
+};
+
 export type ILesson = {
   _id: string;
   title: string;
@@ -105,6 +125,8 @@ export type ILesson = {
   visible: boolean;
   scheduled_at: string | null;
   my_rating?: number | null;
+  viewed?: boolean;
+  decks?: ILessonDeck[];
 };
 
 export type ICourseModule = {

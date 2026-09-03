@@ -743,6 +743,11 @@ export default function CourseDetailScreen() {
                   {!lesson.visible && !lesson.scheduled_at && (
                     <Text className="text-xs text-gray-400 mt-0.5">{t('Hidden')}</Text>
                   )}
+                  {(lesson.decks?.length || 0) > 0 && (
+                    <Text className="text-xs text-gray-400 mt-0.5">
+                      {lesson.decks!.length} {t('decks')}
+                    </Text>
+                  )}
                 </View>
                 {isTeacher && (
                   <View className="flex-row items-center gap-3">

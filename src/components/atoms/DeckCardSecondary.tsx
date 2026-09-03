@@ -18,6 +18,8 @@ interface CardSecondaryProps {
   onPress?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  status?: string | null;
+  lessonLinked?: boolean;
 }
 
 export const DeckCardSecondary = ({
@@ -31,10 +33,12 @@ export const DeckCardSecondary = ({
   onPress,
   onEdit,
   onDelete,
+  status,
+  lessonLinked,
 }: CardSecondaryProps) => {
   const router = useRouter();
   const { t } = useTranslation();
-  const hasActions = type === 'collection' && (onEdit || onDelete);
+  const hasActions = !!(onEdit || onDelete);
 
   const handleCardPress = () => {
     // Chama o onPress se fornecido (para setar currentCollection/currentDeck)
@@ -83,6 +87,28 @@ export const DeckCardSecondary = ({
               <View className="mt-1 self-start bg-emerald-100 px-2 py-0.5 rounded-full">
                 <Text className="text-[10px] font-semibold text-emerald-700">
                   {t('Book')}
+                </Text>
+              </View>
+            )}
+            {type === 'deck' && status && status !== 'published' && (
+              <View
+                className="mt-1 self-start px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: status === 'draft' ? colors.gray[200] : colors.warning[100],
+                }}
+              >
+                <Text
+                  className="text-[10px] font-semibold"
+                  style={{ color: status === 'draft' ? colors.gray[700] : colors.warning[700] }}
+                >
+                  {status === 'draft' ? t('Draft') : t('Scheduled')}
+                </Text>
+              </View>
+            )}
+            {type === 'deck' && lessonLinked && (
+              <View className="mt-1 self-start bg-violet-100 px-2 py-0.5 rounded-full ml-1">
+                <Text className="text-[10px] font-semibold text-violet-700">
+                  {t('Lesson')}
                 </Text>
               </View>
             )}

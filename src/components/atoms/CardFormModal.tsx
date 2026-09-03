@@ -21,6 +21,11 @@ import FlipCard from '@/components/atoms/FlipCard';
 import { MultipleChoiceCard } from '@/components/atoms/MultipleChoiceCard';
 import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
+import {
+  PublishStatus,
+  PublishStatusFields,
+  toDatetimeLocalValue,
+} from '@/components/atoms/PublishStatusFields';
 
 export type CardType = 'text' | 'multiple_choice' | 'image';
 
@@ -36,6 +41,8 @@ export interface ICardProps {
   options?: string[];
   correct_index?: number | null;
   image?: string | null;
+  status?: 'draft' | 'published' | 'scheduled' | string;
+  scheduled_at?: string | null;
 }
 
 export type CardFormPayload = {
@@ -46,6 +53,8 @@ export type CardFormPayload = {
   imageUri: string | null;
   options: string[];
   correct_index: number;
+  status: 'draft' | 'published' | 'scheduled';
+  scheduledAt: string;
 };
 
 interface CardFormModalProps {
@@ -55,6 +64,7 @@ interface CardFormModalProps {
   card?: ICardProps | null;
   onClose: () => void;
   onSubmit: (payload: CardFormPayload) => void;
+  showStatus?: boolean;
 }
 
 const EMPTY_OPTIONS = ['', '', '', ''];
@@ -66,6 +76,7 @@ export const CardFormModal = ({
   card,
   onClose,
   onSubmit,
+  showStatus = false,
 }: CardFormModalProps) => {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -78,6 +89,8 @@ export const CardFormModal = ({
   const [options, setOptions] = useState<string[]>([...EMPTY_OPTIONS]);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [viewCard, setViewCard] = useState(false);
+  const [status, setStatus] = useState<PublishStatus>('published');
+  const [scheduledAt, setScheduledAt] = useState('');
 
   useEffect(() => {
     if (!visible) {
@@ -97,6 +110,8 @@ export const CardFormModal = ({
       });
       setOptions(loadedOptions);
       setCorrectIndex(typeof card.correct_index === 'number' ? card.correct_index : 0);
+      setStatus((card.status as PublishStatus) || 'published');
+      setScheduledAt(toDatetimeLocalValue(card.scheduled_at));
     } else {
       setCardType('text');
       setFrontSide('');
@@ -105,6 +120,8 @@ export const CardFormModal = ({
       setSelectedImage(null);
       setOptions([...EMPTY_OPTIONS]);
       setCorrectIndex(0);
+      setStatus('published');
+      setScheduledAt('');
     }
   }, [visible, mode, card]);
 
@@ -167,6 +184,8 @@ export const CardFormModal = ({
       imageUri: cardType === 'image' ? selectedImage : null,
       options,
       correct_index: correctIndex,
+      status,
+      scheduledAt,
     });
   };
 
@@ -366,6 +385,15 @@ export const CardFormModal = ({
                     multiline
                   />
                 </>
+              )}
+
+              {showStatus && (
+                <PublishStatusFields
+                  status={status}
+                  scheduledAt={scheduledAt}
+                  onStatusChange={setStatus}
+                  onScheduledAtChange={setScheduledAt}
+                />
               )}
 
               <TouchableOpacity

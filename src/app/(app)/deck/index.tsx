@@ -172,6 +172,7 @@ export default function Deck() {
       const response = await api.get(
         `/card/get_cards_by_deck/${currentDeck?._id}`,
         {
+          params: { user_id: userInfo?.user_id },
           headers: {
             Authorization: `Bearer ${userInfo?.token}`,
           },
@@ -209,6 +210,8 @@ export default function Deck() {
         options: payload.card_type === 'multiple_choice' ? payload.options : undefined,
         correct_index: payload.card_type === 'multiple_choice' ? payload.correct_index : undefined,
         image: payload.card_type === 'image' ? urlImage : undefined,
+        status: payload.status,
+        scheduled_at: payload.status === 'scheduled' && payload.scheduledAt ? payload.scheduledAt : null,
       });
 
       toast({
@@ -263,6 +266,8 @@ export default function Deck() {
         options: payload.card_type === 'multiple_choice' ? payload.options : undefined,
         correct_index: payload.card_type === 'multiple_choice' ? payload.correct_index : undefined,
         image: payload.card_type === 'image' ? urlImage : undefined,
+        status: payload.status,
+        scheduled_at: payload.status === 'scheduled' && payload.scheduledAt ? payload.scheduledAt : null,
       }, {
         headers: {
           Authorization: `Bearer ${userInfo?.token}`,
@@ -509,6 +514,7 @@ export default function Deck() {
                 options={item.options}
                 image={item.image}
                 editMode={editModeEnabled}
+                status={item.status}
                 onEdit={canEditCards ? () => HandleOpenEditCard(item) : undefined}
                 onDelete={canEditCards ? () => HandleOpenDeleteConfirm(item) : undefined}
               />
@@ -555,6 +561,7 @@ export default function Deck() {
         card={openEditCard ? currentEditingCard : null}
         onClose={HandleClose}
         onSubmit={openEditCard ? HandleUpdateCard : HandleCreateCard}
+        showStatus={canEditCards && !!currentCollection?.classroom}
       />
 
       {/* Modal de Confirmação de Exclusão */}
