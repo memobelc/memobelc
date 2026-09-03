@@ -17,9 +17,10 @@ import { WebView } from 'react-native-webview';
 
 import api from '@/services/api';
 import { colors } from '@/styles/colors';
-import { ILesson } from '@/contexts/CollectionContext';
+import { ILesson, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { StarRating } from '@/components/molecules/StarRating';
 
 function extractYoutubeId(url: string): string | null {
   const patterns = [
@@ -42,6 +43,7 @@ export default function LessonViewScreen() {
   }>();
   const { userInfo } = useSession();
   const { toast } = useToast();
+  const { currentCourse } = useCollection();
   const { width: windowWidth } = useWindowDimensions();
 
   const [lesson, setLesson] = useState<ILesson | null>(null);
@@ -49,6 +51,13 @@ export default function LessonViewScreen() {
   const [playerReady, setPlayerReady] = useState(false);
   const [markedViewed, setMarkedViewed] = useState(false);
   const [playerSize, setPlayerSize] = useState({ width: 0, height: 0 });
+  const [myRating, setMyRating] = useState<number | null>(null);
+
+  const isCourseTeacher =
+    !!currentCourse?.teacher_id &&
+    !!lesson?.course_id &&
+    String(currentCourse._id) === String(lesson.course_id) &&
+    String(currentCourse.teacher_id) === String(userInfo?.user_id);
 
   const fetchLesson = useCallback(async () => {
     if (!lessonId) return;
@@ -58,6 +67,7 @@ export default function LessonViewScreen() {
         headers: { Authorization: `Bearer ${userInfo?.token}` },
       });
       setLesson(res.data);
+      setMyRating(res.data?.my_rating ?? null);
     } catch {
       toast({ message: t('Failed to load lesson'), variant: 'destructive' });
     } finally {
@@ -68,6 +78,22 @@ export default function LessonViewScreen() {
   useEffect(() => {
     fetchLesson();
   }, [fetchLesson]);
+
+  const handleRateLesson = async (stars: number) => {
+    if (!lessonId || !userInfo?.token) return;
+    const previous = myRating;
+    setMyRating(stars);
+    try {
+      await api.put(
+        `/course/lesson/${lessonId}/rating`,
+        { stars },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+    } catch {
+      setMyRating(previous);
+      toast({ message: t('Failed to save rating'), variant: 'destructive' });
+    }
+  };
 
   // Mark lesson as viewed for students (fire-and-forget)
   useEffect(() => {
@@ -260,6 +286,14 @@ export default function LessonViewScreen() {
           )}
           {!lesson?.description && (
             <Text className="text-gray-400 italic">{t('No description')}</Text>
+          )}
+          {!isCourseTeacher && (
+            <View className="mt-5 pt-4" style={{ borderTopWidth: 1, borderTopColor: colors.gray[200] }}>
+              <Text className="text-sm font-semibold text-gray-600 mb-2">
+                {t('Rate this lesson')}
+              </Text>
+              <StarRating value={myRating} onChange={handleRateLesson} />
+            </View>
           )}
         </View>
       </ScrollView>

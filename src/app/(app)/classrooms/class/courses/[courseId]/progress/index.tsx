@@ -16,6 +16,7 @@ import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { StarRating } from '@/components/molecules/StarRating';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,33 @@ type StudentSummary = StudentRef & {
     activity_id?: string;
     student_id?: string;
   }[];
+};
+
+type RatingStats = {
+  avg: number | null;
+  explicit_count: number;
+  implicit_count: number;
+  distribution: Record<string, number>;
+};
+
+type LessonRating = RatingStats & {
+  _id: string;
+  title: string;
+};
+
+type ModuleRating = RatingStats & {
+  module_id: string;
+  name: string;
+  weight: number;
+  lessons: LessonRating[];
+};
+
+type CourseRatings = {
+  course: RatingStats & {
+    weight_lesson: number;
+    weight_module: number;
+  };
+  modules: ModuleRating[];
 };
 
 type Question = {
@@ -1212,6 +1240,117 @@ function RankingView({
   );
 }
 
+function RatingsView({
+  ratings,
+  t,
+}: {
+  ratings: CourseRatings | null;
+  t: (key: string) => string;
+}) {
+  if (!ratings) {
+    return (
+      <View className="items-center py-16">
+        <MaterialCommunityIcons name="star-outline" size={48} color={colors.gray[300]} />
+        <Text className="text-gray-400 font-semibold mt-3">{t('No ratings yet')}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <View
+        className="rounded-2xl p-4 mb-4"
+        style={{
+          backgroundColor: colors.white,
+          borderWidth: 1,
+          borderColor: colors.gray[200],
+        }}
+      >
+        <Text className="text-xs font-bold text-gray-400 mb-2">{t('Course rating')}</Text>
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-3xl font-bold" style={{ color: colors.warning[700] }}>
+              {ratings.course.avg != null ? ratings.course.avg.toFixed(1) : '—'}
+            </Text>
+            <Text className="text-xs text-gray-400 mt-1">
+              {t('Module weight')} {ratings.course.weight_module}x
+            </Text>
+          </View>
+          <StarRating value={ratings.course.avg != null ? Math.round(ratings.course.avg) : null} readonly size={22} />
+        </View>
+        <Text className="text-xs text-gray-500 mt-3">
+          {ratings.course.explicit_count} {t('explicit ratings')} · {ratings.course.implicit_count}{' '}
+          {t('Counted as 5 if not rated')}
+        </Text>
+      </View>
+
+      {ratings.modules.map((mod) => (
+        <View
+          key={mod.module_id}
+          className="rounded-2xl mb-4 overflow-hidden"
+          style={{
+            backgroundColor: colors.white,
+            borderWidth: 1,
+            borderColor: colors.gray[200],
+          }}
+        >
+          <View className="px-4 py-3" style={{ backgroundColor: colors.primary[50] }}>
+            <View className="flex-row items-center justify-between">
+              <Text className="font-bold text-gray-800 flex-1 mr-2" numberOfLines={1}>
+                {mod.name}
+              </Text>
+              <View
+                className="px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: colors.warning[100] }}
+              >
+                <Text className="text-[10px] font-bold" style={{ color: colors.warning[700] }}>
+                  {t('Module weight')} {mod.weight}x
+                </Text>
+              </View>
+            </View>
+            <View className="flex-row items-center mt-2 gap-2">
+              <StarRating value={mod.avg != null ? Math.round(mod.avg) : null} readonly size={16} />
+              <Text className="text-sm font-bold" style={{ color: colors.warning[700] }}>
+                {mod.avg != null ? mod.avg.toFixed(1) : '—'}
+              </Text>
+              <Text className="text-xs text-gray-400">
+                ({mod.explicit_count} {t('explicit ratings')})
+              </Text>
+            </View>
+          </View>
+          {mod.lessons.map((lesson) => (
+            <View
+              key={lesson._id}
+              className="flex-row items-center px-4 py-3 border-t"
+              style={{ borderTopColor: colors.gray[100] }}
+            >
+              <View className="flex-1 mr-3">
+                <Text className="text-sm font-semibold text-gray-800" numberOfLines={1}>
+                  {lesson.title}
+                </Text>
+                <Text className="text-xs text-gray-400 mt-0.5">
+                  {lesson.explicit_count} {t('explicit ratings')} · {lesson.implicit_count}{' '}
+                  {t('Counted as 5 if not rated')}
+                </Text>
+              </View>
+              <View className="items-end">
+                <StarRating
+                  value={lesson.avg != null ? Math.round(lesson.avg) : null}
+                  readonly
+                  size={14}
+                />
+                <Text className="text-xs font-bold mt-0.5" style={{ color: colors.warning[700] }}>
+                  {lesson.avg != null ? lesson.avg.toFixed(1) : '—'}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </>
+  );
+}
+
 export default function StudentProgressScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -1222,11 +1361,12 @@ export default function StudentProgressScreen() {
   const { userInfo } = useSession();
   const { toast } = useToast();
 
-  type ViewMode = 'content' | 'student' | 'ranking';
+  type ViewMode = 'content' | 'student' | 'ranking' | 'ratings';
   const [viewMode, setViewMode] = useState<ViewMode>('content');
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
+  const [ratings, setRatings] = useState<CourseRatings | null>(null);
   const [ranking, setRanking] = useState<
     { _id: string; name: string; xp: number; avg_score: number | null; rank: number; badges: string[] }[]
   >([]);
@@ -1251,6 +1391,14 @@ export default function StudentProgressScreen() {
         setRanking(rankRes.data.ranking ?? []);
       } catch {
         setRanking([]);
+      }
+      try {
+        const ratingsRes = await api.get(`/course/${courseId}/ratings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRatings(ratingsRes.data);
+      } catch {
+        setRatings(null);
       }
     } catch {
       toast({ message: t('Failed to load progress'), variant: 'destructive' });
@@ -1375,6 +1523,21 @@ export default function StudentProgressScreen() {
             <Text className="text-xs text-gray-500 text-center">{t('Avg. score')}</Text>
           </View>
         )}
+        {ratings?.course.avg != null && (
+          <View
+            className="flex-1 rounded-2xl px-4 py-3 items-center"
+            style={{
+              backgroundColor: colors.warning[100],
+              borderWidth: 1,
+              borderColor: colors.warning[500],
+            }}
+          >
+            <Text className="text-2xl font-bold" style={{ color: colors.warning[700] }}>
+              {ratings.course.avg.toFixed(1)}
+            </Text>
+            <Text className="text-xs text-gray-500 text-center">{t('Ratings')}</Text>
+          </View>
+        )}
       </View>
 
       {/* View toggle */}
@@ -1384,6 +1547,7 @@ export default function StudentProgressScreen() {
             { key: 'content', label: t('By Content'), icon: 'book-open-variant' },
             { key: 'student', label: t('By Student'), icon: 'account-group' },
             { key: 'ranking', label: t('Ranking'), icon: 'trophy-outline' },
+            { key: 'ratings', label: t('Ratings'), icon: 'star-outline' },
           ] as const
         ).map((tab) => (
           <TouchableOpacity
@@ -1401,7 +1565,7 @@ export default function StudentProgressScreen() {
               color={viewMode === tab.key ? colors.primary[500] : colors.gray[500]}
             />
             <Text
-              className="text-sm font-semibold"
+              className="text-xs font-semibold"
               style={{ color: viewMode === tab.key ? colors.primary[600] : colors.gray[500] }}
             >
               {tab.label}
@@ -1424,8 +1588,10 @@ export default function StudentProgressScreen() {
           />
         ) : viewMode === 'student' ? (
           <ByStudentView students={students} token={token} onRefresh={fetchProgress} t={t} />
-        ) : (
+        ) : viewMode === 'ranking' ? (
           <RankingView ranking={ranking} t={t} />
+        ) : (
+          <RatingsView ratings={ratings} t={t} />
         )}
       </ScrollView>
     </View>

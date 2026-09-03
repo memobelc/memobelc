@@ -861,6 +861,16 @@
     "Source": "来源",
     "Platform": "平台",
     "External": "外部",
-    "Search by name, email or CPF": "按姓名、邮箱或 CPF 搜索"
+    "Search by name, email or CPF": "按姓名、邮箱或 CPF 搜索",
+    "Rate this lesson": "为这节课评分",
+    "How was this module?": "这个模块怎么样？",
+    "Not now": "以后再说",
+    "Ratings": "评分",
+    "Counted as 5 if not rated": "未评分按 5 星计算",
+    "Module weight": "模块权重",
+    "Failed to save rating": "保存评分失败",
+    "Course rating": "课程评分",
+    "explicit ratings": "明确评分",
+    "No ratings yet": "暂无评分"
   }
 }

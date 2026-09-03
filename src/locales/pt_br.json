@@ -862,6 +862,16 @@
     "Source": "Origem",
     "Platform": "Plataforma",
     "External": "Externo",
-    "Search by name, email or CPF": "Buscar por nome, e-mail ou CPF"
+    "Search by name, email or CPF": "Buscar por nome, e-mail ou CPF",
+    "Rate this lesson": "Avalie esta aula",
+    "How was this module?": "Como foi este módulo?",
+    "Not now": "Agora não",
+    "Ratings": "Avaliações",
+    "Counted as 5 if not rated": "contadas como 5 se não avaliadas",
+    "Module weight": "Peso do módulo",
+    "Failed to save rating": "Falha ao salvar avaliação",
+    "Course rating": "Avaliação do curso",
+    "explicit ratings": "avaliações explícitas",
+    "No ratings yet": "Ainda não há avaliações"
   }
 }

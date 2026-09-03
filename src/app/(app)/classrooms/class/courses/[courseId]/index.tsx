@@ -34,6 +34,8 @@ import {
 } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { StarRating } from '@/components/molecules/StarRating';
+import { ModuleRatingModal } from '@/components/molecules/ModuleRatingModal';
 
 type ContentItem =
   | (ILesson & { itemType: 'lesson' })
@@ -100,6 +102,8 @@ export default function CourseDetailScreen() {
     ranking: { _id: string; name: string; xp: number; rank: number; badges: string[] }[];
     me: { rank: number; xp: number; badges: string[] } | null;
   } | null>(null);
+  const [promptModule, setPromptModule] = useState<ICourseModule | null>(null);
+  const [savingModuleRating, setSavingModuleRating] = useState(false);
 
   const fetchCourse = useCallback(async () => {
     if (!courseId) return;
@@ -128,6 +132,67 @@ export default function CourseDetailScreen() {
   useEffect(() => {
     fetchCourse();
   }, [fetchCourse]);
+
+  useEffect(() => {
+    if (isTeacher || !course?.modules) {
+      setPromptModule(null);
+      return;
+    }
+    const pending = course.modules.find((mod) => mod.rating_prompt);
+    setPromptModule(pending ?? null);
+  }, [course, isTeacher]);
+
+  const patchModuleRating = (
+    moduleId: string,
+    patch: Partial<Pick<ICourseModule, 'my_rating' | 'rating_prompt'>>,
+  ) => {
+    setCourse((prev) => {
+      if (!prev?.modules) return prev;
+      return {
+        ...prev,
+        modules: prev.modules.map((mod) =>
+          mod._id === moduleId ? { ...mod, ...patch } : mod,
+        ),
+      };
+    });
+  };
+
+  const handleRateModule = async (moduleId: string, stars: number) => {
+    if (!userInfo?.token) return;
+    const previous = course?.modules?.find((mod) => mod._id === moduleId);
+    patchModuleRating(moduleId, { my_rating: stars, rating_prompt: false });
+    setSavingModuleRating(true);
+    try {
+      await api.put(
+        `/course/module/${moduleId}/rating`,
+        { stars },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+    } catch {
+      patchModuleRating(moduleId, {
+        my_rating: previous?.my_rating ?? null,
+        rating_prompt: previous?.rating_prompt,
+      });
+      toast({ message: t('Failed to save rating'), variant: 'destructive' });
+    } finally {
+      setSavingModuleRating(false);
+    }
+  };
+
+  const handleDismissModuleRating = async (moduleId: string) => {
+    if (!userInfo?.token) return;
+    const previous = course?.modules?.find((mod) => mod._id === moduleId);
+    patchModuleRating(moduleId, { rating_prompt: false });
+    try {
+      await api.post(
+        `/course/module/${moduleId}/rating/dismiss`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+    } catch {
+      patchModuleRating(moduleId, { rating_prompt: previous?.rating_prompt });
+    }
+  };
 
   // ── Module CRUD ────────────────────────────────────────────────────────────
 
@@ -604,6 +669,16 @@ export default function CourseDetailScreen() {
                         ? `${t('Releases')} ${new Date(mod.scheduled_at).toLocaleString()}`
                         : `${t('Released')} ${new Date(mod.scheduled_at).toLocaleString()}`}
                     </Text>
+                  </View>
+                )}
+                {!isTeacher && mod.can_rate && (
+                  <View className="mt-1">
+                    <StarRating
+                      value={mod.my_rating ?? null}
+                      onChange={(stars) => handleRateModule(mod._id, stars)}
+                      size={18}
+                      emptyColor="rgba(255,255,255,0.65)"
+                    />
                   </View>
                 )}
               </View>
@@ -1244,6 +1319,18 @@ export default function CourseDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      <ModuleRatingModal
+        visible={!!promptModule && !isTeacher}
+        moduleName={promptModule?.name ?? ''}
+        saving={savingModuleRating}
+        onConfirm={(stars) => {
+          if (promptModule) handleRateModule(promptModule._id, stars);
+        }}
+        onDismiss={() => {
+          if (promptModule) handleDismissModuleRating(promptModule._id);
+        }}
+      />
     </View>
   );
 }

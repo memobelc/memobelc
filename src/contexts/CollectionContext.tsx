@@ -104,6 +104,7 @@ export type ILesson = {
   course_id: string;
   visible: boolean;
   scheduled_at: string | null;
+  my_rating?: number | null;
 };
 
 export type ICourseModule = {
@@ -114,6 +115,9 @@ export type ICourseModule = {
   scheduled_at?: string | null;
   lessons?: ILesson[];
   activities?: IActivity[];
+  my_rating?: number | null;
+  rating_prompt?: boolean;
+  can_rate?: boolean;
 };
 
 export type ICourse = {
