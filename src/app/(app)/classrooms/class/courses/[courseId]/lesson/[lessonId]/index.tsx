@@ -24,6 +24,7 @@ import { ILesson, ILessonDeck, useCollection } from '@/contexts/CollectionContex
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { StarRating } from '@/components/molecules/StarRating';
+import { LessonAnnotatedContent } from '@/components/molecules/LessonAnnotatedContent';
 import {
   PublishStatus,
   PublishStatusFields,
@@ -45,7 +46,8 @@ function extractYoutubeId(url: string): string | null {
 export default function LessonViewScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { lessonId, lessonTitle } = useLocalSearchParams<{
+  const { courseId, lessonId, lessonTitle } = useLocalSearchParams<{
+    courseId: string;
     lessonId: string;
     lessonTitle: string;
   }>();
@@ -57,7 +59,7 @@ export default function LessonViewScreen() {
   const [lesson, setLesson] = useState<ILesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerReady, setPlayerReady] = useState(false);
-  const [markedViewed, setMarkedViewed] = useState(false);
+  const [savingCompleted, setSavingCompleted] = useState(false);
   const [playerSize, setPlayerSize] = useState({ width: 0, height: 0 });
   const [myRating, setMyRating] = useState<number | null>(null);
   const [lessonDecks, setLessonDecks] = useState<ILessonDeck[]>([]);
@@ -80,6 +82,11 @@ export default function LessonViewScreen() {
     !!lesson?.course_id &&
     String(currentCourse._id) === String(lesson.course_id) &&
     String(currentCourse.teacher_id) === String(userInfo?.user_id);
+
+  const lessonFormat = lesson?.lesson_format || 'text';
+  const showLessonVideo =
+    (lessonFormat === 'video' || lessonFormat === 'both') && !!lesson?.video_url;
+  const showLessonText = lessonFormat === 'text' || lessonFormat === 'both';
 
   const fetchLesson = useCallback(async () => {
     if (!lessonId) return;
@@ -242,35 +249,50 @@ export default function LessonViewScreen() {
     }
   };
 
-  // Mark lesson as viewed for students (fire-and-forget)
   useEffect(() => {
-    if (!lessonId || !userInfo?.token || markedViewed) return;
-    setMarkedViewed(true);
+    if (!lessonId || !userInfo?.token || !lesson || isCourseTeacher) return;
     api
       .post(
         `/course/lesson/${lessonId}/viewed`,
         {},
-        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
       )
-      .then(() => fetchLesson())
-      .catch(() => {/* silently ignore */});
-  }, [lessonId, userInfo?.token]);
+      .catch(() => {/* last-accessed tracking */});
+  }, [lessonId, lesson?._id, userInfo?.token, isCourseTeacher]);
+
+  const openNeighbor = (neighbor?: { _id: string; title: string; course_id: string } | null) => {
+    if (!neighbor) return;
+    router.replace({
+      pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]' as any,
+      params: {
+        courseId: neighbor.course_id || courseId,
+        lessonId: neighbor._id,
+        lessonTitle: neighbor.title,
+      },
+    });
+  };
+
+  const handleToggleCompleted = async () => {
+    if (!lessonId || !userInfo?.token || isCourseTeacher) return;
+    const next = !lesson?.completed;
+    setSavingCompleted(true);
+    try {
+      const res = await api.put(
+        `/course/lesson/${lessonId}/completed`,
+        { completed: next },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+      setLesson(res.data);
+    } catch {
+      toast({ message: t('Failed to update lesson progress'), variant: 'destructive' });
+    } finally {
+      setSavingCompleted(false);
+    }
+  };
 
   const renderVideo = () => {
     if (!lesson?.video_url) {
-      return (
-        <View
-          className="w-full items-center justify-center rounded-2xl"
-          style={{ height: 200, backgroundColor: colors.gray[100] }}
-        >
-          <MaterialCommunityIcons
-            name="video-off-outline"
-            size={48}
-            color={colors.gray[400]}
-          />
-          <Text className="text-gray-400 mt-2">{t('No video available')}</Text>
-        </View>
-      );
+      return null;
     }
 
     if (lesson.video_type === 'youtube') {
@@ -393,7 +415,26 @@ export default function LessonViewScreen() {
         >
           {lessonTitle || lesson?.title}
         </Text>
-        <View style={{ width: 60 }} />
+        {isCourseTeacher ? (
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
+                params: {
+                  courseId: courseId || lesson?.course_id || currentCourse?._id,
+                  lessonId,
+                  lessonTitle: lesson?.title || lessonTitle,
+                },
+              })
+            }
+            className="flex-row items-center px-2 py-1 rounded-lg"
+            style={{ backgroundColor: colors.primary[50] }}
+          >
+            <MaterialCommunityIcons name="note-edit-outline" size={18} color={colors.primary[600]} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 60 }} />
+        )}
       </View>
 
       <ScrollView
@@ -401,7 +442,7 @@ export default function LessonViewScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Video Player */}
-        <View className="mb-6">{renderVideo()}</View>
+        {showLessonVideo ? <View className="mb-6">{renderVideo()}</View> : null}
 
         {/* Lesson info */}
         <View
@@ -429,14 +470,45 @@ export default function LessonViewScreen() {
               </Text>
             </View>
           )}
-          {!!lesson?.description && (
-            <Text className="text-gray-600 leading-6">{lesson.description}</Text>
-          )}
-          {!lesson?.description && (
-            <Text className="text-gray-400 italic">{t('No description')}</Text>
+          {showLessonText && lessonId && (
+          <LessonAnnotatedContent
+            lessonId={String(lessonId)}
+            contentHtml={lesson?.content_html}
+            description={lesson?.description}
+            token={userInfo?.token}
+          />
           )}
           {!isCourseTeacher && (
             <View className="mt-5 pt-4" style={{ borderTopWidth: 1, borderTopColor: colors.gray[200] }}>
+              <TouchableOpacity
+                onPress={handleToggleCompleted}
+                disabled={savingCompleted}
+                className="flex-row items-center justify-center rounded-xl py-3 mb-4"
+                style={{
+                  backgroundColor: lesson?.completed ? colors.success[100] : colors.primary[500],
+                }}
+              >
+                {savingCompleted ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={lesson?.completed ? colors.success[700] : colors.white}
+                  />
+                ) : (
+                  <>
+                    <MaterialIcons
+                      name={lesson?.completed ? 'check-circle' : 'check-circle-outline'}
+                      size={20}
+                      color={lesson?.completed ? colors.success[700] : colors.white}
+                    />
+                    <Text
+                      className="font-bold ml-2"
+                      style={{ color: lesson?.completed ? colors.success[700] : colors.white }}
+                    >
+                      {lesson?.completed ? t('Completed') : t('Mark as completed')}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
               <Text className="text-sm font-semibold text-gray-600 mb-2">
                 {t('Rate this lesson')}
               </Text>
@@ -534,6 +606,60 @@ export default function LessonViewScreen() {
               </View>
             ))
           )}
+        </View>
+
+        <View className="flex-row gap-3 mt-4 mb-2">
+          <TouchableOpacity
+            onPress={() => openNeighbor(lesson?.prev_lesson)}
+            disabled={!lesson?.prev_lesson}
+            className="flex-1 flex-row items-center justify-center rounded-xl py-3 px-3"
+            style={{
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.gray[200],
+              opacity: lesson?.prev_lesson ? 1 : 0.4,
+            }}
+          >
+            <MaterialIcons name="arrow-back" size={18} color={colors.gray[700]} />
+            <View className="ml-2 flex-1">
+              <Text className="text-xs text-gray-400">{t('Previous lesson')}</Text>
+              <Text className="text-sm font-semibold text-gray-800" numberOfLines={1}>
+                {lesson?.prev_lesson?.title || t('No previous lesson')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => openNeighbor(lesson?.next_lesson)}
+            disabled={!lesson?.next_lesson}
+            className="flex-1 flex-row items-center justify-center rounded-xl py-3 px-3"
+            style={{
+              backgroundColor: lesson?.next_lesson ? colors.primary[500] : colors.white,
+              borderWidth: 1,
+              borderColor: lesson?.next_lesson ? colors.primary[500] : colors.gray[200],
+              opacity: lesson?.next_lesson ? 1 : 0.4,
+            }}
+          >
+            <View className="mr-2 flex-1 items-end">
+              <Text
+                className="text-xs"
+                style={{ color: lesson?.next_lesson ? colors.primary[100] : colors.gray[400] }}
+              >
+                {t('Next lesson')}
+              </Text>
+              <Text
+                className="text-sm font-semibold"
+                numberOfLines={1}
+                style={{ color: lesson?.next_lesson ? colors.white : colors.gray[800] }}
+              >
+                {lesson?.next_lesson?.title || t('No next lesson')}
+              </Text>
+            </View>
+            <MaterialIcons
+              name="arrow-forward"
+              size={18}
+              color={lesson?.next_lesson ? colors.white : colors.gray[700]}
+            />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

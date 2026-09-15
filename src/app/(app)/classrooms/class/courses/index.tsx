@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -19,6 +19,7 @@ import { ICourse, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
+import { DuplicateTargetModal, DuplicateTargetType } from '@/components/molecules/DuplicateTargetModal';
 
 export default function CoursesScreen() {
   const { t } = useTranslation();
@@ -36,6 +37,13 @@ export default function CoursesScreen() {
   const [creating, setCreating] = useState(false);
   const [courseName, setCourseName] = useState('');
   const [courseDescription, setCourseDescription] = useState('');
+  const [editingCourse, setEditingCourse] = useState<ICourse | null>(null);
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<{
+    type: DuplicateTargetType;
+    sourceId: string;
+    defaultName: string;
+  } | null>(null);
 
   const fetchCourses = useCallback(async () => {
     if (!currentClassroom?._id) return;
@@ -56,28 +64,66 @@ export default function CoursesScreen() {
     fetchCourses();
   }, [fetchCourses]);
 
-  const handleCreateCourse = async () => {
+  const openCreateModal = () => {
+    setEditingCourse(null);
+    setCourseName('');
+    setCourseDescription('');
+    setShowCreate(true);
+  };
+
+  const openEditModal = (course: ICourse) => {
+    setEditingCourse(course);
+    setCourseName(course.name);
+    setCourseDescription(course.description || '');
+    setShowCreate(true);
+  };
+
+  const closeCourseModal = () => {
+    setShowCreate(false);
+    setEditingCourse(null);
+    setCourseName('');
+    setCourseDescription('');
+  };
+
+  const handleSaveCourse = async () => {
     if (!courseName.trim()) return;
     try {
-      setCreating(true);
-      await api.post(
-        '/course/create',
-        {
-          name: courseName.trim(),
-          description: courseDescription.trim(),
-          classroom_id: currentClassroom?._id,
-        },
-        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
-      );
-      toast({ message: t('Course created successfully'), variant: 'success' });
-      setShowCreate(false);
-      setCourseName('');
-      setCourseDescription('');
+      if (editingCourse) {
+        setSavingCourse(true);
+        await api.put(
+          `/course/${editingCourse._id}`,
+          {
+            name: courseName.trim(),
+            description: courseDescription.trim(),
+          },
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+        toast({ message: t('Course updated successfully'), variant: 'success' });
+      } else {
+        setCreating(true);
+        await api.post(
+          '/course/create',
+          {
+            name: courseName.trim(),
+            description: courseDescription.trim(),
+            classroom_id: currentClassroom?._id,
+          },
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+        toast({ message: t('Course created successfully'), variant: 'success' });
+      }
+      closeCourseModal();
       fetchCourses();
     } catch {
-      toast({ message: t('Failed to create course'), variant: 'destructive' });
+      toast({
+        message: editingCourse
+          ? t('Failed to update course')
+          : t('Failed to create course'),
+        variant: 'destructive',
+      });
     } finally {
       setCreating(false);
+      setSavingCourse(false);
     }
   };
 
@@ -106,6 +152,25 @@ export default function CoursesScreen() {
     );
   };
 
+  const handleReorderCourse = async (index: number, direction: 'up' | 'down') => {
+    if (!currentClassroom?._id) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= courses.length) return;
+    const newOrder = [...courses];
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setCourses(newOrder);
+    try {
+      await api.put(
+        `/course/by_classroom/${currentClassroom._id}/reorder`,
+        { course_ids: newOrder.map((c) => c._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+      fetchCourses();
+    }
+  };
+
   const handleOpenCourse = (course: ICourse) => {
     setCurrentCourse(course);
     router.push({
@@ -116,7 +181,6 @@ export default function CoursesScreen() {
 
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8">
-      {/* Header */}
       <View className="flex-row w-full justify-between items-center mb-6">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -154,10 +218,9 @@ export default function CoursesScreen() {
               </Text>
             </View>
           ) : (
-            courses.map((course) => (
-              <TouchableOpacity
+            courses.map((course, index) => (
+              <View
                 key={course._id}
-                onPress={() => handleOpenCourse(course)}
                 className="mb-4 rounded-2xl overflow-hidden"
                 style={{
                   backgroundColor: colors.white,
@@ -168,70 +231,118 @@ export default function CoursesScreen() {
                   elevation: 3,
                 }}
               >
-                <View
-                  className="px-5 py-4"
-                  style={{
-                    borderLeftWidth: 4,
-                    borderLeftColor: colors.primary[500],
-                  }}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <Text
-                        className="text-base font-bold text-gray-800"
-                        numberOfLines={1}
-                      >
-                        {course.name}
-                      </Text>
-                      {!!course.description && (
+                <TouchableOpacity onPress={() => handleOpenCourse(course)}>
+                  <View
+                    className="px-5 py-4"
+                    style={{
+                      borderLeftWidth: 4,
+                      borderLeftColor: colors.primary[500],
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
                         <Text
-                          className="text-sm text-gray-500 mt-1"
-                          numberOfLines={2}
+                          className="text-base font-bold text-gray-800"
+                          numberOfLines={1}
                         >
-                          {course.description}
+                          {course.name}
                         </Text>
-                      )}
-                    </View>
-                    <View className="flex-row items-center gap-2 ml-3">
+                        {!!course.description && (
+                          <Text
+                            className="text-sm text-gray-500 mt-1"
+                            numberOfLines={2}
+                          >
+                            {course.description}
+                          </Text>
+                        )}
+                      </View>
                       <MaterialIcons
                         name="chevron-right"
                         size={24}
                         color={colors.primary[500]}
                       />
-                      {isTeacher && (
-                        <TouchableOpacity
-                          onPress={() => handleDeleteCourse(course)}
-                          className="p-1"
-                        >
-                          <MaterialIcons
-                            name="delete-outline"
-                            size={20}
-                            color={colors.error[500]}
-                          />
-                        </TouchableOpacity>
-                      )}
                     </View>
                   </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+                {isTeacher && (
+                  <View className="flex-row items-center justify-end gap-1 px-4 pb-3">
+                    <TouchableOpacity
+                      onPress={() => handleReorderCourse(index, 'up')}
+                      disabled={index === 0}
+                      className="p-1"
+                    >
+                      <MaterialIcons
+                        name="arrow-upward"
+                        size={20}
+                        color={index === 0 ? colors.gray[300] : colors.gray[600]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleReorderCourse(index, 'down')}
+                      disabled={index === courses.length - 1}
+                      className="p-1"
+                    >
+                      <MaterialIcons
+                        name="arrow-downward"
+                        size={20}
+                        color={
+                          index === courses.length - 1
+                            ? colors.gray[300]
+                            : colors.gray[600]
+                        }
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => openEditModal(course)}
+                      className="p-1"
+                    >
+                      <Feather name="edit-2" size={18} color={colors.gray[600]} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDuplicateTarget({
+                          type: 'course',
+                          sourceId: course._id,
+                          defaultName: course.name,
+                        })
+                      }
+                      className="p-1"
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={18}
+                        color={colors.gray[600]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteCourse(course)}
+                      className="p-1"
+                    >
+                      <MaterialIcons
+                        name="delete-outline"
+                        size={20}
+                        color={colors.error[500]}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             ))
           )}
         </ScrollView>
       )}
 
-      {/* FAB: Create course (teacher only) */}
       {isTeacher && (
         <TouchableOpacity
           className="absolute bottom-7 right-0 rounded-full p-3 flex-row items-center gap-2"
           style={{ backgroundColor: colors.primary[500] }}
-          onPress={() => setShowCreate(true)}
+          onPress={openCreateModal}
         >
           <MaterialIcons name="add" size={28} color={colors.white} />
           <Text className="text-white font-bold mr-2">{t('New Course')}</Text>
         </TouchableOpacity>
       )}
 
-      {/* Create Course Modal */}
       <Modal visible={showCreate} transparent animationType="fade">
         <View
           className="flex-1 justify-center items-center px-4"
@@ -252,14 +363,10 @@ export default function CoursesScreen() {
                 className="text-xl font-bold"
                 style={{ color: colors.primary[700] }}
               >
-                {t('New Course')}
+                {editingCourse ? t('Edit course') : t('New Course')}
               </Text>
               <TouchableOpacity
-                onPress={() => {
-                  setShowCreate(false);
-                  setCourseName('');
-                  setCourseDescription('');
-                }}
+                onPress={closeCourseModal}
                 className="rounded-full p-2"
                 style={{ backgroundColor: colors.gray[100] }}
               >
@@ -294,35 +401,45 @@ export default function CoursesScreen() {
 
             <View className="flex-row gap-3">
               <TouchableOpacity
-                onPress={() => {
-                  setShowCreate(false);
-                  setCourseName('');
-                  setCourseDescription('');
-                }}
+                onPress={closeCourseModal}
                 className="flex-1 rounded-xl py-3 items-center"
                 style={{ backgroundColor: colors.gray[200] }}
               >
                 <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={handleCreateCourse}
-                disabled={creating || !courseName.trim()}
+                onPress={handleSaveCourse}
+                disabled={creating || savingCourse || !courseName.trim()}
                 className="flex-[2] rounded-xl py-3 items-center"
                 style={{
                   backgroundColor:
                     courseName.trim() ? colors.primary[500] : colors.gray[300],
                 }}
               >
-                {creating ? (
+                {creating || savingCourse ? (
                   <ActivityIndicator color={colors.white} />
                 ) : (
-                  <Text className="font-bold text-white">{t('Create')}</Text>
+                  <Text className="font-bold text-white">
+                    {editingCourse ? t('Save') : t('Create')}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      <DuplicateTargetModal
+        visible={!!duplicateTarget}
+        type={duplicateTarget?.type ?? 'course'}
+        sourceId={duplicateTarget?.sourceId ?? ''}
+        defaultName={duplicateTarget?.defaultName}
+        onClose={() => setDuplicateTarget(null)}
+        onSuccess={() => {
+          toast({ message: t('Duplicated successfully'), variant: 'success' });
+          fetchCourses();
+        }}
+      />
     </View>
   );
 }

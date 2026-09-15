@@ -30,13 +30,15 @@ import * as yup from 'yup';
 import api from '@/services/api';
 import { copyText } from '@/services/checkout';
 import { colors } from '@/styles/colors';
-import { IClassroom, ICourse, useCollection } from '@/contexts/CollectionContext';
+import { IClassroom, ICourse, ILessonNeighbor, useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
-import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
+import { imageSources, imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 
 import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
+import { DuplicateTargetModal, DuplicateTargetType } from '@/components/molecules/DuplicateTargetModal';
+import { ClassroomLessonContinue } from '@/components/molecules/ClassroomLessonContinue';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
@@ -60,6 +62,7 @@ export default function Classroom() {
   const {
     setCollections,
     currentCollection,
+    setCurrentCollection,
     setCurrentDeck,
     currentClassroom,
     setCurrentClassroom,
@@ -100,11 +103,13 @@ export default function Classroom() {
   const [modalVisible, setModalVisible] = useState(false);
   const isTeacher = hasRole('teacher');
 
-  const [tab, setTab] = useState<'content' | 'courses' | 'people'>('content');
+  const [tab, setTab] = useState<'content' | 'courses' | 'people' | 'settings'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
   const [openCardGenerator, setOpenCardGenerator] = useState(false);
   const [characterCounter, setCharacterCounter] = useState(0);
   const [hasCourses, setHasCourses] = useState(false);
+  const [lastViewedLessons, setLastViewedLessons] = useState<ILessonNeighbor[]>([]);
+  const [nextClassroomLesson, setNextClassroomLesson] = useState<ILessonNeighbor | null>(null);
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
   const [checkoutPrice, setCheckoutPrice] = useState('');
   const [savingCheckout, setSavingCheckout] = useState(false);
@@ -117,8 +122,23 @@ export default function Classroom() {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [creatingCourse, setCreatingCourse] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<ICourse | null>(null);
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseDesc, setNewCourseDesc] = useState('');
+  const [duplicateTarget, setDuplicateTarget] = useState<{
+    type: DuplicateTargetType;
+    sourceId: string;
+    defaultName: string;
+  } | null>(null);
+
+  const [collectionCoverImage, setCollectionCoverImage] = useState<string | null>(null);
+  const [collectionCoverGallery, setCollectionCoverGallery] = useState<string | null>(null);
+  const [collectionCoverModalVisible, setCollectionCoverModalVisible] = useState(false);
+  const [classroomCoverImage, setClassroomCoverImage] = useState<string | null>(null);
+  const [classroomCoverGallery, setClassroomCoverGallery] = useState<string | null>(null);
+  const [classroomCoverModalVisible, setClassroomCoverModalVisible] = useState(false);
+  const [savingCollectionCover, setSavingCollectionCover] = useState(false);
+  const [savingClassroomCover, setSavingClassroomCover] = useState(false);
 
   const [contentHeight, setContentHeight] = useState(0);
   const animation = useRef(new Animated.Value(0)).current;
@@ -141,9 +161,127 @@ export default function Classroom() {
     }
   };
 
+  const fetchLessonContinue = async () => {
+    if (!currentClassroom?._id || !userInfo?.token || isTeacher) return;
+    try {
+      const res = await api.get(
+        `/course/by_classroom/${currentClassroom._id}/continue`,
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+      setLastViewedLessons(res.data?.last_viewed || []);
+      setNextClassroomLesson(res.data?.next_lesson || null);
+    } catch {
+      setLastViewedLessons([]);
+      setNextClassroomLesson(null);
+    }
+  };
+
   useEffect(() => {
     fetchCoursesCount(tab === 'courses');
+    if (tab === 'content') fetchLessonContinue();
   }, [currentClassroom?._id, tab]);
+
+  const closeCourseModal = () => {
+    setShowCreateCourse(false);
+    setEditingCourse(null);
+    setNewCourseName('');
+    setNewCourseDesc('');
+  };
+
+  const openCreateCourseModal = () => {
+    setEditingCourse(null);
+    setNewCourseName('');
+    setNewCourseDesc('');
+    setShowCreateCourse(true);
+  };
+
+  const openEditCourseModal = (course: ICourse) => {
+    setEditingCourse(course);
+    setNewCourseName(course.name);
+    setNewCourseDesc(course.description || '');
+    setShowCreateCourse(true);
+  };
+
+  const handleSaveCourse = async () => {
+    if (!newCourseName.trim()) return;
+    try {
+      setCreatingCourse(true);
+      if (editingCourse) {
+        await api.put(
+          `/course/${editingCourse._id}`,
+          { name: newCourseName.trim(), description: newCourseDesc.trim() },
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+        toast({ message: t('Course updated successfully'), variant: 'success' });
+      } else {
+        await api.post(
+          '/course/create',
+          {
+            name: newCourseName.trim(),
+            description: newCourseDesc.trim(),
+            classroom_id: currentClassroom?._id,
+          },
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+        toast({ message: t('Course created successfully'), variant: 'success' });
+      }
+      closeCourseModal();
+      fetchCoursesCount(true);
+    } catch {
+      toast({
+        message: editingCourse
+          ? t('Failed to update course')
+          : t('Failed to create course'),
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingCourse(false);
+    }
+  };
+
+  const handleDeleteCourse = (course: ICourse) => {
+    Alert.alert(
+      t('Delete Course'),
+      t('Are you sure you want to delete this course? All modules, lessons and activities will be removed.'),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/course/${course._id}`, {
+                headers: { Authorization: `Bearer ${userInfo?.token}` },
+              });
+              toast({ message: t('Course deleted'), variant: 'success' });
+              fetchCoursesCount(true);
+            } catch {
+              toast({ message: t('Failed to delete course'), variant: 'destructive' });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReorderCourse = async (index: number, direction: 'up' | 'down') => {
+    if (!currentClassroom?._id) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= courses.length) return;
+    const newOrder = [...courses];
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setCourses(newOrder);
+    try {
+      await api.put(
+        `/course/by_classroom/${currentClassroom._id}/reorder`,
+        { course_ids: newOrder.map((c) => c._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+      fetchCoursesCount(true);
+    }
+  };
 
   useEffect(() => {
     if (currentClassroom?._id) {
@@ -159,6 +297,25 @@ export default function Classroom() {
         : '',
     );
   }, [currentClassroom?._id, currentClassroom?.checkout_enabled, currentClassroom?.price]);
+
+  useEffect(() => {
+    if (tab !== 'settings') return;
+    setCollectionCoverImage(currentCollection?.image || null);
+    setCollectionCoverGallery(
+      currentCollection?.image?.startsWith('ct_') ? currentCollection.image : null,
+    );
+    const classroomCover =
+      currentClassroom?.cover_image ?? currentClassroom?.image ?? null;
+    setClassroomCoverImage(classroomCover);
+    setClassroomCoverGallery(
+      classroomCover?.startsWith('ct_') ? classroomCover : null,
+    );
+  }, [
+    tab,
+    currentCollection?.image,
+    currentClassroom?.cover_image,
+    currentClassroom?.image,
+  ]);
 
   const fetchData = async () => {
     try {
@@ -222,6 +379,289 @@ export default function Classroom() {
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     }
+  };
+
+  const pickCoverImage = async (
+    setImage: React.Dispatch<React.SetStateAction<string | null>>,
+    setGallery: React.Dispatch<React.SetStateAction<string | null>>,
+  ) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert(t('Permission denied, You need to allow access to the gallery.'));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setGallery(null);
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const resolveCoverImageUrl = async (
+    selected: string | null,
+    galleryKey: string | null,
+    fallback?: string | null,
+  ) => {
+    if (selected && !galleryKey) {
+      const response = await fetch(selected);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `images/decks/${Date.now()}`);
+      await uploadBytes(storageRef, blob);
+      return await getDownloadURL(storageRef);
+    }
+
+    return galleryKey || selected || fallback || '';
+  };
+
+  const handleSaveCollectionCover = async () => {
+    const collectionId = currentCollection?._id || currentClassroom?.collection;
+    if (!collectionId) return;
+
+    try {
+      setSavingCollectionCover(true);
+      const imageUrl = await resolveCoverImageUrl(
+        collectionCoverImage,
+        collectionCoverGallery,
+        currentCollection?.image,
+      );
+      await api.put(
+        `/collections/update/${collectionId}`,
+        { image: imageUrl },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      toast({
+        message: t('Collection cover updated successfully'),
+        variant: 'success',
+      });
+      await fetchCollectionData();
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        message:
+          error?.response?.data?.error ||
+          t('Failed to update collection cover'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingCollectionCover(false);
+    }
+  };
+
+  const handleSaveClassroomCover = async () => {
+    if (!currentClassroom?._id) return;
+
+    try {
+      setSavingClassroomCover(true);
+      const imageUrl = await resolveCoverImageUrl(
+        classroomCoverImage,
+        classroomCoverGallery,
+        currentClassroom.cover_image || currentClassroom.image,
+      );
+      const res = await api.put(
+        `/classroom/${currentClassroom._id}`,
+        { image: imageUrl },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      setCurrentClassroom((prev) => (prev ? { ...prev, ...res.data } : res.data));
+      toast({
+        message: t('Classroom cover updated successfully'),
+        variant: 'success',
+      });
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        message:
+          error?.response?.data?.error ||
+          t('Failed to update classroom cover'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingClassroomCover(false);
+    }
+  };
+
+  const renderCoverPicker = ({
+    title,
+    description,
+    previewValue,
+    selectedImage: coverSelected,
+    selectedGallery,
+    onPick,
+    onClear,
+    onOpenGallery,
+    galleryVisible,
+    onCloseGallery,
+    onSelectGallery,
+    onSave,
+    saving,
+  }: {
+    title: string;
+    description: string;
+    previewValue?: string | null;
+    selectedImage: string | null;
+    selectedGallery: string | null;
+    onPick: () => void;
+    onClear: () => void;
+    onOpenGallery: () => void;
+    galleryVisible: boolean;
+    onCloseGallery: () => void;
+    onSelectGallery: (uri: unknown, key: string) => void;
+    onSave: () => void;
+    saving: boolean;
+  }) => {
+    const displayImage = selectedGallery || coverSelected || previewValue;
+
+    return (
+      <View
+        className="rounded-2xl px-5 py-4 mb-4"
+        style={{
+          backgroundColor: colors.white,
+          borderWidth: 1,
+          borderColor: colors.gray[300],
+        }}
+      >
+        <Text className="font-bold text-gray-800 mb-1">{title}</Text>
+        <Text className="text-xs text-gray-500 mb-4">{description}</Text>
+
+        <View className="flex-row items-stretch gap-3 mb-4">
+          <TouchableOpacity
+            onPress={onPick}
+            className="flex-1 border-2 border-dashed rounded-2xl p-4 items-center justify-center"
+            style={{
+              borderColor: colors.primary[300],
+              backgroundColor: colors.primary[50],
+              minHeight: 140,
+            }}
+          >
+            {displayImage ? (
+              <View className="relative items-center justify-center">
+                <Image
+                  style={{ width: 120, height: 120, borderRadius: 12 }}
+                  source={
+                    selectedGallery || (typeof coverSelected === 'string' && coverSelected.startsWith('ct_'))
+                      ? setImageUrl({ image: selectedGallery || coverSelected })
+                      : typeof coverSelected === 'string'
+                        ? { uri: coverSelected }
+                        : setImageUrl({ image: previewValue })
+                  }
+                />
+                <TouchableOpacity
+                  onPress={onClear}
+                  className="absolute -top-2 -right-2 rounded-full p-1"
+                  style={{ backgroundColor: colors.error[500] }}
+                >
+                  <MaterialIcons name="close" size={18} color={colors.white} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View className="items-center">
+                <MaterialIcons
+                  name="add-photo-alternate"
+                  size={40}
+                  color={colors.primary[400]}
+                />
+                <Text
+                  className="text-center mt-2 text-sm font-medium"
+                  style={{ color: colors.primary[600] }}
+                >
+                  {t('Tap to send an image')}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={onOpenGallery}
+            className="rounded-2xl p-4 items-center justify-center"
+            style={{ backgroundColor: colors.primary[500], minWidth: 72 }}
+          >
+            <MaterialCommunityIcons
+              name="folder-multiple-image"
+              size={28}
+              color={colors.white}
+            />
+            <Text className="text-white text-xs font-semibold mt-2">
+              {t('Gallery')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          onPress={onSave}
+          disabled={saving}
+          className="items-center py-3 rounded-xl"
+          style={{
+            backgroundColor: colors.primary[500],
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? (
+            <Loading />
+          ) : (
+            <Text className="text-white font-semibold">{t('Save')}</Text>
+          )}
+        </TouchableOpacity>
+
+        <Modal visible={galleryVisible} animationType="slide" transparent>
+          <View
+            className="flex-1 justify-end"
+            style={{ backgroundColor: colors.overlay.light }}
+          >
+            <View
+              className="bg-white rounded-t-3xl p-6"
+              style={{ maxHeight: '80%' }}
+            >
+              <View className="flex-row justify-between items-center mb-4">
+                <Text
+                  className="text-2xl font-bold"
+                  style={{ color: colors.primary[700] }}
+                >
+                  {t('Select an image')}
+                </Text>
+                <TouchableOpacity
+                  onPress={onCloseGallery}
+                  className="rounded-full p-2"
+                  style={{ backgroundColor: colors.gray[100] }}
+                >
+                  <MaterialIcons name="close" size={24} color={colors.gray[700]} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                contentContainerStyle={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  paddingBottom: 20,
+                }}
+              >
+                {imageSources.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => onSelectGallery(item.uri, `ct_${item.id}`)}
+                    className="rounded-xl overflow-hidden active:scale-95"
+                    style={{
+                      borderWidth: 2,
+                      borderColor:
+                        selectedGallery === `ct_${item.id}`
+                          ? colors.primary[500]
+                          : colors.primary[200],
+                    }}
+                  >
+                    <Image style={{ width: 100, height: 100 }} source={item.uri} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
   };
 
   const HandleOpenAddDeck = () => {
@@ -510,77 +950,6 @@ export default function Classroom() {
           {name}
         </Text>
       </View>
-      {canManageCheckout ? (
-        <View
-          className="rounded-2xl px-5 py-4 mb-4"
-          style={{
-            backgroundColor: colors.gray[100],
-            borderWidth: 1,
-            borderColor: colors.gray[300],
-          }}
-        >
-          <View className="flex-row items-center justify-between mb-2">
-            <View className="flex-1 pr-3">
-              <Text className="font-bold text-gray-800">{t('External checkout')}</Text>
-              <Text className="text-xs text-gray-500 mt-1">
-                {currentClassroom?.checkout_allowed
-                  ? t('Enable a public checkout link for this classroom')
-                  : t('Checkout not allowed')}
-              </Text>
-            </View>
-            {currentClassroom?.checkout_allowed ? (
-              <Switch
-                value={checkoutEnabled}
-                onValueChange={setCheckoutEnabled}
-                trackColor={{ false: colors.gray[300], true: colors.primary[200] }}
-                thumbColor={checkoutEnabled ? colors.primary[500] : colors.gray[400]}
-              />
-            ) : null}
-          </View>
-          {currentClassroom?.checkout_url ? (
-            <View className="flex-row items-center gap-2 mb-3">
-              <Text className="flex-1 text-xs text-gray-600" numberOfLines={2} selectable>
-                {currentClassroom.checkout_url}
-              </Text>
-              <TouchableOpacity
-                onPress={handleCopyCheckoutUrl}
-                className="px-3 py-2 rounded-xl"
-                style={{ backgroundColor: colors.primary[50] }}
-              >
-                <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
-                  {t('Copy link')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-          {currentClassroom?.checkout_allowed ? (
-            <>
-              <Text className="text-xs text-gray-600 mb-1">{t('Price')}</Text>
-              <TextInput
-                value={checkoutPrice}
-                onChangeText={setCheckoutPrice}
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-                placeholderTextColor={colors.placeholder}
-                className="h-11 px-3 rounded-xl mb-3 bg-white"
-                style={{ borderWidth: 1, borderColor: colors.gray[300] }}
-              />
-              <TouchableOpacity
-                onPress={handleSaveCheckout}
-                disabled={savingCheckout}
-                className="items-center py-3 rounded-xl"
-                style={{ backgroundColor: colors.primary[500], opacity: savingCheckout ? 0.7 : 1 }}
-              >
-                {savingCheckout ? (
-                  <Loading />
-                ) : (
-                  <Text className="text-white font-semibold">{t('Save checkout settings')}</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : null}
-        </View>
-      ) : null}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 200, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
@@ -626,10 +995,42 @@ export default function Classroom() {
               </Text>
             </TouchableOpacity>
           )}
+          {isClassroomOwner && (
+            <TouchableOpacity
+              onPress={() => setTab('settings')}
+              className={`px-6 py-2 ${
+                tab === 'settings' ? 'border-b-2 border-primary-500' : ''
+              }`}
+            >
+              <Text
+                className={`text-lg font-bold ${tab === 'settings' ? 'text-primary-500' : 'text-gray-500'}`}
+              >
+                {t('Settings')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {tab === 'content' ? (
           <View>
+            {!isTeacher ? (
+              <ClassroomLessonContinue
+                lastViewed={lastViewedLessons}
+                nextLesson={nextClassroomLesson}
+                onOpen={(lesson) => {
+                  const course = courses.find((item) => item._id === lesson.course_id);
+                  if (course) setCurrentCourse(course);
+                  router.push({
+                    pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]' as any,
+                    params: {
+                      courseId: lesson.course_id,
+                      lessonId: lesson._id,
+                      lessonTitle: lesson.title,
+                    },
+                  });
+                }}
+              />
+            ) : null}
             <View className="">
               <View className="my-6 w-full h-48 md:h-[756px] rounded-[12px] overflow-hidden relative">
                 <Image
@@ -1076,16 +1477,9 @@ export default function Classroom() {
                 </Text>
               </View>
             ) : (
-              courses.map((course) => (
-                <TouchableOpacity
+              courses.map((course, index) => (
+                <View
                   key={course._id}
-                  onPress={() => {
-                    setCurrentCourse(course);
-                    router.push({
-                      pathname: '/classrooms/class/courses/[courseId]' as any,
-                      params: { courseId: course._id, courseName: course.name },
-                    });
-                  }}
                   className="mb-4 rounded-2xl overflow-hidden"
                   style={{
                     backgroundColor: colors.white,
@@ -1096,22 +1490,84 @@ export default function Classroom() {
                     elevation: 3,
                   }}
                 >
-                  <View className="px-5 py-4" style={{ borderLeftWidth: 4, borderLeftColor: colors.primary[500] }}>
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-800" numberOfLines={1}>
-                          {course.name}
-                        </Text>
-                        {!!course.description && (
-                          <Text className="text-sm text-gray-500 mt-1" numberOfLines={2}>
-                            {course.description}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCurrentCourse(course);
+                      router.push({
+                        pathname: '/classrooms/class/courses/[courseId]' as any,
+                        params: { courseId: course._id, courseName: course.name },
+                      });
+                    }}
+                  >
+                    <View className="px-5 py-4" style={{ borderLeftWidth: 4, borderLeftColor: colors.primary[500] }}>
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-1">
+                          <Text className="text-base font-bold text-gray-800" numberOfLines={1}>
+                            {course.name}
                           </Text>
-                        )}
+                          {!!course.description && (
+                            <Text className="text-sm text-gray-500 mt-1" numberOfLines={2}>
+                              {course.description}
+                            </Text>
+                          )}
+                        </View>
+                        <MaterialIcons name="chevron-right" size={24} color={colors.primary[500]} />
                       </View>
-                      <MaterialIcons name="chevron-right" size={24} color={colors.primary[500]} />
                     </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                  {isTeacher && (
+                    <View className="flex-row items-center justify-end gap-1 px-4 pb-3">
+                      <TouchableOpacity
+                        onPress={() => handleReorderCourse(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1"
+                      >
+                        <MaterialIcons
+                          name="arrow-upward"
+                          size={20}
+                          color={index === 0 ? colors.gray[300] : colors.gray[600]}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleReorderCourse(index, 'down')}
+                        disabled={index === courses.length - 1}
+                        className="p-1"
+                      >
+                        <MaterialIcons
+                          name="arrow-downward"
+                          size={20}
+                          color={
+                            index === courses.length - 1
+                              ? colors.gray[300]
+                              : colors.gray[600]
+                          }
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => openEditCourseModal(course)} className="p-1">
+                        <Feather name="edit-2" size={18} color={colors.gray[600]} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setDuplicateTarget({
+                            type: 'course',
+                            sourceId: course._id,
+                            defaultName: course.name,
+                          })
+                        }
+                        className="p-1"
+                      >
+                        <MaterialCommunityIcons
+                          name="content-copy"
+                          size={18}
+                          color={colors.gray[600]}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleDeleteCourse(course)} className="p-1">
+                        <MaterialIcons name="delete-outline" size={20} color={colors.error[500]} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               ))
             )}
 
@@ -1121,8 +1577,10 @@ export default function Classroom() {
                 <View className="flex-1 justify-center items-center px-4" style={{ backgroundColor: colors.overlay.medium }}>
                   <View className="bg-white rounded-3xl w-full max-w-lg p-6" style={{ elevation: 10 }}>
                     <View className="flex-row justify-between items-center mb-5">
-                      <Text className="text-xl font-bold" style={{ color: colors.primary[700] }}>{t('New Course')}</Text>
-                      <TouchableOpacity onPress={() => { setShowCreateCourse(false); setNewCourseName(''); setNewCourseDesc(''); }}
+                      <Text className="text-xl font-bold" style={{ color: colors.primary[700] }}>
+                        {editingCourse ? t('Edit course') : t('New Course')}
+                      </Text>
+                      <TouchableOpacity onPress={closeCourseModal}
                         className="rounded-full p-2" style={{ backgroundColor: colors.gray[100] }}>
                         <MaterialIcons name="close" size={20} color={colors.gray[700]} />
                       </TouchableOpacity>
@@ -1147,29 +1605,20 @@ export default function Classroom() {
                       maxLength={300}
                     />
                     <View className="flex-row gap-3">
-                      <TouchableOpacity onPress={() => { setShowCreateCourse(false); setNewCourseName(''); setNewCourseDesc(''); }}
+                      <TouchableOpacity onPress={closeCourseModal}
                         className="flex-1 rounded-xl py-3 items-center" style={{ backgroundColor: colors.gray[200] }}>
                         <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         disabled={creatingCourse || !newCourseName.trim()}
-                        onPress={async () => {
-                          if (!newCourseName.trim()) return;
-                          try {
-                            setCreatingCourse(true);
-                            await api.post('/course/create',
-                              { name: newCourseName.trim(), description: newCourseDesc.trim(), classroom_id: currentClassroom?._id },
-                              { headers: { Authorization: `Bearer ${userInfo?.token}` } });
-                            setShowCreateCourse(false);
-                            setNewCourseName('');
-                            setNewCourseDesc('');
-                            fetchCoursesCount(true);
-                          } catch { toast({ message: t('Failed to create course'), variant: 'destructive' }); }
-                          finally { setCreatingCourse(false); }
-                        }}
+                        onPress={handleSaveCourse}
                         className="flex-[2] rounded-xl py-3 items-center"
                         style={{ backgroundColor: newCourseName.trim() ? colors.primary[500] : colors.gray[300] }}>
-                        {creatingCourse ? <Loading /> : <Text className="font-bold text-white">{t('Create')}</Text>}
+                        {creatingCourse ? <Loading /> : (
+                          <Text className="font-bold text-white">
+                            {editingCourse ? t('Save') : t('Create')}
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1177,7 +1626,7 @@ export default function Classroom() {
               </Modal>
             )}
           </View>
-        ) : (
+        ) : tab === 'people' ? (
           <View style={{ flex: 1, backgroundColor: colors.background, padding: 16 }}>
             {/* Invite section */}
             <View
@@ -1462,6 +1911,134 @@ export default function Classroom() {
                 ))}
             </View>
           </View>
+        ) : (
+          <View className="py-2">
+            {renderCoverPicker({
+              title: t('Collection cover'),
+              description: t('Shown on the content tab of this classroom'),
+              previewValue: currentCollection?.image,
+              selectedImage: collectionCoverImage,
+              selectedGallery: collectionCoverGallery,
+              onPick: () =>
+                pickCoverImage(setCollectionCoverImage, setCollectionCoverGallery),
+              onClear: () => {
+                setCollectionCoverImage(null);
+                setCollectionCoverGallery(null);
+              },
+              onOpenGallery: () => setCollectionCoverModalVisible(true),
+              galleryVisible: collectionCoverModalVisible,
+              onCloseGallery: () => setCollectionCoverModalVisible(false),
+              onSelectGallery: (_uri, key) => {
+                setCollectionCoverImage(key);
+                setCollectionCoverGallery(key);
+                setCollectionCoverModalVisible(false);
+              },
+              onSave: handleSaveCollectionCover,
+              saving: savingCollectionCover,
+            })}
+
+            {renderCoverPicker({
+              title: t('Classroom cover'),
+              description: t('Shown on the classroom list and cards'),
+              previewValue:
+                currentClassroom?.cover_image ?? currentClassroom?.image,
+              selectedImage: classroomCoverImage,
+              selectedGallery: classroomCoverGallery,
+              onPick: () =>
+                pickCoverImage(setClassroomCoverImage, setClassroomCoverGallery),
+              onClear: () => {
+                setClassroomCoverImage(null);
+                setClassroomCoverGallery(null);
+              },
+              onOpenGallery: () => setClassroomCoverModalVisible(true),
+              galleryVisible: classroomCoverModalVisible,
+              onCloseGallery: () => setClassroomCoverModalVisible(false),
+              onSelectGallery: (_uri, key) => {
+                setClassroomCoverImage(key);
+                setClassroomCoverGallery(key);
+                setClassroomCoverModalVisible(false);
+              },
+              onSave: handleSaveClassroomCover,
+              saving: savingClassroomCover,
+            })}
+
+            {canManageCheckout ? (
+              <View
+                className="rounded-2xl px-5 py-4 mb-4"
+                style={{
+                  backgroundColor: colors.gray[100],
+                  borderWidth: 1,
+                  borderColor: colors.gray[300],
+                }}
+              >
+                <View className="flex-row items-center justify-between mb-2">
+                  <View className="flex-1 pr-3">
+                    <Text className="font-bold text-gray-800">{t('External checkout')}</Text>
+                    <Text className="text-xs text-gray-500 mt-1">
+                      {currentClassroom?.checkout_allowed
+                        ? t('Enable a public checkout link for this classroom')
+                        : t('Checkout not allowed')}
+                    </Text>
+                  </View>
+                  {currentClassroom?.checkout_allowed ? (
+                    <Switch
+                      value={checkoutEnabled}
+                      onValueChange={setCheckoutEnabled}
+                      trackColor={{ false: colors.gray[300], true: colors.primary[200] }}
+                      thumbColor={checkoutEnabled ? colors.primary[500] : colors.gray[400]}
+                    />
+                  ) : null}
+                </View>
+                {currentClassroom?.checkout_url ? (
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <Text className="flex-1 text-xs text-gray-600" numberOfLines={2} selectable>
+                      {currentClassroom.checkout_url}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={handleCopyCheckoutUrl}
+                      className="px-3 py-2 rounded-xl"
+                      style={{ backgroundColor: colors.primary[50] }}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
+                        {t('Copy link')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+                {currentClassroom?.checkout_allowed ? (
+                  <>
+                    <Text className="text-xs text-gray-600 mb-1">{t('Price')}</Text>
+                    <TextInput
+                      value={checkoutPrice}
+                      onChangeText={setCheckoutPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={colors.placeholder}
+                      className="h-11 px-3 rounded-xl mb-3 bg-white"
+                      style={{ borderWidth: 1, borderColor: colors.gray[300] }}
+                    />
+                    <TouchableOpacity
+                      onPress={handleSaveCheckout}
+                      disabled={savingCheckout}
+                      className="items-center py-3 rounded-xl"
+                      style={{
+                        backgroundColor: colors.primary[500],
+                        opacity: savingCheckout ? 0.7 : 1,
+                      }}
+                    >
+                      {savingCheckout ? (
+                        <Loading />
+                      ) : (
+                        <Text className="text-white font-semibold">
+                          {t('Save checkout settings')}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
         )}
         <LinearGradient
           colors={['transparent', `${colors.gray[100]}`]}
@@ -1482,7 +2059,7 @@ export default function Classroom() {
         <TouchableOpacity
           className="absolute bottom-7 right-0 rounded-full p-3 flex-row items-center gap-2"
           style={{ backgroundColor: colors.primary[500] }}
-          onPress={() => setShowCreateCourse(true)}
+          onPress={openCreateCourseModal}
         >
           <MaterialIcons name="add" size={28} color={colors.white} />
           <Text className="text-white font-bold mr-2">{t('New Course')}</Text>
@@ -1528,6 +2105,18 @@ export default function Classroom() {
           </View>
         </View>
       </Modal>
+
+      <DuplicateTargetModal
+        visible={!!duplicateTarget}
+        type={duplicateTarget?.type ?? 'course'}
+        sourceId={duplicateTarget?.sourceId ?? ''}
+        defaultName={duplicateTarget?.defaultName}
+        onClose={() => setDuplicateTarget(null)}
+        onSuccess={() => {
+          toast({ message: t('Duplicated successfully'), variant: 'success' });
+          fetchCoursesCount(true);
+        }}
+      />
     </View>
   );
 }

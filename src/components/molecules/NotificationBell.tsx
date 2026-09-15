@@ -11,7 +11,7 @@ const NotificationBell = () => {
   const { unreadCount } = useNotification();
 
   const handlePress = () => {
-    router.push('./notifications');
+    router.push('/notifications');
   };
 
   return (

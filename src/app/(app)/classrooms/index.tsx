@@ -28,7 +28,7 @@ import { imageSources, setImageUrl } from '@/utils/imgSource';
 
 import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
-import { Dialog, DialogContent, useDialog } from '@/components/Dialog';
+import { useDialog } from '@/components/Dialog';
 import { Loading } from '@/components/Loading';
 import { OpenDialogInput } from '@/components/atoms/DialogInput';
 import { MainDeckCard } from '@/components/atoms/MainDeckCard';
@@ -140,7 +140,6 @@ export default function Classrooms() {
   const setOpenCreateClassroom = () => {
     setOpenCreateCollection(true);
     setAddNewClass(false);
-    setOpen(true);
   };
 
   const handleCreateClassroom = async (collection_id?: string) => {
@@ -173,7 +172,7 @@ export default function Classrooms() {
         setOpenCreateCollection(false);
         setAddNewClass(false);
         setOpen(false);
-      } catch (error) {
+      } catch (error: any) {
         if (error instanceof yup.ValidationError) {
           const newErrors: Record<string, string> = {};
           error.inner.forEach((err) => {
@@ -200,18 +199,19 @@ export default function Classrooms() {
       }
     } else {
       let url = '';
-      if (selectedImage && !selectedImageFromGallery) {
-        const response = await fetch(selectedImage);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `images/decks/${Date.now()}`);
-
-        await uploadBytes(storageRef, blob);
-        url = await getDownloadURL(storageRef);
-      } else {
-        url = selectedImageFromGallery!;
-      }
-
       try {
+        setLoading(true);
+        if (selectedImage && !selectedImageFromGallery) {
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `images/decks/${Date.now()}`);
+
+          await uploadBytes(storageRef, blob);
+          url = await getDownloadURL(storageRef);
+        } else {
+          url = selectedImageFromGallery!;
+        }
+
         await validateForm();
         const response = await api.post('/collections/create', {
           name: formData.name,
@@ -239,7 +239,7 @@ export default function Classrooms() {
         setOpenCreateCollection(false);
         setAddNewClass(false);
         setOpen(false);
-      } catch (error) {
+      } catch (error: any) {
         if (error instanceof yup.ValidationError) {
           const newErrors: Record<string, string> = {};
           error.inner.forEach((err) => {
@@ -262,14 +262,17 @@ export default function Classrooms() {
       } finally {
         fetchCollectionData();
         fetchData();
+        setLoading(false);
       }
     }
   };
 
   const close = async () => {
     handleInputChange('name', '');
+    setOpenCreateCollection(false);
     setOpen(false);
     setSelectedImage(null);
+    setSelectedImageFromGallery(null);
   };
 
   const handleSetClassroom = (classroom_id: string) => {
@@ -393,28 +396,27 @@ export default function Classrooms() {
         </OpenDialogInput>
       )}
 
-      {openCreateCollection && (
-        <Dialog>
-          <DialogContent
-            className="w-full px-4"
+      <Modal
+        transparent
+        animationType="slide"
+        visible={openCreateCollection}
+        onRequestClose={close}
+      >
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay?.medium || 'rgba(0,0,0,0.5)' }}
+        >
+          <View
+            className="bg-white rounded-3xl w-full md:max-w-2xl p-6 md:p-8"
             style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: colors.overlay?.medium || 'rgba(0,0,0,0.5)',
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 20,
+              elevation: 10,
+              maxHeight: '90%',
             }}
           >
-            <View
-              className="bg-white rounded-3xl w-full md:max-w-2xl p-6 md:p-8"
-              style={{
-                shadowColor: colors.shadow,
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.25,
-                shadowRadius: 20,
-                elevation: 10,
-                maxHeight: '90%',
-              }}
-            >
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View className="flex flex-row justify-between items-center mb-6">
                   <View className="flex-row items-center gap-3">
@@ -676,9 +678,8 @@ export default function Classrooms() {
                 </View>
               </ScrollView>
             </View>
-          </DialogContent>
-        </Dialog>
-      )}
+        </View>
+      </Modal>
     </View>
   );
 }

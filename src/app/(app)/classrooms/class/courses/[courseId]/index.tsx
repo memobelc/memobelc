@@ -30,12 +30,14 @@ import {
   ICourseModule,
   ILesson,
   IActivity,
+  LessonFormat,
   useCollection,
 } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { StarRating } from '@/components/molecules/StarRating';
 import { ModuleRatingModal } from '@/components/molecules/ModuleRatingModal';
+import { DuplicateTargetModal, DuplicateTargetType } from '@/components/molecules/DuplicateTargetModal';
 
 type ContentItem =
   | (ILesson & { itemType: 'lesson' })
@@ -80,6 +82,7 @@ export default function CourseDetailScreen() {
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonVideoUrl, setLessonVideoUrl] = useState('');
   const [lessonVideoType, setLessonVideoType] = useState<'youtube' | 'upload' | 'other'>('youtube');
+  const [lessonFormat, setLessonFormat] = useState<LessonFormat>('text');
   const [lessonDescription, setLessonDescription] = useState('');
   const [lessonVisible, setLessonVisible] = useState(true);
   const [lessonUseSchedule, setLessonUseSchedule] = useState(false);
@@ -104,6 +107,16 @@ export default function CourseDetailScreen() {
   } | null>(null);
   const [promptModule, setPromptModule] = useState<ICourseModule | null>(null);
   const [savingModuleRating, setSavingModuleRating] = useState(false);
+
+  const [showCourseEditModal, setShowCourseEditModal] = useState(false);
+  const [editCourseName, setEditCourseName] = useState('');
+  const [editCourseDescription, setEditCourseDescription] = useState('');
+  const [savingCourseEdit, setSavingCourseEdit] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<{
+    type: DuplicateTargetType;
+    sourceId: string;
+    defaultName: string;
+  } | null>(null);
 
   const fetchCourse = useCallback(async () => {
     if (!courseId) return;
@@ -299,6 +312,85 @@ export default function CourseDetailScreen() {
     }
   };
 
+  const openEditCourseModal = () => {
+    if (!course) return;
+    setEditCourseName(course.name);
+    setEditCourseDescription(course.description || '');
+    setShowCourseEditModal(true);
+  };
+
+  const handleSaveCourseEdit = async () => {
+    if (!editCourseName.trim() || !courseId) return;
+    try {
+      setSavingCourseEdit(true);
+      await api.put(
+        `/course/${courseId}`,
+        {
+          name: editCourseName.trim(),
+          description: editCourseDescription.trim(),
+        },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      toast({ message: t('Course updated successfully'), variant: 'success' });
+      setShowCourseEditModal(false);
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to update course'), variant: 'destructive' });
+    } finally {
+      setSavingCourseEdit(false);
+    }
+  };
+
+  const handleReorderLesson = async (
+    mod: ICourseModule,
+    lessonIndex: number,
+    direction: 'up' | 'down',
+  ) => {
+    const lessons = mod.lessons ?? [];
+    const targetIndex = direction === 'up' ? lessonIndex - 1 : lessonIndex + 1;
+    if (targetIndex < 0 || targetIndex >= lessons.length) return;
+    const newOrder = [...lessons];
+    [newOrder[lessonIndex], newOrder[targetIndex]] = [
+      newOrder[targetIndex],
+      newOrder[lessonIndex],
+    ];
+    try {
+      await api.put(
+        `/course/module/${mod._id}/lessons/reorder`,
+        { lesson_ids: newOrder.map((l) => l._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
+  const handleReorderActivity = async (
+    mod: ICourseModule,
+    activityIndex: number,
+    direction: 'up' | 'down',
+  ) => {
+    const activities = mod.activities ?? [];
+    const targetIndex = direction === 'up' ? activityIndex - 1 : activityIndex + 1;
+    if (targetIndex < 0 || targetIndex >= activities.length) return;
+    const newOrder = [...activities];
+    [newOrder[activityIndex], newOrder[targetIndex]] = [
+      newOrder[targetIndex],
+      newOrder[activityIndex],
+    ];
+    try {
+      await api.put(
+        `/course/module/${mod._id}/activities/reorder`,
+        { activity_ids: newOrder.map((a) => a._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
   // ── Lesson CRUD ────────────────────────────────────────────────────────────
 
   const openCreateLesson = (moduleId: string) => {
@@ -307,6 +399,7 @@ export default function CourseDetailScreen() {
     setLessonTitle('');
     setLessonVideoUrl('');
     setLessonVideoType('youtube');
+    setLessonFormat('text');
     setLessonDescription('');
     setLessonVisible(true);
     setLessonUseSchedule(false);
@@ -319,7 +412,19 @@ export default function CourseDetailScreen() {
     setLessonModuleId(lesson.module_id);
     setLessonTitle(lesson.title);
     setLessonVideoUrl(lesson.video_url);
-    setLessonVideoType(lesson.video_type as any);
+    setLessonVideoType(
+      lesson.video_type === 'youtube' || lesson.video_type === 'upload' || lesson.video_type === 'other'
+        ? lesson.video_type
+        : 'youtube',
+    );
+    setLessonFormat(
+      lesson.lesson_format
+        || (lesson.video_url?.trim() && (lesson.content_html?.trim() || lesson.description?.trim())
+          ? 'both'
+          : lesson.video_url?.trim()
+            ? 'video'
+            : 'text'),
+    );
     setLessonDescription(lesson.description);
     setLessonVisible(lesson.visible);
     const hasSched = !!lesson.scheduled_at;
@@ -354,31 +459,70 @@ export default function CourseDetailScreen() {
 
   const handleSaveLesson = async () => {
     if (!lessonTitle.trim()) return;
+    if (!courseId || !lessonModuleId) {
+      toast({ message: t('Failed to save lesson'), variant: 'destructive' });
+      return;
+    }
+    const includeVideo = lessonFormat === 'video' || lessonFormat === 'both';
+    const payload: Record<string, any> = {
+      title: lessonTitle.trim(),
+      lesson_format: lessonFormat,
+      video_url: includeVideo ? lessonVideoUrl.trim() : '',
+      video_type: includeVideo ? lessonVideoType : 'youtube',
+      description: lessonDescription.trim(),
+      visible: lessonUseSchedule ? false : lessonVisible,
+      module_id: lessonModuleId,
+      course_id: courseId,
+      scheduled_at: lessonUseSchedule && lessonScheduledAt ? lessonScheduledAt : null,
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson start',data:{isEdit:!!editingLesson,courseId,lessonModuleId,lessonFormat,payloadKeys:Object.keys(payload)},timestamp:Date.now(),hypothesisId:'H1,H4',runId:'save-lesson'})}).catch(()=>{});
+    // #endregion
     try {
       setSavingLesson(true);
-      const payload: Record<string, any> = {
-        title: lessonTitle.trim(),
-        video_url: lessonVideoUrl.trim(),
-        video_type: lessonVideoType,
-        description: lessonDescription.trim(),
-        visible: lessonUseSchedule ? false : lessonVisible,
-        module_id: lessonModuleId,
-        course_id: courseId,
-        scheduled_at: lessonUseSchedule && lessonScheduledAt ? lessonScheduledAt : null,
-      };
       if (editingLesson) {
         await api.put(`/course/lesson/${editingLesson._id}`, payload, {
           headers: { Authorization: `Bearer ${userInfo?.token}` },
         });
+        setShowLessonModal(false);
+        fetchCourse();
       } else {
-        await api.post('/course/lesson/create', payload, {
+        const res = await api.post('/course/lesson/create', payload, {
           headers: { Authorization: `Bearer ${userInfo?.token}` },
         });
+        setShowLessonModal(false);
+        fetchCourse();
+        const newLessonId = res.data?.lesson_id;
+        // #region agent log
+        fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'create lesson ok',data:{newLessonId,lessonFormat},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
+        // #endregion
+        if (newLessonId && lessonFormat !== 'video') {
+          try {
+            router.push({
+              pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
+              params: { courseId, lessonId: newLessonId, lessonTitle: lessonTitle.trim() },
+            });
+          } catch (navErr) {
+            // #region agent log
+            fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'navigate prepare failed',data:{newLessonId,error:String(navErr)},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
+            // #endregion
+          }
+        }
       }
-      setShowLessonModal(false);
-      fetchCourse();
-    } catch {
-      toast({ message: t('Failed to save lesson'), variant: 'destructive' });
+    } catch (err: unknown) {
+      const ax = err as {
+        response?: { status?: number; data?: { error?: string } };
+        message?: string;
+      };
+      const status = ax.response?.status;
+      const apiError = ax.response?.data?.error;
+      // #region agent log
+      fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson failed',data:{isEdit:!!editingLesson,status,apiError,error:String(err)},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H5',runId:'save-lesson'})}).catch(()=>{});
+      // #endregion
+      toast({
+        message: apiError || t('Failed to save lesson'),
+        variant: 'destructive',
+      });
     } finally {
       setSavingLesson(false);
     }
@@ -517,6 +661,13 @@ export default function CourseDetailScreen() {
     });
   };
 
+  const handlePrepareLesson = (lesson: ILesson) => {
+    router.push({
+      pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
+      params: { courseId, lessonId: lesson._id, lessonTitle: lesson.title },
+    });
+  };
+
   const handleOpenActivity = (activity: IActivity) => {
     router.push({
       pathname: '/classrooms/class/courses/[courseId]/activity/[activityId]' as any,
@@ -553,21 +704,26 @@ export default function CourseDetailScreen() {
           {courseName || course?.name}
         </Text>
         {isTeacher ? (
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: '/classrooms/class/courses/[courseId]/progress' as any,
-                params: { courseId, courseName: courseName || course?.name },
-              })
-            }
-            className="flex-row items-center gap-1 px-2 py-1 rounded-xl"
-            style={{ backgroundColor: colors.primary[50] }}
-          >
-            <MaterialIcons name="bar-chart" size={18} color={colors.primary[500]} />
-            <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
-              {t('Progress')}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={openEditCourseModal} className="p-1">
+              <Feather name="edit-2" size={18} color={colors.primary[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: '/classrooms/class/courses/[courseId]/progress' as any,
+                  params: { courseId, courseName: courseName || course?.name },
+                })
+              }
+              className="flex-row items-center gap-1 px-2 py-1 rounded-xl"
+              style={{ backgroundColor: colors.primary[50] }}
+            >
+              <MaterialIcons name="bar-chart" size={18} color={colors.primary[500]} />
+              <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
+                {t('Progress')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={{ width: 60 }} />
         )}
@@ -693,6 +849,21 @@ export default function CourseDetailScreen() {
                   <TouchableOpacity onPress={() => openEditModule(mod)}>
                     <Feather name="edit-2" size={18} color="rgba(255,255,255,0.9)" />
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setDuplicateTarget({
+                        type: 'module',
+                        sourceId: mod._id,
+                        defaultName: mod.name,
+                      })
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name="content-copy"
+                      size={18}
+                      color="rgba(255,255,255,0.9)"
+                    />
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDeleteModule(mod)}>
                     <MaterialIcons name="delete-outline" size={20} color="rgba(255,255,255,0.9)" />
                   </TouchableOpacity>
@@ -711,7 +882,7 @@ export default function CourseDetailScreen() {
               </View>
             ) : null}
 
-            {(mod.lessons ?? []).map((lesson) => (
+            {(mod.lessons ?? []).map((lesson, lessonIndex) => (
               <TouchableOpacity
                 key={lesson._id}
                 onPress={() => handleOpenLesson(lesson)}
@@ -750,18 +921,91 @@ export default function CourseDetailScreen() {
                   )}
                 </View>
                 {isTeacher && (
-                  <View className="flex-row items-center gap-3">
-                    <TouchableOpacity onPress={() => handleToggleLessonVisibility(lesson)}>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderLesson(mod, lessonIndex, 'up');
+                      }}
+                      disabled={lessonIndex === 0}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-up"
+                        size={20}
+                        color={lessonIndex === 0 ? colors.gray[300] : colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderLesson(mod, lessonIndex, 'down');
+                      }}
+                      disabled={lessonIndex === (mod.lessons?.length ?? 0) - 1}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-down"
+                        size={20}
+                        color={
+                          lessonIndex === (mod.lessons?.length ?? 0) - 1
+                            ? colors.gray[300]
+                            : colors.gray[500]
+                        }
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleToggleLessonVisibility(lesson);
+                      }}
+                    >
                       <MaterialIcons
                         name={lesson.visible ? 'visibility' : 'visibility-off'}
                         size={18}
                         color={lesson.visible ? colors.primary[500] : colors.gray[400]}
                       />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => openEditLesson(lesson)}>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handlePrepareLesson(lesson);
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="note-edit-outline"
+                        size={16}
+                        color={colors.primary[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        openEditLesson(lesson);
+                      }}
+                    >
                       <Feather name="edit-2" size={16} color={colors.gray[500]} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteLesson(lesson)}>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        setDuplicateTarget({
+                          type: 'lesson',
+                          sourceId: lesson._id,
+                          defaultName: lesson.title,
+                        });
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={16}
+                        color={colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteLesson(lesson);
+                      }}
+                    >
                       <MaterialIcons name="delete-outline" size={18} color={colors.error[500]} />
                     </TouchableOpacity>
                   </View>
@@ -769,7 +1013,7 @@ export default function CourseDetailScreen() {
               </TouchableOpacity>
             ))}
 
-            {(mod.activities ?? []).map((activity) => (
+            {(mod.activities ?? []).map((activity, activityIndex) => (
               <TouchableOpacity
                 key={activity._id}
                 onPress={() => handleOpenActivity(activity)}
@@ -808,18 +1052,63 @@ export default function CourseDetailScreen() {
                   )}
                 </View>
                 {isTeacher && (
-                  <View className="flex-row items-center gap-3">
-                    <TouchableOpacity onPress={() => handleToggleActivityVisibility(activity)}>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderActivity(mod, activityIndex, 'up');
+                      }}
+                      disabled={activityIndex === 0}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-up"
+                        size={20}
+                        color={activityIndex === 0 ? colors.gray[300] : colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderActivity(mod, activityIndex, 'down');
+                      }}
+                      disabled={activityIndex === (mod.activities?.length ?? 0) - 1}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-down"
+                        size={20}
+                        color={
+                          activityIndex === (mod.activities?.length ?? 0) - 1
+                            ? colors.gray[300]
+                            : colors.gray[500]
+                        }
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleToggleActivityVisibility(activity);
+                      }}
+                    >
                       <MaterialIcons
                         name={activity.visible ? 'visibility' : 'visibility-off'}
                         size={18}
                         color={activity.visible ? colors.primary[500] : colors.gray[400]}
                       />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => openEditActivity(activity)}>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        openEditActivity(activity);
+                      }}
+                    >
                       <Feather name="edit-2" size={16} color={colors.gray[500]} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteActivity(activity)}>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteActivity(activity);
+                      }}
+                    >
                       <MaterialIcons name="delete-outline" size={18} color={colors.error[500]} />
                     </TouchableOpacity>
                   </View>
@@ -995,6 +1284,41 @@ export default function CourseDetailScreen() {
                 maxLength={120}
               />
 
+              <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Lesson format')}</Text>
+              <View className="flex-row flex-wrap gap-2 mb-3">
+                {([
+                  { key: 'text' as LessonFormat, label: t('Text only') },
+                  { key: 'video' as LessonFormat, label: t('Video only') },
+                  { key: 'both' as LessonFormat, label: t('Text and video') },
+                ]).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => {
+                      setLessonFormat(opt.key);
+                      if (opt.key === 'text') {
+                        setLessonVideoUrl('');
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl"
+                    style={{
+                      backgroundColor: lessonFormat === opt.key ? colors.primary[500] : colors.gray[100],
+                    }}
+                  >
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{ color: lessonFormat === opt.key ? colors.white : colors.gray[600] }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {(lessonFormat === 'text' || lessonFormat === 'both') && (
+                <Text className="text-xs text-gray-500 mb-4">{t('Text only lesson hint')}</Text>
+              )}
+
+              {(lessonFormat === 'video' || lessonFormat === 'both') && (
+                <>
               <Text className="text-sm font-semibold text-gray-700 mb-2">
                 {t('Video Type')}
               </Text>
@@ -1076,6 +1400,9 @@ export default function CourseDetailScreen() {
                     autoCapitalize="none"
                     keyboardType="url"
                   />
+                </>
+              )}
+
                 </>
               )}
 
@@ -1325,6 +1652,69 @@ export default function CourseDetailScreen() {
         </View>
       </Modal>
 
+      <Modal visible={showCourseEditModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View className="bg-white rounded-3xl w-full max-w-lg p-6">
+            <View className="flex-row justify-between items-center mb-5">
+              <Text className="text-xl font-bold" style={{ color: colors.primary[700] }}>
+                {t('Edit course')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowCourseEditModal(false)}
+                className="rounded-full p-2"
+                style={{ backgroundColor: colors.gray[100] }}
+              >
+                <MaterialIcons name="close" size={20} color={colors.gray[700]} />
+              </TouchableOpacity>
+            </View>
+            <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Course Name')} *</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+              value={editCourseName}
+              onChangeText={setEditCourseName}
+              maxLength={80}
+            />
+            <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Description')}</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-5 text-gray-800"
+              value={editCourseDescription}
+              onChangeText={setEditCourseDescription}
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+              style={{ textAlignVertical: 'top', minHeight: 80 }}
+            />
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowCourseEditModal(false)}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.gray[200] }}
+              >
+                <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveCourseEdit}
+                disabled={savingCourseEdit || !editCourseName.trim()}
+                className="flex-[2] rounded-xl py-3 items-center"
+                style={{
+                  backgroundColor:
+                    editCourseName.trim() ? colors.primary[500] : colors.gray[300],
+                }}
+              >
+                {savingCourseEdit ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text className="font-bold text-white">{t('Save')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ModuleRatingModal
         visible={!!promptModule && !isTeacher}
         moduleName={promptModule?.name ?? ''}
@@ -1334,6 +1724,18 @@ export default function CourseDetailScreen() {
         }}
         onDismiss={() => {
           if (promptModule) handleDismissModuleRating(promptModule._id);
+        }}
+      />
+
+      <DuplicateTargetModal
+        visible={!!duplicateTarget}
+        type={duplicateTarget?.type ?? 'lesson'}
+        sourceId={duplicateTarget?.sourceId ?? ''}
+        defaultName={duplicateTarget?.defaultName}
+        onClose={() => setDuplicateTarget(null)}
+        onSuccess={() => {
+          toast({ message: t('Duplicated successfully'), variant: 'success' });
+          fetchCourse();
         }}
       />
     </View>

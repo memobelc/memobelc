@@ -71,6 +71,8 @@ export type IClassroom = {
   checkout_enabled?: boolean;
   price?: number | null;
   checkout_url?: string;
+  cover_image?: string | null;
+  collection_image?: string | null;
 };
 
 export type IQuestion = {
@@ -113,12 +115,28 @@ export type ILessonDeck = {
   can_unlock: boolean;
 };
 
+export type LessonFormat = 'text' | 'video' | 'both';
+
+export type ILessonNeighbor = {
+  _id: string;
+  title: string;
+  course_id: string;
+  course_name?: string;
+  module_id?: string;
+  module_name?: string;
+  lesson_format?: LessonFormat;
+  completed?: boolean;
+  last_accessed_at?: string | null;
+};
+
 export type ILesson = {
   _id: string;
   title: string;
   video_url: string;
   video_type: 'youtube' | 'upload' | 'vimeo' | 'other';
   description: string;
+  content_html?: string;
+  lesson_format?: LessonFormat;
   order: number;
   module_id: string;
   course_id: string;
@@ -126,6 +144,9 @@ export type ILesson = {
   scheduled_at: string | null;
   my_rating?: number | null;
   viewed?: boolean;
+  completed?: boolean;
+  prev_lesson?: ILessonNeighbor | null;
+  next_lesson?: ILessonNeighbor | null;
   decks?: ILessonDeck[];
 };
 
@@ -148,6 +169,7 @@ export type ICourse = {
   description: string;
   classroom_id: string;
   teacher_id: string;
+  order?: number;
   has_content?: boolean;
   checkout_enabled?: boolean;
   price?: number | null;
