@@ -198,6 +198,11 @@ const MenuExploreDrawer = () => {
       { name: t('Affiliates'), path: '/admin/affiliates', icon: <MaterialCommunityIcons name="handshake-outline" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Classroom checkouts'), path: '/admin/checkouts', icon: <MaterialIcons name="link" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Support'), path: '/admin/support', icon: <MaterialIcons name="headset-mic" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('System settings'), path: '/admin/settings', icon: <MaterialIcons name="settings" size={24} />, disabled: false, serviceKey: '' },
+    );
+  } else if (hasRole('super_admin')) {
+    menuItems.push(
+      { name: t('System settings'), path: '/admin/settings', icon: <MaterialIcons name="settings" size={24} />, disabled: false, serviceKey: '' },
     );
   }
 

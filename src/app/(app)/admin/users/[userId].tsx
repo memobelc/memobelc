@@ -286,7 +286,15 @@ export default function AdminUserProfileScreen() {
                   style={{ backgroundColor: colors.primary[100] }}
                 >
                   <Text className="text-xs" style={{ color: colors.primary[700] }}>
-                    {role === 'admin' ? t('Admin') : role === 'teacher' ? t('Teacher') : t('User')}
+                    {role === 'super_admin'
+                      ? t('Super admin')
+                      : role === 'admin'
+                        ? t('Admin')
+                        : role === 'teacher'
+                          ? t('Teacher')
+                          : role === 'affiliate'
+                            ? t('Affiliate')
+                            : t('User')}
                   </Text>
                 </View>
               ))}

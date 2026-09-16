@@ -29,6 +29,7 @@ type AdminUser = {
 };
 
 function roleLabel(role: string, t: (key: string) => string) {
+  if (role === 'super_admin') return t('Super admin');
   if (role === 'admin') return t('Admin');
   if (role === 'teacher') return t('Teacher');
   if (role === 'affiliate') return t('Affiliate');
@@ -99,7 +100,7 @@ export default function AdminUsersScreen() {
     }));
   };
 
-  const toggleDraftRole = (userId: string, role: 'admin' | 'teacher' | 'affiliate') => {
+  const toggleDraftRole = (userId: string, role: 'admin' | 'super_admin' | 'teacher' | 'affiliate') => {
     setDraftRoles((prev) => {
       const current = prev[userId] || [];
       const hasRole = current.includes(role);
@@ -265,7 +266,7 @@ export default function AdminUsersScreen() {
                       <Text className="font-bold text-primary mb-2">
                         {t('Roles')}
                       </Text>
-                      {(['admin', 'teacher', 'affiliate'] as const).map((role) => {
+                      {(['admin', 'super_admin', 'teacher', 'affiliate'] as const).map((role) => {
                         const checked = currentDraft.includes(role);
                         const lockOwnAdmin = isSelf && role === 'admin' && checked;
                         return (
