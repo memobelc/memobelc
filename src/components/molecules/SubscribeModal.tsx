@@ -15,6 +15,7 @@ import { useToast } from '@/components/Toast';
 import { billingApi } from '@/services/billing';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
+import PlanCard from '@/components/molecules/PlanCard';
 
 type SubscribeModalProps = {
   visible: boolean;
@@ -61,17 +62,19 @@ export default function SubscribeModal({ visible, onClose }: SubscribeModalProps
     }
   };
 
+  const canSwitch = entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas';
+
   return (
     <>
       <Modal transparent animationType="fade" visible={visible && !checkoutPlan} onRequestClose={onClose}>
         <View className="flex-1 justify-center items-center bg-black/75 px-4">
-          <View className="bg-white rounded-2xl w-full max-w-[520px] max-h-[85%] p-5">
+          <View className="rounded-2xl w-full max-w-[560px] max-h-[85%] p-5" style={{ backgroundColor: '#0B1C2E' }}>
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-xl font-bold" style={{ color: colors.primary[600] }}>
+              <Text className="text-xl font-bold text-white">
                 {t('Become a subscriber')}
               </Text>
               <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color={colors.gray[600]} />
+                <Ionicons name="close" size={24} color="#E2E8F0" />
               </TouchableOpacity>
             </View>
             {loading ? (
@@ -81,39 +84,18 @@ export default function SubscribeModal({ visible, onClose }: SubscribeModalProps
                 {plans.map((plan) => {
                   const current = entitlements?.plan?._id === plan._id;
                   return (
-                    <View key={plan._id} className="border border-gray-200 rounded-xl p-3 mb-3">
-                      <Text className="font-semibold text-lg">{plan.name}</Text>
-                      {!!plan.description && <Text>{plan.description}</Text>}
-                      <Text className="mt-1">
-                        R$ {plan.price} / {plan.cycle}
-                      </Text>
-                      {plan.trial_days > 0 && (
-                        <Text>
-                          {plan.trial_days} {t('trial days')}
-                        </Text>
-                      )}
-                      {current ? (
-                        <Text className="mt-2" style={{ color: colors.primary[600] }}>
-                          {t('Current plan')}
-                        </Text>
-                      ) : entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas' ? (
-                        <TouchableOpacity
-                          disabled={changing === plan._id}
-                          onPress={() => changePlan(plan._id)}
-                          className="mt-2 px-3 py-2 rounded-lg self-start"
-                          style={{ backgroundColor: colors.primary[500] }}
-                        >
-                          <Text className="text-white">{t('Switch to this plan')}</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => setCheckoutPlan({ productId: plan._id, title: plan.name })}
-                          className="mt-2 px-3 py-2 rounded-lg self-start"
-                          style={{ backgroundColor: colors.primary[500] }}
-                        >
-                          <Text className="text-white">{t('Subscribe')}</Text>
-                        </TouchableOpacity>
-                      )}
+                    <View key={plan._id} className="mb-3">
+                      <PlanCard
+                        compact
+                        plan={plan}
+                        isCurrent={current}
+                        actionDisabled={changing === plan._id}
+                        actionLabel={canSwitch ? t('Switch to this plan') : t('Subscribe')}
+                        onAction={() => {
+                          if (canSwitch) changePlan(plan._id);
+                          else setCheckoutPlan({ productId: plan._id, title: plan.name });
+                        }}
+                      />
                     </View>
                   );
                 })}

@@ -39,6 +39,8 @@ import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
 import { DuplicateTargetModal, DuplicateTargetType } from '@/components/molecules/DuplicateTargetModal';
 import { ClassroomLessonContinue } from '@/components/molecules/ClassroomLessonContinue';
+import { NotifyPeopleModal } from '@/components/molecules/NotifyPeopleModal';
+import { notificationsApi } from '@/services/notifications';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
 import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
@@ -102,6 +104,7 @@ export default function Classroom() {
   >(null);
   const [modalVisible, setModalVisible] = useState(false);
   const isTeacher = hasRole('teacher');
+  const canManagePeople = isTeacher || hasRole('admin');
 
   const [tab, setTab] = useState<'content' | 'courses' | 'people' | 'settings'>('content');
   const [showTooltip, setShowTooltip] = useState(false);
@@ -797,6 +800,10 @@ export default function Classroom() {
   };
 
   const [email, setEmail] = useState('');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyAllStudents, setNotifyAllStudents] = useState(false);
+  const [sendingNotify, setSendingNotify] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{
     type: 'student' | 'guest';
     userId?: string;
@@ -874,6 +881,67 @@ export default function Classroom() {
     }
   };
 
+  const studentIds = (currentClassroom?.students || [])
+    .map((student: any) => student?._id)
+    .filter(Boolean) as string[];
+
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId],
+    );
+  };
+
+  const openNotifyModal = (all: boolean) => {
+    if (all) {
+      if (studentIds.length === 0) {
+        toast({ message: t('No students yet.'), variant: 'destructive' });
+        return;
+      }
+      setNotifyAllStudents(true);
+      setNotifyOpen(true);
+      return;
+    }
+    if (selectedStudentIds.length === 0) {
+      toast({ message: t('No students selected'), variant: 'destructive' });
+      return;
+    }
+    setNotifyAllStudents(false);
+    setNotifyOpen(true);
+  };
+
+  const handleNotifyStudents = async (notifyTitle: string, notifyBody: string) => {
+    if (!currentClassroom?._id || !userInfo?.token) return;
+    try {
+      setSendingNotify(true);
+      const result = await notificationsApi.sendTeacherCustom(userInfo.token, {
+        classroom_id: currentClassroom._id,
+        title: notifyTitle,
+        body: notifyBody,
+        student_ids: notifyAllStudents ? undefined : selectedStudentIds,
+      });
+      toast({
+        message: t('Notification sent to {{count}} people.', {
+          count: result.data.sent_to,
+        }),
+        variant: 'success',
+      });
+      setNotifyOpen(false);
+      setSelectedStudentIds([]);
+    } catch (error: any) {
+      toast({
+        message:
+          error.response?.data?.error ||
+          error.response?.data?.description ||
+          t('Error sending notification'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingNotify(false);
+    }
+  };
+
   const closeAddDeck = async () => {
     handleInputChange('name', '');
     setOpenAddDeck(false);
@@ -932,6 +1000,11 @@ export default function Classroom() {
     setShowStudents((prev) => !prev);
   };
 
+  useEffect(() => {
+    setSelectedStudentIds([]);
+    setNotifyOpen(false);
+  }, [currentClassroom?._id]);
+
   return (
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View className="flex-row w-full justify-between  items-center mb-4">
@@ -981,7 +1054,7 @@ export default function Classroom() {
               </Text>
             </TouchableOpacity>
           )}
-          {isTeacher && (
+          {canManagePeople && (
             <TouchableOpacity
               onPress={() => setTab('people')}
               className={`px-6 py-2 ${
@@ -1816,6 +1889,64 @@ export default function Classroom() {
                 />
               </TouchableOpacity>
 
+              {showStudents && studentIds.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setSelectedStudentIds(
+                        selectedStudentIds.length === studentIds.length ? [] : studentIds,
+                      )
+                    }
+                    style={{
+                      backgroundColor: colors.gray[100],
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.gray[700] }}>
+                      {selectedStudentIds.length === studentIds.length
+                        ? t('Clear selection')
+                        : t('Select all')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => openNotifyModal(false)}
+                    style={{
+                      backgroundColor:
+                        selectedStudentIds.length > 0 ? colors.primary[500] : colors.gray[200],
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: '700',
+                        color: selectedStudentIds.length > 0 ? colors.white : colors.gray[500],
+                      }}
+                    >
+                      {t('Notify selected')}
+                      {selectedStudentIds.length > 0 ? ` (${selectedStudentIds.length})` : ''}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => openNotifyModal(true)}
+                    style={{
+                      backgroundColor: colors.primary[100],
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary[700] }}>
+                      {t('Notify all')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {showStudents &&
                 currentClassroom &&
                 currentClassroom.students.length === 0 && (
@@ -1859,6 +1990,26 @@ export default function Classroom() {
                     }}
                     activeOpacity={0.7}
                   >
+                    {item._id ? (
+                      <TouchableOpacity
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          toggleStudentSelection(item._id);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={{ marginRight: 8 }}
+                      >
+                        <MaterialIcons
+                          name={
+                            selectedStudentIds.includes(item._id)
+                              ? 'check-box'
+                              : 'check-box-outline-blank'
+                          }
+                          size={22}
+                          color={colors.primary[500]}
+                        />
+                      </TouchableOpacity>
+                    ) : null}
                     <View
                       style={{
                         width: 42,
@@ -2105,6 +2256,14 @@ export default function Classroom() {
           </View>
         </View>
       </Modal>
+
+      <NotifyPeopleModal
+        visible={notifyOpen}
+        recipientCount={notifyAllStudents ? studentIds.length : selectedStudentIds.length}
+        sending={sendingNotify}
+        onSend={handleNotifyStudents}
+        onClose={() => setNotifyOpen(false)}
+      />
 
       <DuplicateTargetModal
         visible={!!duplicateTarget}

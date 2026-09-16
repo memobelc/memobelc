@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { billingApi } from '@/services/billing';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
+import PlanCard from '@/components/molecules/PlanCard';
 
 export default function PlansCatalogScreen() {
   const { t } = useTranslation();
@@ -57,39 +58,38 @@ export default function PlansCatalogScreen() {
     }
   };
 
+  const canSwitch = entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas';
+
   return (
     <ScrollView className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8" contentContainerStyle={{ paddingBottom: 80 }}>
       <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
         <Ionicons name="arrow-back-circle" size={24} color={colors.primary[500]} />
         <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
       </TouchableOpacity>
-      <Text className="text-2xl font-bold mb-2">{t('Plans')}</Text>
-      {loading ? <ActivityIndicator color={colors.primary[500]} /> : plans.map((plan) => {
-        const current = entitlements?.plan?._id === plan._id;
-        return (
-          <View key={plan._id} className="bg-white rounded-xl p-4 mb-3">
-            <Text className="font-semibold text-lg">{plan.name}</Text>
-            <Text>{plan.description}</Text>
-            <Text className="mt-1">R$ {plan.price} / {plan.cycle}</Text>
-            {plan.trial_days > 0 && <Text>{plan.trial_days} {t('trial days')}</Text>}
-            {current ? (
-              <Text className="mt-2" style={{ color: colors.primary[600] }}>{t('Current plan')}</Text>
-            ) : entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas' ? (
-              <TouchableOpacity disabled={changing === plan._id} onPress={() => changePlan(plan._id)} className="mt-2 px-3 py-2 rounded-lg self-start" style={{ backgroundColor: colors.primary[500] }}>
-                <Text className="text-white">{t('Switch to this plan')}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => setCheckout({ productType: 'plan', productId: plan._id, title: plan.name })}
-                className="mt-2 px-3 py-2 rounded-lg self-start"
-                style={{ backgroundColor: colors.primary[500] }}
-              >
-                <Text className="text-white">{t('Subscribe')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
+      <Text className="text-2xl font-bold mb-4">{t('Plans')}</Text>
+      {loading ? (
+        <ActivityIndicator color={colors.primary[500]} />
+      ) : (
+        <View className="flex-row flex-wrap" style={{ marginHorizontal: -8 }}>
+          {plans.map((plan) => {
+            const current = entitlements?.plan?._id === plan._id;
+            return (
+              <View key={plan._id} style={{ flexGrow: 1, flexBasis: 300, maxWidth: 420, padding: 8 }}>
+                <PlanCard
+                  plan={plan}
+                  isCurrent={current}
+                  actionDisabled={changing === plan._id}
+                  actionLabel={canSwitch ? t('Switch to this plan') : t('Subscribe')}
+                  onAction={() => {
+                    if (canSwitch) changePlan(plan._id);
+                    else setCheckout({ productType: 'plan', productId: plan._id, title: plan.name });
+                  }}
+                />
+              </View>
+            );
+          })}
+        </View>
+      )}
       {bundles.length > 0 && <Text className="text-xl font-semibold mt-4 mb-2">{t('Book bundles')}</Text>}
       {bundles.map((bundle) => (
         <View key={bundle._id} className="bg-white rounded-xl p-4 mb-3">
