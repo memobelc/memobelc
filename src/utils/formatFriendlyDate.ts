@@ -28,6 +28,26 @@ function formatAbsoluteDate(date: Date, locale: string): string {
   });
 }
 
+export function formatDisplayDate(
+  value: TimestampLike,
+  t: TranslateFn,
+  options?: { locale?: string },
+): string {
+  const date = parseTimestamp(value);
+  if (!date) return t('Date unavailable');
+
+  const locale = options?.locale || 'en';
+  const hasTime =
+    date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
+  const dateLabel = formatAbsoluteDate(date, locale);
+  if (!hasTime) return dateLabel;
+
+  return t('{{date}} at {{time}}', {
+    date: dateLabel,
+    time: formatTime(date, locale),
+  });
+}
+
 export function formatFriendlyDate(
   value: TimestampLike,
   t: TranslateFn,

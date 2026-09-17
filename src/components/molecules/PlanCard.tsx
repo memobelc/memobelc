@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '@/styles/colors';
@@ -23,6 +24,12 @@ type PlanCardProps = {
   onAction?: () => void;
   actionDisabled?: boolean;
   compact?: boolean;
+  ctaVariant?: 'subscribe' | 'switch';
+};
+
+type PressableVisualState = {
+  pressed: boolean;
+  hovered?: boolean;
 };
 
 export function formatPlanPrice(value: number) {
@@ -41,20 +48,30 @@ export default function PlanCard({
   onAction,
   actionDisabled,
   compact,
+  ctaVariant = 'subscribe',
 }: PlanCardProps) {
   const { t } = useTranslation();
+  const [ctaFocused, setCtaFocused] = useState(false);
   const installments = Number(plan.installment_count || 0);
   const installmentValue = installments > 1 ? Number(plan.price) / installments : 0;
   const original = Number(plan.original_price || 0);
   const showOriginal = original > Number(plan.price);
   const benefits = (plan.benefits || []).filter((item) => String(item).trim());
+  const highlighted = !!isCurrent || !!plan.badge;
+  const isSwitch = ctaVariant === 'switch';
   // #region agent log
   fetch('http://127.0.0.1:7550/ingest/bc00b530-5fab-47e9-b067-96a2caa9e0db',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ba354b'},body:JSON.stringify({sessionId:'ba354b',runId:'post-fix',hypothesisId:'B',location:'src/components/molecules/PlanCard.tsx:render',message:'PlanCard rendered',data:{name:plan?.name,price:plan?.price,compact:!!compact},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
 
   return (
-    <View style={[styles.glow, compact && styles.compact]}>
-      <View style={styles.card}>
+    <View
+      style={[
+        styles.shell,
+        highlighted && styles.shellHighlighted,
+        compact && styles.compact,
+      ]}
+    >
+      <View style={[styles.card, highlighted && styles.cardHighlighted]}>
         <View className="flex-row items-start justify-between mb-2">
           <Text style={styles.name}>{plan.name}</Text>
           {!!plan.badge && (
@@ -88,15 +105,42 @@ export default function PlanCard({
           </View>
         ))}
         {isCurrent ? (
-          <Text style={styles.current}>{t('Current plan')}</Text>
+          <View style={styles.currentChip}>
+            <Text style={styles.currentChipText}>{t('Current plan')}</Text>
+          </View>
         ) : (
-          <TouchableOpacity
+          <Pressable
             disabled={actionDisabled}
             onPress={onAction}
-            style={[styles.cta, actionDisabled && styles.ctaDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel={actionLabel}
+            accessibilityState={{ disabled: !!actionDisabled }}
+            onFocus={() => setCtaFocused(true)}
+            onBlur={() => setCtaFocused(false)}
+            style={({ pressed, hovered }: PressableVisualState) => [
+              styles.cta,
+              isSwitch ? styles.ctaSwitch : styles.ctaSubscribe,
+              actionDisabled && styles.ctaDisabled,
+              {
+                opacity: pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+                borderWidth: 2,
+                borderColor: ctaFocused ? colors.primary[600] : 'transparent',
+                backgroundColor: isSwitch
+                  ? pressed || hovered
+                    ? colors.primary[600]
+                    : colors.primary[500]
+                  : pressed || hovered
+                    ? colors.warning[600]
+                    : colors.warning[500],
+              },
+              Platform.OS === 'web' ? { cursor: actionDisabled ? 'default' : 'pointer' } : null,
+            ]}
           >
-            <Text style={styles.ctaText}>{actionLabel}</Text>
-          </TouchableOpacity>
+            <Text style={isSwitch ? styles.ctaSwitchText : styles.ctaSubscribeText}>
+              {actionLabel}
+            </Text>
+          </Pressable>
         )}
       </View>
     </View>
@@ -104,18 +148,25 @@ export default function PlanCard({
 }
 
 const styles = StyleSheet.create({
-  glow: {
-    borderRadius: 28,
-    padding: 1.5,
-    backgroundColor: colors.primary[500],
-    shadowColor: colors.primary[500],
-    shadowOpacity: 0.65,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 12,
+  shell: {
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
     flexGrow: 1,
     minWidth: 260,
     maxWidth: 400,
+  },
+  shellHighlighted: {
+    borderColor: colors.primary[500],
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 4,
   },
   compact: {
     maxWidth: '100%',
@@ -123,19 +174,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 26,
+    backgroundColor: colors.white,
+    borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(33, 154, 231, 0.45)',
+  },
+  cardHighlighted: {
+    backgroundColor: colors.primary[50],
   },
   name: {
-    color: colors.primary[500],
-    fontSize: 13,
+    color: colors.gray[900],
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    lineHeight: 24,
     flex: 1,
     marginRight: 8,
   },
@@ -152,56 +203,82 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   description: {
-    color: '#94A3B8',
-    fontSize: 13,
+    color: colors.gray[600],
+    fontSize: 14,
+    lineHeight: 20,
     marginBottom: 10,
   },
   original: {
-    color: '#94A3B8',
+    color: colors.gray[500],
     fontSize: 16,
     textDecorationLine: 'line-through',
     marginTop: 4,
   },
   price: {
-    color: colors.info[500],
-    fontSize: 36,
+    color: colors.gray[900],
+    fontSize: 32,
     fontWeight: '800',
     marginTop: 2,
   },
   installments: {
-    color: '#04418b',
+    color: colors.primary[600],
     fontSize: 14,
-    marginTop: 2,
+    marginTop: 4,
   },
   trial: {
-    color: '#4e9bf3',
+    color: colors.primary[600],
     fontSize: 13,
+    fontWeight: '600',
     marginTop: 8,
   },
   benefit: {
-    color: '#388bf8',
+    color: colors.gray[700],
     fontSize: 14,
+    lineHeight: 20,
     marginLeft: 8,
     flex: 1,
   },
-  current: {
-    color: colors.primary[300],
-    fontWeight: '700',
-    textAlign: 'center',
+  currentChip: {
     marginTop: 18,
+    alignSelf: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  currentChipText: {
+    color: colors.primary[600],
+    fontWeight: '700',
+    fontSize: 14,
   },
   cta: {
-    backgroundColor: colors.warning[500],
     borderRadius: 999,
-    paddingVertical: 14,
     marginTop: 18,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  ctaSubscribe: {
+    backgroundColor: colors.warning[500],
+  },
+  ctaSwitch: {
+    backgroundColor: colors.primary[500],
   },
   ctaDisabled: {
     opacity: 0.6,
   },
-  ctaText: {
+  ctaSubscribeText: {
     color: '#1A1200',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  ctaSwitchText: {
+    color: colors.white,
     fontWeight: '800',
     fontSize: 15,
   },

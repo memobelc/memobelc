@@ -3,9 +3,10 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +21,11 @@ import PlanCard from '@/components/molecules/PlanCard';
 type SubscribeModalProps = {
   visible: boolean;
   onClose: () => void;
+};
+
+type PressableVisualState = {
+  pressed: boolean;
+  hovered?: boolean;
 };
 
 export default function SubscribeModal({ visible, onClose }: SubscribeModalProps) {
@@ -67,18 +73,39 @@ export default function SubscribeModal({ visible, onClose }: SubscribeModalProps
   return (
     <>
       <Modal transparent animationType="fade" visible={visible && !checkoutPlan} onRequestClose={onClose}>
-        <View className="flex-1 justify-center items-center bg-black/75 px-4">
-          <View className="rounded-2xl w-full max-w-[560px] max-h-[85%] p-5" style={{ backgroundColor: '#0B1C2E' }}>
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-xl font-bold text-white">
+        <View className="flex-1 justify-center items-center px-4" style={{ backgroundColor: colors.overlay.medium }}>
+          <View
+            className="rounded-2xl w-full max-w-[560px] max-h-[85%] p-5"
+            style={{ backgroundColor: colors.white }}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-xl font-bold flex-1 pr-3" style={{ color: colors.gray[900] }}>
                 {t('Become a subscriber')}
               </Text>
-              <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color="#E2E8F0" />
-              </TouchableOpacity>
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel={t('Close')}
+                hitSlop={4}
+                style={({ pressed, hovered }: PressableVisualState) => ({
+                  minWidth: 44,
+                  minHeight: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 22,
+                  backgroundColor: pressed || hovered ? colors.gray[100] : 'transparent',
+                  ...(Platform.OS === 'web' ? { cursor: 'pointer' as const } : {}),
+                })}
+              >
+                <Ionicons name="close" size={24} color={colors.gray[700]} />
+              </Pressable>
             </View>
             {loading ? (
               <ActivityIndicator color={colors.primary[500]} />
+            ) : plans.length === 0 ? (
+              <Text style={{ color: colors.gray[500], textAlign: 'center', paddingVertical: 24 }}>
+                {t('No plans available')}
+              </Text>
             ) : (
               <ScrollView>
                 {plans.map((plan) => {
@@ -90,6 +117,7 @@ export default function SubscribeModal({ visible, onClose }: SubscribeModalProps
                         plan={plan}
                         isCurrent={current}
                         actionDisabled={changing === plan._id}
+                        ctaVariant={canSwitch ? 'switch' : 'subscribe'}
                         actionLabel={canSwitch ? t('Switch to this plan') : t('Subscribe')}
                         onAction={() => {
                           if (canSwitch) changePlan(plan._id);
