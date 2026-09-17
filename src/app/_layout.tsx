@@ -5,6 +5,7 @@ import { SessionProvider } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/styles/global.css';
 import { Loading } from '@/components/Loading';
 import { DialogProvider } from '@/components/Dialog';
@@ -17,7 +18,6 @@ import { LanguageSync } from '@/components/LanguageSync';
 import { EntitlementProvider } from '@/contexts/EntitlementContext';
 import { SupportChatProvider } from '@/contexts/SupportChatContext';
 import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
-// import StripeWrapper from '@/components/molecules/StripeWrapper';
 
 export default function Layout() {
   const backgroundColor = colors.primary[500];
@@ -36,6 +36,7 @@ export default function Layout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
       <ToastProvider>
         <PaperProvider>
           <DialogProvider>
@@ -61,6 +62,7 @@ export default function Layout() {
           </DialogProvider>
         </PaperProvider>
       </ToastProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

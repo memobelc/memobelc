@@ -10,22 +10,9 @@ import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { registerForPushNotificationsAsync } from '@/utils/notifications';
+import { presentLocalNotification, registerForPushNotificationsAsync } from '@/utils/notifications';
 import api from '@/services/api';
-
-// Só configura notificações se não estiver no web
-if (Platform.OS !== 'web') {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-      shouldShowList: true,
-    }),
-  });
-}
 
 export default function SignIn() {
   const { t } = useTranslation();
@@ -76,27 +63,14 @@ export default function SignIn() {
         try {
           await api.post('/auth/access_log', info);
         } catch (logError) {
-          // Silenciosamente ignora erros no log de acesso
           console.warn('Failed to log access:', logError);
         }
-        
-        // Só agenda notificação se não estiver no web e se as notificações estiverem disponíveis
-        if (Platform.OS !== 'web' && Notifications.scheduleNotificationAsync) {
-          try {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: t('Login successful 🎉'),
-                body: t('Let\'s start another amazing journey!'),
-              },
-              trigger: {
-                seconds: 1,
-                repeats: false,
-              } as Notifications.NotificationTriggerInput,
-            });
-          } catch (notificationError) {
-            // Silenciosamente ignora erros de notificação, não deve bloquear o login
-            console.warn('Failed to schedule notification:', notificationError);
-          }
+
+        if (Platform.OS !== 'web') {
+          await presentLocalNotification(
+            t('Login successful 🎉'),
+            t("Let's start another amazing journey!"),
+          );
         }
         
         if (result.user.must_change_password) {

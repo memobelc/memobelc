@@ -30,14 +30,30 @@ export default function PlansCatalogScreen() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [planRes, bundleRes] = await Promise.all([
-        billingApi.publicPlans(),
-        billingApi.publicBundles(userInfo?.token),
-      ]);
-      setPlans(planRes.data.plans || []);
-      setBundles(bundleRes.data.bundles || []);
-    } catch (error: any) {
-      toast({ message: error.response?.data?.error || t('Error loading plans'), variant: 'destructive' });
+      let nextPlans: any[] = [];
+      let nextBundles: any[] = [];
+      let planStatus: number | null = null;
+      let bundleStatus: number | null = null;
+      try {
+        const planRes = await billingApi.publicPlans();
+        planStatus = planRes.status;
+        nextPlans = planRes.data.plans || [];
+      } catch (error: any) {
+        planStatus = error.response?.status ?? 0;
+        toast({ message: error.response?.data?.error || t('Error loading plans'), variant: 'destructive' });
+      }
+      try {
+        const bundleRes = await billingApi.publicBundles(userInfo?.token);
+        bundleStatus = bundleRes.status;
+        nextBundles = bundleRes.data.bundles || [];
+      } catch (error: any) {
+        bundleStatus = error.response?.status ?? 0;
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7550/ingest/bc00b530-5fab-47e9-b067-96a2caa9e0db',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ba354b'},body:JSON.stringify({sessionId:'ba354b',runId:'post-fix',hypothesisId:'B',location:'src/app/(app)/plans/index.tsx:load',message:'Plans catalog loaded independently',data:{planStatus,bundleStatus,planCount:nextPlans.length,bundleCount:nextBundles.length,hasToken:!!userInfo?.token},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setPlans(nextPlans);
+      setBundles(nextBundles);
     } finally {
       setLoading(false);
     }

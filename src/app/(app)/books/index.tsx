@@ -16,7 +16,7 @@ import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import BookCheckoutModal from '@/components/molecules/BookCheckoutModal';
 
 type Chapter = {
@@ -121,6 +121,9 @@ export default function BooksScreen() {
   // Recarrega automaticamente quando a tela ganha foco (por exemplo, após criar livro)
   useFocusEffect(
     useCallback(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7550/ingest/bc00b530-5fab-47e9-b067-96a2caa9e0db',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ba354b'},body:JSON.stringify({sessionId:'ba354b',runId:'post-fix',hypothesisId:'A',location:'src/app/(app)/books/index.tsx:useFocusEffect',message:'Books screen focused after expo-router import',data:{hasToken:!!userInfo?.token,importSource:'expo-router/react-navigation'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (userInfo?.token) {
         fetchBooks();
       }

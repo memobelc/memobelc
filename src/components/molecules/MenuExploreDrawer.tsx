@@ -187,6 +187,7 @@ const MenuExploreDrawer = () => {
   if (hasRole('admin')) {
     menuItems.push(
       { name: t('Users'), path: '/admin/users', icon: <MaterialIcons name="people" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Support'), path: '/admin/support', icon: <MaterialIcons name="headset-mic" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Badges'), path: '/admin/badges', icon: <MaterialCommunityIcons name="medal" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Missions'), path: '/admin/missions', icon: <MaterialCommunityIcons name="flag-checkered" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Plans admin'), path: '/admin/plans', icon: <MaterialIcons name="workspace-premium" size={24} />, disabled: false, serviceKey: '' },

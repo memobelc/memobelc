@@ -8,9 +8,10 @@ import { useNotification } from '@/contexts/NotificationContext';
 
 const NotificationBell = () => {
   const router = useRouter();
-  const { unreadCount } = useNotification();
+  const { unreadCount, refreshNotifications } = useNotification();
 
   const handlePress = () => {
+    refreshNotifications();
     router.push('/notifications');
   };
 

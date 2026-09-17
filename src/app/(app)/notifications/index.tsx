@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSupportChat } from '@/contexts/SupportChatContext';
@@ -11,11 +11,17 @@ import { useTranslation } from 'react-i18next';
 
 const NotificationsScreen = () => {
   const router = useRouter();
-  const { notifications, markAllAsRead, markAsRead } = useNotification();
+  const { notifications, markAllAsRead, markAsRead, refreshNotifications } = useNotification();
   const { openChat } = useSupportChat();
   const { roles } = useHasRole();
   const { t } = useTranslation();
   const isAssignedAdmin = roles.includes('admin');
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshNotifications();
+    }, [refreshNotifications]),
+  );
 
   const handleBack = () => {
     router.back();

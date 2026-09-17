@@ -7,23 +7,10 @@ import React, {
   type PropsWithChildren,
 } from 'react';
 import { Platform, Modal, View, Text, TouchableOpacity } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { useTranslation } from 'react-i18next';
-
-// Configura exibição de notificações no app mobile (não web)
-if (Platform.OS !== 'web') {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowList: true,
-    }),
-  });
-}
-
-import { registerForPushNotificationsAsync } from '@/utils/notifications';
+import { Notifications } from '@/utils/loadExpoNotifications';
+import { registerForPushNotificationsAsync, ensureNotificationPermission } from '@/utils/notifications';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
 import { colors } from '@/styles/colors';
@@ -83,7 +70,12 @@ export function PushNotificationProvider({ children }: PropsWithChildren) {
         setShowPrompt(false);
         return true;
       }
-      return false;
+      const { status } = Notifications
+        ? await Notifications.getPermissionsAsync()
+        : { status: 'undetermined' };
+      const permissionGranted = status === 'granted';
+      setIsPermissionGranted(permissionGranted);
+      return permissionGranted;
     } catch (error) {
       console.warn('Failed to register push token:', error);
       return false;
@@ -107,19 +99,22 @@ export function PushNotificationProvider({ children }: PropsWithChildren) {
   };
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !userInfo?.token) return;
+    if (Platform.OS === 'web' || !Notifications || !userInfo?.token) return;
 
     const checkAndShowPrompt = async () => {
       try {
-        const { status } = await Notifications.getPermissionsAsync();
-        setIsPermissionGranted(status === 'granted');
+        const granted = await ensureNotificationPermission();
+        setIsPermissionGranted(granted);
 
-        if (status === 'granted') {
+        if (granted) {
           setHasAskedUser(true);
           await requestPermissionAndRegister();
           return;
         }
 
+        const { status } = Notifications
+          ? await Notifications.getPermissionsAsync()
+          : { status: 'undetermined' };
         if (status === 'denied') {
           setHasAskedUser(true);
           return;
