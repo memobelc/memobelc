@@ -24,7 +24,7 @@ const Header = () => {
       <View className="px-4 py-3">
         <View className="flex-row justify-between items-center w-[80%] md:w-full m-auto mt-0">
           <MenuExploreDrawer />
-          <View className="flex-row items-center">
+          <View className="flex-row items-center" style={{ gap: 20 }}>
             <NotificationBell />
             <AvatarProfileDrawer />
           </View>

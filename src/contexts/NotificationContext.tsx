@@ -16,7 +16,7 @@ import { useSession } from '@/contexts/AuthContext';
 
 const POLL_MS = 2000;
 
-type NotificationItem = {
+export type NotificationItem = {
   _id: string;
   type: string;
   data: {

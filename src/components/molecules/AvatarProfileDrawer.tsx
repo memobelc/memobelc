@@ -48,6 +48,7 @@ const AvatarProfileDrawer = () => {
 
   const [open, setOpen] = useState(false);
   const [openInviteModal, setOpenInviteModal] = useState(false);
+  const [avatarFocused, setAvatarFocused] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   // const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -125,7 +126,27 @@ const AvatarProfileDrawer = () => {
 
   return (
     <View>
-      <TouchableOpacity onPress={() => setOpen(true)}>
+      <Pressable
+        onPress={() => setOpen(true)}
+        hitSlop={4}
+        accessibilityRole="button"
+        accessibilityLabel={t('Profile')}
+        onFocus={() => setAvatarFocused(true)}
+        onBlur={() => setAvatarFocused(false)}
+        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => ({
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 22,
+          borderWidth: 2,
+          borderColor: avatarFocused ? 'rgba(255,255,255,0.9)' : 'transparent',
+          backgroundColor:
+            pressed || hovered ? 'rgba(255,255,255,0.18)' : 'transparent',
+          opacity: pressed ? 0.92 : 1,
+          ...(Platform.OS === 'web' ? { cursor: 'pointer' as const } : {}),
+        })}
+      >
         <Avatar>
           <AvatarImage
             source={
@@ -137,7 +158,7 @@ const AvatarProfileDrawer = () => {
             }
           />
         </Avatar>
-      </TouchableOpacity>
+      </Pressable>
       <Modal
         transparent
         animationType="fade"
