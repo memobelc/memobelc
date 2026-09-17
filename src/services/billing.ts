@@ -63,8 +63,22 @@ export const billingApi = {
     api.delete(`/bundles/admin/${id}`, auth(token)),
   subscriptions: (token: string | undefined, params?: Record<string, unknown>) =>
     api.get('/admin/billing/subscriptions', { ...auth(token), params }),
+  subscription: (token: string | undefined, id: string) =>
+    api.get(`/admin/billing/subscriptions/${id}`, auth(token)),
   paymentsAdmin: (token: string | undefined, params?: Record<string, unknown>) =>
     api.get('/admin/billing/payments', { ...auth(token), params }),
+  billingSummary: (token?: string) =>
+    api.get('/admin/billing/summary', auth(token)),
+  listGrants: (token: string | undefined, params?: Record<string, unknown>) =>
+    api.get('/admin/billing/grants', { ...auth(token), params }),
+  userBillingPreview: (token: string | undefined, userId: string) =>
+    api.get(`/admin/billing/users/${userId}/preview`, auth(token)),
+  planInsights: (token: string | undefined, id: string) =>
+    api.get(`/plans/admin/${id}/insights`, auth(token)),
+  exportSubscriptions: (token: string | undefined, params?: Record<string, unknown>) =>
+    api.get('/admin/billing/subscriptions/export', { ...auth(token), params, responseType: 'arraybuffer' }),
+  exportPayments: (token: string | undefined, params?: Record<string, unknown>) =>
+    api.get('/admin/billing/payments/export', { ...auth(token), params, responseType: 'arraybuffer' }),
   subscriptionAction: (token: string | undefined, id: string, payload: Record<string, unknown>) =>
     api.post(`/admin/billing/subscriptions/${id}/action`, payload, auth(token)),
   grant: (token: string | undefined, payload: Record<string, unknown>) =>
@@ -89,3 +103,19 @@ export const billingApi = {
     api.get('/admin/users', { ...auth(token), params: search ? { search } : undefined }),
   adminBooks: (token?: string) => api.get('/books/admin/list', auth(token)),
 };
+
+export async function downloadBillingExport(buffer: ArrayBuffer, filename: string, mime: string) {
+  if (Platform.OS === 'web' && typeof document !== 'undefined' && typeof window !== 'undefined') {
+    const blob = new Blob([buffer], { type: mime });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    return true;
+  }
+  return false;
+}

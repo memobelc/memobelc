@@ -93,7 +93,7 @@ export default function SubscriptionScreen() {
   const tone = statusTone(statusKey);
   const hasPlan = !!plan?.name;
   const canManage =
-    !!sub?.status && ['active', 'trialing', 'pending', 'overdue'].includes(sub.status);
+    !!sub?.status && ['active', 'trialing', 'pending', 'overdue', 'refused'].includes(sub.status);
 
   const formatDate = (value?: string | null) =>
     formatDisplayDate(value, t, { locale: i18n.language });

@@ -23,7 +23,6 @@ import {
   startCheckout,
   waitForPayment,
   type BillingType,
-  type CreditCardPayload,
 } from '@/services/checkout';
 import { CheckoutField } from '@/components/atoms/CheckoutField';
 
@@ -54,38 +53,6 @@ type AsaasPaySheetProps = {
   onSuccess: (result?: any) => void | Promise<void>;
 };
 
-const emptyCard = {
-  holder_name: '',
-  number: '',
-  expiry: '',
-  ccv: '',
-  postal_code: '',
-  address_number: '',
-  phone: '',
-};
-
-function parseExpiry(value: string) {
-  const digits = value.replace(/\D/g, '');
-  return {
-    expiry_month: digits.slice(0, 2),
-    expiry_year: digits.slice(2, 6),
-  };
-}
-
-function toCreditCard(card: typeof emptyCard): CreditCardPayload {
-  const { expiry_month, expiry_year } = parseExpiry(card.expiry);
-  return {
-    holder_name: card.holder_name.trim(),
-    number: card.number.replace(/\D/g, ''),
-    expiry_month,
-    expiry_year,
-    ccv: card.ccv.replace(/\D/g, ''),
-    postal_code: card.postal_code.replace(/\D/g, ''),
-    address_number: card.address_number.trim(),
-    phone: card.phone.replace(/\D/g, ''),
-  };
-}
-
 export default function AsaasPaySheet({
   visible,
   onClose,
@@ -111,8 +78,7 @@ export default function AsaasPaySheet({
   const [coupon, setCoupon] = useState(initialCoupon);
   const [cpfCnpj, setCpfCnpj] = useState(resolvedCpf);
   const [showCoupon, setShowCoupon] = useState(!!initialCoupon);
-  const [method, setMethod] = useState<BillingType>(updateCard ? 'CREDIT_CARD' : 'PIX');
-  const [card, setCard] = useState(emptyCard);
+  const [method, setMethod] = useState<BillingType>('PIX');
   const [buying, setBuying] = useState(false);
   const [pix, setPix] = useState<PixInfo | null>(null);
   const [hostedUrl, setHostedUrl] = useState<string | null>(null);
@@ -123,8 +89,7 @@ export default function AsaasPaySheet({
     setCoupon(initialCoupon);
     setCpfCnpj(resolvedCpf);
     setShowCoupon(!!initialCoupon);
-    setMethod(updateCard ? 'CREDIT_CARD' : 'PIX');
-    setCard({ ...emptyCard, phone: initialPhone });
+    setMethod('PIX');
     setBuying(false);
     setPix(null);
     setHostedUrl(null);
@@ -141,7 +106,6 @@ export default function AsaasPaySheet({
       setCoupon(initialCoupon);
       setCpfCnpj(resolvedCpf);
       setShowCoupon(!!initialCoupon);
-      setCard((prev) => ({ ...prev, phone: initialPhone || prev.phone }));
       return;
     }
     reset();
@@ -182,48 +146,43 @@ export default function AsaasPaySheet({
       toast({ message: t('Enter a valid CPF or CNPJ'), variant: 'destructive' });
       return;
     }
-    if (updateCard) {
-      const payload = toCreditCard(card);
-      if (
-        payload.number.length < 13 ||
-        payload.expiry_month.length !== 2 ||
-        payload.expiry_year.length < 2 ||
-        payload.ccv.length < 3 ||
-        payload.postal_code.length < 8 ||
-        !payload.holder_name ||
-        !payload.address_number ||
-        payload.phone.length < 10
-      ) {
-        toast({ message: t('Enter complete card details'), variant: 'destructive' });
-        return;
-      }
-    }
     try {
       setBuying(true);
+      let result: any;
       if (updateCard) {
-      const response = await billingApi.updatePayment(token || authToken, {
+        const response = await billingApi.updatePayment(token || authToken, {
           cpf_cnpj: cpfCnpj,
-          credit_card: toCreditCard(card),
+          billing_type: method,
         });
-        toast({ message: t('Payment method updated'), variant: 'success' });
-        await finishSuccess(response.data);
-        return;
-      }
-      if (!productId) return;
-      const result = await startCheckout({
-        token: publicCheckout ? undefined : authToken,
-        productType,
-        productId,
-        couponCode: coupon || undefined,
-        cpfCnpj,
-        billingType: method,
-        publicCheckout,
-      });
-      if (result?.token) {
-        setAuthToken(result.token);
-        if (onAuthPayload && !publicCheckout) await onAuthPayload(result);
+        result = response.data;
+        if (result?.provider === 'google_play' && result?.manage_url) {
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.open(result.manage_url, '_blank');
+          }
+          toast({ message: t('Payment method updated'), variant: 'success' });
+          await finishSuccess(result);
+          return;
+        }
+      } else {
+        if (!productId) return;
+        result = await startCheckout({
+          token: publicCheckout ? undefined : authToken,
+          productType,
+          productId,
+          couponCode: coupon || undefined,
+          cpfCnpj,
+          billingType: method,
+          publicCheckout,
+        });
+        if (result?.token) {
+          setAuthToken(result.token);
+          if (onAuthPayload && !publicCheckout) await onAuthPayload(result);
+        }
       }
       if (result?.granted || result?.provider === 'free') {
+        if (updateCard) {
+          toast({ message: t('Payment method updated'), variant: 'success' });
+        }
         await finishSuccess(result);
         return;
       }
@@ -324,8 +283,8 @@ export default function AsaasPaySheet({
   };
 
   const cpfValid = !!cpfCnpj.replace(/\D/g, '').match(/^(\d{11}|\d{14})$/);
-  const showPix = !!pix && method === 'PIX' && !updateCard;
-  const showHosted = !!hostedUrl && method === 'CREDIT_CARD' && !updateCard;
+  const showPix = !!pix && method === 'PIX';
+  const showHosted = !!hostedUrl && method === 'CREDIT_CARD';
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={close}>
@@ -484,109 +443,42 @@ export default function AsaasPaySheet({
                     />
                     )
                   ) : null}
-                  {!updateCard ? (
-                    <View className="mb-3">
-                      <Text className="text-base font-bold mb-3" style={{ color: colors.gray[800] }}>
-                        {t('Choose payment method')}
-                      </Text>
-                      <View className="flex-row mb-1">
-                        {(['PIX', 'CREDIT_CARD'] as BillingType[]).map((item) => (
-                          <TouchableOpacity
-                            key={item}
-                            onPress={() => setMethod(item)}
-                            className="flex-1 flex-row px-3 py-3 rounded-xl mr-2 items-center justify-center"
-                            style={{
-                              backgroundColor: method === item ? colors.primary[50] : '#fff',
-                              borderWidth: 1,
-                              borderColor: method === item ? colors.primary[500] : colors.gray[300],
-                            }}
+                  <View className="mb-3">
+                    <Text className="text-base font-bold mb-3" style={{ color: colors.gray[800] }}>
+                      {t('Choose payment method')}
+                    </Text>
+                    <View className="flex-row mb-1">
+                      {(['PIX', 'CREDIT_CARD'] as BillingType[]).map((item) => (
+                        <TouchableOpacity
+                          key={item}
+                          onPress={() => setMethod(item)}
+                          className="flex-1 flex-row px-3 py-3 rounded-xl mr-2 items-center justify-center"
+                          style={{
+                            backgroundColor: method === item ? colors.primary[50] : '#fff',
+                            borderWidth: 1,
+                            borderColor: method === item ? colors.primary[500] : colors.gray[300],
+                          }}
+                        >
+                          <Ionicons
+                            name={item === 'PIX' ? 'qr-code-outline' : 'card-outline'}
+                            size={18}
+                            color={method === item ? colors.primary[500] : colors.gray[600]}
+                          />
+                          <Text
+                            className="ml-2 font-semibold"
+                            style={{ color: method === item ? colors.primary[600] : colors.gray[700] }}
                           >
-                            <Ionicons
-                              name={item === 'PIX' ? 'qr-code-outline' : 'card-outline'}
-                              size={18}
-                              color={method === item ? colors.primary[500] : colors.gray[600]}
-                            />
-                            <Text
-                              className="ml-2 font-semibold"
-                              style={{ color: method === item ? colors.primary[600] : colors.gray[700] }}
-                            >
-                              {item === 'PIX' ? t('PIX') : t('Credit card')}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                      {method === 'CREDIT_CARD' ? (
-                        <Text className="text-xs mt-2" style={{ color: colors.gray[500] }}>
-                          {t('Card payments open the Asaas website')}
-                        </Text>
-                      ) : null}
+                            {item === 'PIX' ? t('PIX') : t('Credit card')}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                  ) : null}
-                  {updateCard ? (
-                    <>
-                      <CheckoutField
-                        label={t('Card holder name')}
-                        icon="person-outline"
-                        placeholder={t('Card holder name')}
-                        value={card.holder_name}
-                        onChangeText={(holder_name) => setCard((prev) => ({ ...prev, holder_name }))}
-                      />
-                      <CheckoutField
-                        label={t('Card number')}
-                        icon="card-outline"
-                        placeholder={t('Card number')}
-                        value={card.number}
-                        onChangeText={(number) => setCard((prev) => ({ ...prev, number }))}
-                        keyboardType="numeric"
-                      />
-                      <View className="flex-row">
-                        <View className="flex-1 mr-2">
-                          <CheckoutField
-                            label={t('MM/YY')}
-                            icon="calendar-outline"
-                            placeholder={t('MM/YY')}
-                            value={card.expiry}
-                            onChangeText={(expiry) => setCard((prev) => ({ ...prev, expiry }))}
-                            keyboardType="numeric"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <CheckoutField
-                            label={t('CVV')}
-                            icon="lock-closed-outline"
-                            placeholder={t('CVV')}
-                            value={card.ccv}
-                            onChangeText={(ccv) => setCard((prev) => ({ ...prev, ccv }))}
-                            keyboardType="numeric"
-                            secureTextEntry
-                          />
-                        </View>
-                      </View>
-                      <CheckoutField
-                        label={t('Postal code')}
-                        icon="location-outline"
-                        placeholder={t('Postal code')}
-                        value={card.postal_code}
-                        onChangeText={(postal_code) => setCard((prev) => ({ ...prev, postal_code }))}
-                        keyboardType="numeric"
-                      />
-                      <CheckoutField
-                        label={t('Address number')}
-                        icon="home-outline"
-                        placeholder={t('Address number')}
-                        value={card.address_number}
-                        onChangeText={(address_number) => setCard((prev) => ({ ...prev, address_number }))}
-                      />
-                      <CheckoutField
-                        label={t('Phone')}
-                        icon="call-outline"
-                        placeholder="(11) 96123-4567"
-                        value={card.phone}
-                        onChangeText={(phone) => setCard((prev) => ({ ...prev, phone }))}
-                        keyboardType="phone-pad"
-                      />
-                    </>
-                  ) : null}
+                    {method === 'CREDIT_CARD' ? (
+                      <Text className="text-xs mt-2" style={{ color: colors.gray[500] }}>
+                        {t('Card payments open the Asaas website')}
+                      </Text>
+                    ) : null}
+                  </View>
                   {!cpfValid ? (
                     <Text className="mb-2 text-xs" style={{ color: colors.gray[500] }}>
                       {t('Enter a valid CPF or CNPJ')}
@@ -602,11 +494,7 @@ export default function AsaasPaySheet({
                       <ActivityIndicator color="#fff" />
                     ) : (
                       <Text className="text-white font-semibold">
-                        {updateCard
-                          ? t('Save card')
-                          : method === 'PIX'
-                            ? t('Generate PIX')
-                            : t('Pay on Asaas website')}
+                        {method === 'PIX' ? t('Generate PIX') : t('Pay on Asaas website')}
                       </Text>
                     )}
                   </TouchableOpacity>
