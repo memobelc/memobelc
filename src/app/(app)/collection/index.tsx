@@ -29,6 +29,7 @@ import { useToast } from '@/components/Toast';
 import api from '@/services/api';
 import { useCollection } from '@/contexts/CollectionContext';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { colors } from '@/styles/colors';
 
 import { storage } from '../../../../FirebaseConfig';
@@ -45,6 +46,7 @@ export default function Collection() {
     setCurrentCollection,
   } = useCollection();
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
   const { t } = useTranslation();
   const router = useRouter();
@@ -357,7 +359,7 @@ export default function Collection() {
         pointerEvents="none"
       />
 
-      {(userInfo?.role === 'admin' ||
+      {(hasRole('admin') ||
         (!currentCollection?.classroom &&
           !currentCollection?.is_book_collection)) && (
         <TouchableOpacity

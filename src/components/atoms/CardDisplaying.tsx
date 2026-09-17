@@ -1,25 +1,40 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/styles/colors';
 import AudioPlayer from '@/components/atoms/AudioPlayer';
+
+export type CardType = 'text' | 'multiple_choice' | 'image';
 
 interface CardDisplayingProps {
   front: string;
   back: string;
   audio?: string | null;
+  cardType?: CardType | string;
+  options?: string[];
+  image?: string | null;
   editMode?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  status?: string | null;
 }
 
-export const CardDisplaying = ({ 
-  front, 
-  back, 
-  audio, 
+export const CardDisplaying = ({
+  front,
+  back,
+  audio,
+  cardType = 'text',
+  options,
+  image,
   editMode = false,
   onEdit,
-  onDelete 
+  onDelete,
+  status,
 }: CardDisplayingProps) => {
+  const { t } = useTranslation();
+  const isMultipleChoice = cardType === 'multiple_choice';
+  const isImage = cardType === 'image' || !!image;
+
   return (
     <View className="w-full min-h-[140px] flex-col justify-center bg-white rounded-[12px] overflow-hidden relative shadow-lg my-3 p-5">
       {editMode && (
@@ -44,34 +59,95 @@ export const CardDisplaying = ({
           )}
         </View>
       )}
-      <View className="flex flex-row items-center justify-start ">
+      {status && status !== 'published' && (
         <View
-          style={{ backgroundColor: colors.warning[100] }}
-          className="w-10 h-10  flex items-center justify-center rounded-lg mr-5"
+          className="self-start px-2 py-0.5 rounded-full mb-2"
+          style={{
+            backgroundColor: status === 'draft' ? colors.gray[200] : colors.warning[100],
+          }}
         >
-          <Text style={{ color: colors.warning[600] }}>F</Text>
+          <Text
+            className="text-[10px] font-semibold"
+            style={{ color: status === 'draft' ? colors.gray[700] : colors.warning[700] }}
+          >
+            {status === 'draft' ? t('Draft') : t('Scheduled')}
+          </Text>
         </View>
-        <Text
-          style={{ color: colors.warning[600] }}
-          className="w-['80%'] min-h-10 font-[ComicSans] flex items-center  text-2xs pb-5"
-        >
-          {front}
-        </Text>
-      </View>
-      <View className="flex flex-row items-center justify-start ">
-        <View
-          style={{ backgroundColor: colors.info[100] }}
-          className="w-10 h-10  flex items-center justify-center rounded-lg mr-5"
-        >
-          <Text style={{ color: colors.info[600] }}>B</Text>
+      )}
+      {isImage && image ? (
+        <View className="flex-row items-center mb-3">
+          <Image
+            source={{ uri: image }}
+            className="w-16 h-16 rounded-lg mr-4"
+            resizeMode="cover"
+          />
+          <View className="flex-1">
+            {!!front && (
+              <Text
+                style={{ color: colors.warning[600] }}
+                className="font-[ComicSans] text-2xs pb-1"
+              >
+                {front}
+              </Text>
+            )}
+            <Text
+              style={{ color: colors.info[600] }}
+              className="font-[ComicSans] text-2xs"
+            >
+              {back}
+            </Text>
+          </View>
         </View>
-        <Text
-          style={{ color: colors.info[600] }}
-          className="w-['80%'] min-h-10 font-[ComicSans] flex items-center  text-2xs pb-5"
-        >
-          {back}
-        </Text>
-      </View>
+      ) : isMultipleChoice ? (
+        <View>
+          <Text
+            style={{ color: colors.warning[600] }}
+            className="font-[ComicSans] text-base pb-3 pr-16"
+          >
+            {front}
+          </Text>
+          {(options || []).map((option, index) => (
+            <Text
+              key={`${option}-${index}`}
+              style={{ color: colors.info[600] }}
+              className="font-[ComicSans] text-2xs pb-1"
+            >
+              {index + 1}. {option}
+            </Text>
+          ))}
+        </View>
+      ) : (
+        <>
+          <View className="flex flex-row items-center justify-start ">
+            <View
+              style={{ backgroundColor: colors.warning[100] }}
+              className="w-10 h-10  flex items-center justify-center rounded-lg mr-5"
+            >
+              <Text style={{ color: colors.warning[600] }}>F</Text>
+            </View>
+            <Text
+              style={{ color: colors.warning[600] }}
+              className="w-['80%'] min-h-10 font-[ComicSans] flex items-center  text-2xs pb-5"
+            >
+              {front}
+            </Text>
+          </View>
+          <View className="flex flex-row items-center justify-start ">
+            <View
+              style={{ backgroundColor: colors.info[100] }}
+              className="w-10 h-10  flex items-center justify-center rounded-lg mr-5"
+            >
+              <Text style={{ color: colors.info[600] }}>B</Text>
+            </View>
+            <Text
+              style={{ color: colors.info[600] }}
+              className="w-['80%'] min-h-10 font-[ComicSans] flex items-center  text-2xs pb-5"
+            >
+              {back}
+            </Text>
+          </View>
+        </>
+      )}
       {audio && (
         <View className="absolute right-5 bottom-5">
           <AudioPlayer audioUri={audio} autoPlay={false} />

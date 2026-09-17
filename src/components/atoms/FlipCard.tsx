@@ -1,13 +1,14 @@
 import { colors } from '@/styles/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, Animated, Platform } from 'react-native';
+import { View, Text, Pressable, Animated, Platform, Image } from 'react-native';
 import AudioPlayer from './AudioPlayer';
 
 interface FlipCardProps {
   frontSide: string;
   backSide: string;
   audio?: string | null;
+  image?: string | null;
   onFlip?: () => void;
 }
 
@@ -15,6 +16,7 @@ const FlipCard = ({
   frontSide,
   backSide,
   audio,
+  image,
   onFlip = () => {},
 }: FlipCardProps) => {
   const [flipped, setFlipped] = useState(false);
@@ -23,7 +25,7 @@ const FlipCard = ({
   useEffect(() => {
     rotateAnim.setValue(0);
     setFlipped(false);
-  }, [frontSide]);
+  }, [frontSide, image]);
 
   const flipCard = () => {
     if (flipped) {
@@ -83,11 +85,20 @@ const FlipCard = ({
             transform: [{ rotateY: frontInterpolate }],
             opacity: frontOpacity,
             backgroundColor: 'white',
-            borderRadius: Platform.OS === 'web' ? '16px' : 16,
+            borderRadius: Platform.OS === 'web' ? 16 : 16,
           }}
           className="absolute w-full h-full bg-white rounded-2xl justify-center items-center shadow-lg"
         >
-          <Text className="text-xl font-bold">{frontSide}</Text>
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              style={{ width: '90%', height: frontSide ? '65%' : '80%' }}
+              resizeMode="contain"
+            />
+          ) : null}
+          {!!frontSide && (
+            <Text className="text-xl font-bold px-4 text-center mt-2">{frontSide}</Text>
+          )}
           {Platform.OS !== 'web' && (
             <View style={{ position: 'absolute', top: -1, right: -1 }}>
               <LinearGradient
@@ -116,11 +127,11 @@ const FlipCard = ({
             transform: [{ rotateY: backInterpolate }],
             opacity: backOpacity,
             backgroundColor: colors.primary[500],
-            borderRadius: Platform.OS === 'web' ? '16px' : 16,
+            borderRadius: Platform.OS === 'web' ? 16 : 16,
           }}
           className="absolute w-full h-full rounded-2xl justify-center items-center shadow-lg"
         >
-          <Text className="text-xl font-bold text-white">{backSide}</Text>
+          <Text className="text-xl font-bold text-white px-4 text-center">{backSide}</Text>
           {Platform.OS !== 'web' && (
             <View style={{ position: 'absolute', top: -0.8, left: -0.8 }}>
               <LinearGradient

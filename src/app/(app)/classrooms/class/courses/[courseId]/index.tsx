@@ -1,0 +1,1743 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Modal,
+  Alert,
+  ActivityIndicator,
+  Switch,
+  Platform,
+} from 'react-native';
+import {
+  Ionicons,
+  MaterialIcons,
+  MaterialCommunityIcons,
+  Feather,
+} from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import * as DocumentPicker from 'expo-document-picker';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { storage } from '../../../../../../../FirebaseConfig';
+
+import api from '@/services/api';
+import { colors } from '@/styles/colors';
+import {
+  ICourse,
+  ICourseModule,
+  ILesson,
+  IActivity,
+  LessonFormat,
+  useCollection,
+} from '@/contexts/CollectionContext';
+import { useSession } from '@/contexts/AuthContext';
+import { useToast } from '@/components/Toast';
+import { StarRating } from '@/components/molecules/StarRating';
+import { ModuleRatingModal } from '@/components/molecules/ModuleRatingModal';
+import { DuplicateTargetModal, DuplicateTargetType } from '@/components/molecules/DuplicateTargetModal';
+
+type ContentItem =
+  | (ILesson & { itemType: 'lesson' })
+  | (IActivity & { itemType: 'activity' });
+
+function getYoutubeVideoId(url: string): string | null {
+  const regExp =
+    /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+}
+
+export default function CourseDetailScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { courseId, courseName } = useLocalSearchParams<{
+    courseId: string;
+    courseName: string;
+  }>();
+  const { userInfo } = useSession();
+  const { toast } = useToast();
+  const { setCurrentCourse } = useCollection();
+
+  const [course, setCourse] = useState<ICourse | null>(null);
+  const isTeacher =
+    !!course?.teacher_id &&
+    String(course.teacher_id) === String(userInfo?.user_id);
+  const [loading, setLoading] = useState(true);
+
+  // Module modal
+  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [editingModule, setEditingModule] = useState<ICourseModule | null>(null);
+  const [moduleName, setModuleName] = useState('');
+  const [moduleUseSchedule, setModuleUseSchedule] = useState(false);
+  const [moduleScheduledAt, setModuleScheduledAt] = useState('');
+  const [savingModule, setSavingModule] = useState(false);
+
+  // Lesson modal
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [lessonModuleId, setLessonModuleId] = useState('');
+  const [editingLesson, setEditingLesson] = useState<ILesson | null>(null);
+  const [lessonTitle, setLessonTitle] = useState('');
+  const [lessonVideoUrl, setLessonVideoUrl] = useState('');
+  const [lessonVideoType, setLessonVideoType] = useState<'youtube' | 'upload' | 'other'>('youtube');
+  const [lessonFormat, setLessonFormat] = useState<LessonFormat>('text');
+  const [lessonDescription, setLessonDescription] = useState('');
+  const [lessonVisible, setLessonVisible] = useState(true);
+  const [lessonUseSchedule, setLessonUseSchedule] = useState(false);
+  const [lessonScheduledAt, setLessonScheduledAt] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
+
+  // Activity modal
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [activityModuleId, setActivityModuleId] = useState('');
+  const [editingActivity, setEditingActivity] = useState<IActivity | null>(null);
+  const [activityTitle, setActivityTitle] = useState('');
+  const [activityDescription, setActivityDescription] = useState('');
+  const [activityVisible, setActivityVisible] = useState(true);
+  const [activityUseSchedule, setActivityUseSchedule] = useState(false);
+  const [activityScheduledAt, setActivityScheduledAt] = useState('');
+  const [activityFeedbackMode, setActivityFeedbackMode] = useState<'immediate' | 'after_correction'>('immediate');
+  const [savingActivity, setSavingActivity] = useState(false);
+  const [ranking, setRanking] = useState<{
+    ranking: { _id: string; name: string; xp: number; rank: number; badges: string[] }[];
+    me: { rank: number; xp: number; badges: string[] } | null;
+  } | null>(null);
+  const [promptModule, setPromptModule] = useState<ICourseModule | null>(null);
+  const [savingModuleRating, setSavingModuleRating] = useState(false);
+
+  const [showCourseEditModal, setShowCourseEditModal] = useState(false);
+  const [editCourseName, setEditCourseName] = useState('');
+  const [editCourseDescription, setEditCourseDescription] = useState('');
+  const [savingCourseEdit, setSavingCourseEdit] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<{
+    type: DuplicateTargetType;
+    sourceId: string;
+    defaultName: string;
+  } | null>(null);
+
+  const fetchCourse = useCallback(async () => {
+    if (!courseId) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/course/${courseId}`, {
+        headers: { Authorization: `Bearer ${userInfo?.token}` },
+      });
+      setCourse(res.data);
+      setCurrentCourse(res.data);
+      try {
+        const rankRes = await api.get(`/course/${courseId}/ranking`, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+        setRanking(rankRes.data);
+      } catch {
+        setRanking(null);
+      }
+    } catch {
+      toast({ message: t('Failed to load course'), variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId, userInfo?.token]);
+
+  useEffect(() => {
+    fetchCourse();
+  }, [fetchCourse]);
+
+  useEffect(() => {
+    if (isTeacher || !course?.modules) {
+      setPromptModule(null);
+      return;
+    }
+    const pending = course.modules.find((mod) => mod.rating_prompt);
+    setPromptModule(pending ?? null);
+  }, [course, isTeacher]);
+
+  const patchModuleRating = (
+    moduleId: string,
+    patch: Partial<Pick<ICourseModule, 'my_rating' | 'rating_prompt'>>,
+  ) => {
+    setCourse((prev) => {
+      if (!prev?.modules) return prev;
+      return {
+        ...prev,
+        modules: prev.modules.map((mod) =>
+          mod._id === moduleId ? { ...mod, ...patch } : mod,
+        ),
+      };
+    });
+  };
+
+  const handleRateModule = async (moduleId: string, stars: number) => {
+    if (!userInfo?.token) return;
+    const previous = course?.modules?.find((mod) => mod._id === moduleId);
+    patchModuleRating(moduleId, { my_rating: stars, rating_prompt: false });
+    setSavingModuleRating(true);
+    try {
+      await api.put(
+        `/course/module/${moduleId}/rating`,
+        { stars },
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+    } catch {
+      patchModuleRating(moduleId, {
+        my_rating: previous?.my_rating ?? null,
+        rating_prompt: previous?.rating_prompt,
+      });
+      toast({ message: t('Failed to save rating'), variant: 'destructive' });
+    } finally {
+      setSavingModuleRating(false);
+    }
+  };
+
+  const handleDismissModuleRating = async (moduleId: string) => {
+    if (!userInfo?.token) return;
+    const previous = course?.modules?.find((mod) => mod._id === moduleId);
+    patchModuleRating(moduleId, { rating_prompt: false });
+    try {
+      await api.post(
+        `/course/module/${moduleId}/rating/dismiss`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } },
+      );
+    } catch {
+      patchModuleRating(moduleId, { rating_prompt: previous?.rating_prompt });
+    }
+  };
+
+  // ── Module CRUD ────────────────────────────────────────────────────────────
+
+  const openCreateModule = () => {
+    setEditingModule(null);
+    setModuleName('');
+    setModuleUseSchedule(false);
+    setModuleScheduledAt('');
+    setShowModuleModal(true);
+  };
+
+  const openEditModule = (mod: ICourseModule) => {
+    setEditingModule(mod);
+    setModuleName(mod.name);
+    const hasSched = !!mod.scheduled_at;
+    setModuleUseSchedule(hasSched);
+    setModuleScheduledAt(hasSched ? mod.scheduled_at!.substring(0, 16) : '');
+    setShowModuleModal(true);
+  };
+
+  const handleSaveModule = async () => {
+    if (!moduleName.trim()) return;
+    try {
+      setSavingModule(true);
+      const payload: Record<string, any> = {
+        name: moduleName.trim(),
+        scheduled_at: moduleUseSchedule && moduleScheduledAt ? moduleScheduledAt : null,
+      };
+      if (editingModule) {
+        await api.put(
+          `/course/module/${editingModule._id}`,
+          payload,
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+      } else {
+        await api.post(
+          '/course/module/create',
+          { ...payload, course_id: courseId },
+          { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+        );
+      }
+      setShowModuleModal(false);
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to save module'), variant: 'destructive' });
+    } finally {
+      setSavingModule(false);
+    }
+  };
+
+  const handleDeleteModule = (mod: ICourseModule) => {
+    Alert.alert(
+      t('Delete Module'),
+      t('This will delete the module and all its contents. Continue?'),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/course/module/${mod._id}`, {
+                headers: { Authorization: `Bearer ${userInfo?.token}` },
+              });
+              fetchCourse();
+            } catch {
+              toast({ message: t('Failed to delete module'), variant: 'destructive' });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReorderModuleUp = async (mod: ICourseModule, index: number) => {
+    if (!course?.modules || index === 0) return;
+    const newOrder = [...course.modules];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    try {
+      await api.put(
+        `/course/${courseId}/modules/reorder`,
+        { module_ids: newOrder.map((m) => m._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
+  const handleReorderModuleDown = async (mod: ICourseModule, index: number) => {
+    if (!course?.modules || index === course.modules.length - 1) return;
+    const newOrder = [...course.modules];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    try {
+      await api.put(
+        `/course/${courseId}/modules/reorder`,
+        { module_ids: newOrder.map((m) => m._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
+  const openEditCourseModal = () => {
+    if (!course) return;
+    setEditCourseName(course.name);
+    setEditCourseDescription(course.description || '');
+    setShowCourseEditModal(true);
+  };
+
+  const handleSaveCourseEdit = async () => {
+    if (!editCourseName.trim() || !courseId) return;
+    try {
+      setSavingCourseEdit(true);
+      await api.put(
+        `/course/${courseId}`,
+        {
+          name: editCourseName.trim(),
+          description: editCourseDescription.trim(),
+        },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      toast({ message: t('Course updated successfully'), variant: 'success' });
+      setShowCourseEditModal(false);
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to update course'), variant: 'destructive' });
+    } finally {
+      setSavingCourseEdit(false);
+    }
+  };
+
+  const handleReorderLesson = async (
+    mod: ICourseModule,
+    lessonIndex: number,
+    direction: 'up' | 'down',
+  ) => {
+    const lessons = mod.lessons ?? [];
+    const targetIndex = direction === 'up' ? lessonIndex - 1 : lessonIndex + 1;
+    if (targetIndex < 0 || targetIndex >= lessons.length) return;
+    const newOrder = [...lessons];
+    [newOrder[lessonIndex], newOrder[targetIndex]] = [
+      newOrder[targetIndex],
+      newOrder[lessonIndex],
+    ];
+    try {
+      await api.put(
+        `/course/module/${mod._id}/lessons/reorder`,
+        { lesson_ids: newOrder.map((l) => l._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
+  const handleReorderActivity = async (
+    mod: ICourseModule,
+    activityIndex: number,
+    direction: 'up' | 'down',
+  ) => {
+    const activities = mod.activities ?? [];
+    const targetIndex = direction === 'up' ? activityIndex - 1 : activityIndex + 1;
+    if (targetIndex < 0 || targetIndex >= activities.length) return;
+    const newOrder = [...activities];
+    [newOrder[activityIndex], newOrder[targetIndex]] = [
+      newOrder[targetIndex],
+      newOrder[activityIndex],
+    ];
+    try {
+      await api.put(
+        `/course/module/${mod._id}/activities/reorder`,
+        { activity_ids: newOrder.map((a) => a._id) },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to reorder'), variant: 'destructive' });
+    }
+  };
+
+  // ── Lesson CRUD ────────────────────────────────────────────────────────────
+
+  const openCreateLesson = (moduleId: string) => {
+    setEditingLesson(null);
+    setLessonModuleId(moduleId);
+    setLessonTitle('');
+    setLessonVideoUrl('');
+    setLessonVideoType('youtube');
+    setLessonFormat('text');
+    setLessonDescription('');
+    setLessonVisible(true);
+    setLessonUseSchedule(false);
+    setLessonScheduledAt('');
+    setShowLessonModal(true);
+  };
+
+  const openEditLesson = (lesson: ILesson) => {
+    setEditingLesson(lesson);
+    setLessonModuleId(lesson.module_id);
+    setLessonTitle(lesson.title);
+    setLessonVideoUrl(lesson.video_url);
+    setLessonVideoType(
+      lesson.video_type === 'youtube' || lesson.video_type === 'upload' || lesson.video_type === 'other'
+        ? lesson.video_type
+        : 'youtube',
+    );
+    setLessonFormat(
+      lesson.lesson_format
+        || (lesson.video_url?.trim() && (lesson.content_html?.trim() || lesson.description?.trim())
+          ? 'both'
+          : lesson.video_url?.trim()
+            ? 'video'
+            : 'text'),
+    );
+    setLessonDescription(lesson.description);
+    setLessonVisible(lesson.visible);
+    const hasSched = !!lesson.scheduled_at;
+    setLessonUseSchedule(hasSched);
+    setLessonScheduledAt(hasSched ? lesson.scheduled_at!.substring(0, 16) : '');
+    setShowLessonModal(true);
+  };
+
+  const handlePickAndUploadVideo = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'video/*',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const file = result.assets[0];
+      setUploadingVideo(true);
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `videos/lessons/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, blob);
+      const downloadUrl = await getDownloadURL(storageRef);
+      setLessonVideoUrl(downloadUrl);
+      setLessonVideoType('upload');
+      toast({ message: t('Video uploaded successfully'), variant: 'success' });
+    } catch {
+      toast({ message: t('Failed to upload video'), variant: 'destructive' });
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const handleSaveLesson = async () => {
+    if (!lessonTitle.trim()) return;
+    if (!courseId || !lessonModuleId) {
+      toast({ message: t('Failed to save lesson'), variant: 'destructive' });
+      return;
+    }
+    const includeVideo = lessonFormat === 'video' || lessonFormat === 'both';
+    const payload: Record<string, any> = {
+      title: lessonTitle.trim(),
+      lesson_format: lessonFormat,
+      video_url: includeVideo ? lessonVideoUrl.trim() : '',
+      video_type: includeVideo ? lessonVideoType : 'youtube',
+      description: lessonDescription.trim(),
+      visible: lessonUseSchedule ? false : lessonVisible,
+      module_id: lessonModuleId,
+      course_id: courseId,
+      scheduled_at: lessonUseSchedule && lessonScheduledAt ? lessonScheduledAt : null,
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson start',data:{isEdit:!!editingLesson,courseId,lessonModuleId,lessonFormat,payloadKeys:Object.keys(payload)},timestamp:Date.now(),hypothesisId:'H1,H4',runId:'save-lesson'})}).catch(()=>{});
+    // #endregion
+    try {
+      setSavingLesson(true);
+      if (editingLesson) {
+        await api.put(`/course/lesson/${editingLesson._id}`, payload, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+        setShowLessonModal(false);
+        fetchCourse();
+      } else {
+        const res = await api.post('/course/lesson/create', payload, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+        setShowLessonModal(false);
+        fetchCourse();
+        const newLessonId = res.data?.lesson_id;
+        // #region agent log
+        fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'create lesson ok',data:{newLessonId,lessonFormat},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
+        // #endregion
+        if (newLessonId && lessonFormat !== 'video') {
+          try {
+            router.push({
+              pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
+              params: { courseId, lessonId: newLessonId, lessonTitle: lessonTitle.trim() },
+            });
+          } catch (navErr) {
+            // #region agent log
+            fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'navigate prepare failed',data:{newLessonId,error:String(navErr)},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
+            // #endregion
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const ax = err as {
+        response?: { status?: number; data?: { error?: string } };
+        message?: string;
+      };
+      const status = ax.response?.status;
+      const apiError = ax.response?.data?.error;
+      // #region agent log
+      fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson failed',data:{isEdit:!!editingLesson,status,apiError,error:String(err)},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H5',runId:'save-lesson'})}).catch(()=>{});
+      // #endregion
+      toast({
+        message: apiError || t('Failed to save lesson'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingLesson(false);
+    }
+  };
+
+  const handleDeleteLesson = (lesson: ILesson) => {
+    Alert.alert(t('Delete Lesson'), t('Are you sure?'), [
+      { text: t('Cancel'), style: 'cancel' },
+      {
+        text: t('Delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/course/lesson/${lesson._id}`, {
+              headers: { Authorization: `Bearer ${userInfo?.token}` },
+            });
+            fetchCourse();
+          } catch {
+            toast({ message: t('Failed to delete lesson'), variant: 'destructive' });
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleToggleLessonVisibility = async (lesson: ILesson) => {
+    try {
+      await api.put(
+        `/course/lesson/${lesson._id}`,
+        { visible: !lesson.visible },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to update visibility'), variant: 'destructive' });
+    }
+  };
+
+  // ── Activity CRUD ──────────────────────────────────────────────────────────
+
+  const openCreateActivity = (moduleId: string) => {
+    setEditingActivity(null);
+    setActivityModuleId(moduleId);
+    setActivityTitle('');
+    setActivityDescription('');
+    setActivityVisible(true);
+    setActivityUseSchedule(false);
+    setActivityScheduledAt('');
+    setActivityFeedbackMode('immediate');
+    setShowActivityModal(true);
+  };
+
+  const openEditActivity = (activity: IActivity) => {
+    setEditingActivity(activity);
+    setActivityModuleId(activity.module_id);
+    setActivityTitle(activity.title);
+    setActivityDescription(activity.description);
+    setActivityVisible(activity.visible);
+    const hasSched = !!activity.scheduled_at;
+    setActivityUseSchedule(hasSched);
+    setActivityScheduledAt(hasSched ? activity.scheduled_at!.substring(0, 16) : '');
+    setActivityFeedbackMode(activity.feedback_mode || 'immediate');
+    setShowActivityModal(true);
+  };
+
+  const handleSaveActivity = async () => {
+    if (!activityTitle.trim()) return;
+    try {
+      setSavingActivity(true);
+      const payload: Record<string, any> = {
+        title: activityTitle.trim(),
+        description: activityDescription.trim(),
+        visible: activityUseSchedule ? false : activityVisible,
+        module_id: activityModuleId,
+        course_id: courseId,
+        scheduled_at: activityUseSchedule && activityScheduledAt ? activityScheduledAt : null,
+        feedback_mode: activityFeedbackMode,
+      };
+      if (editingActivity) {
+        await api.put(`/course/activity/${editingActivity._id}`, payload, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+      } else {
+        await api.post('/course/activity/create', payload, {
+          headers: { Authorization: `Bearer ${userInfo?.token}` },
+        });
+      }
+      setShowActivityModal(false);
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to save activity'), variant: 'destructive' });
+    } finally {
+      setSavingActivity(false);
+    }
+  };
+
+  const handleDeleteActivity = (activity: IActivity) => {
+    Alert.alert(t('Delete Activity'), t('Are you sure?'), [
+      { text: t('Cancel'), style: 'cancel' },
+      {
+        text: t('Delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/course/activity/${activity._id}`, {
+              headers: { Authorization: `Bearer ${userInfo?.token}` },
+            });
+            fetchCourse();
+          } catch {
+            toast({ message: t('Failed to delete activity'), variant: 'destructive' });
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleToggleActivityVisibility = async (activity: IActivity) => {
+    try {
+      await api.put(
+        `/course/activity/${activity._id}`,
+        { visible: !activity.visible },
+        { headers: { Authorization: `Bearer ${userInfo?.token}` } },
+      );
+      fetchCourse();
+    } catch {
+      toast({ message: t('Failed to update visibility'), variant: 'destructive' });
+    }
+  };
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+
+  const handleOpenLesson = (lesson: ILesson) => {
+    router.push({
+      pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]' as any,
+      params: { courseId, lessonId: lesson._id, lessonTitle: lesson.title },
+    });
+  };
+
+  const handlePrepareLesson = (lesson: ILesson) => {
+    router.push({
+      pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
+      params: { courseId, lessonId: lesson._id, lessonTitle: lesson.title },
+    });
+  };
+
+  const handleOpenActivity = (activity: IActivity) => {
+    router.push({
+      pathname: '/classrooms/class/courses/[courseId]/activity/[activityId]' as any,
+      params: {
+        courseId,
+        activityId: activity._id,
+        activityTitle: activity.title,
+      },
+    });
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary[500]} />
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8">
+      {/* Header */}
+      <View className="flex-row w-full justify-between items-center mb-6">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row items-center"
+        >
+          <Ionicons name="arrow-back-circle" size={24} color={colors.primary[500]} />
+          <Text style={{ color: colors.primary[500] }} className="ml-1">
+            {t('Back')}
+          </Text>
+        </TouchableOpacity>
+        <Text className="text-xl font-bold text-gray-800 flex-1 text-center mx-2" numberOfLines={1}>
+          {courseName || course?.name}
+        </Text>
+        {isTeacher ? (
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={openEditCourseModal} className="p-1">
+              <Feather name="edit-2" size={18} color={colors.primary[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: '/classrooms/class/courses/[courseId]/progress' as any,
+                  params: { courseId, courseName: courseName || course?.name },
+                })
+              }
+              className="flex-row items-center gap-1 px-2 py-1 rounded-xl"
+              style={{ backgroundColor: colors.primary[50] }}
+            >
+              <MaterialIcons name="bar-chart" size={18} color={colors.primary[500]} />
+              <Text className="text-xs font-semibold" style={{ color: colors.primary[500] }}>
+                {t('Progress')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ width: 60 }} />
+        )}
+      </View>
+
+      {course?.description ? (
+        <Text className="text-gray-500 text-sm mb-5 text-center">
+          {course.description}
+        </Text>
+      ) : null}
+
+      {ranking && ranking.ranking.length > 0 && (
+        <View
+          className="rounded-2xl px-5 py-4 mb-5 flex-row items-center justify-between"
+          style={{
+            backgroundColor: colors.primary[50],
+            borderWidth: 1,
+            borderColor: colors.primary[100],
+          }}
+        >
+          <View className="flex-row items-center gap-3 flex-1">
+            <MaterialCommunityIcons name="trophy-outline" size={28} color={colors.primary[600]} />
+            <View>
+              {ranking.me ? (
+                <>
+                  <Text className="font-bold text-gray-800">
+                    {t('Your rank')}: #{ranking.me.rank}
+                  </Text>
+                  <Text className="text-sm text-gray-600">{ranking.me.xp} XP</Text>
+                </>
+              ) : (
+                <>
+                  <Text className="font-bold text-gray-800">{t('Ranking')}</Text>
+                  <Text className="text-sm text-gray-600">{t('Top students')}</Text>
+                </>
+              )}
+            </View>
+          </View>
+          {ranking.ranking.slice(0, 3).map((row) => (
+            <View key={row._id} className="items-center mx-1">
+              <Text className="text-xs font-bold" style={{ color: colors.primary[600] }}>
+                #{row.rank}
+              </Text>
+              <Text className="text-[10px] text-gray-500" numberOfLines={1}>
+                {row.name.split(' ')[0]}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {(!course?.modules || course.modules.length === 0) && (
+          <View className="items-center py-16">
+            <MaterialCommunityIcons
+              name="folder-open-outline"
+              size={56}
+              color={colors.gray[300]}
+            />
+            <Text className="text-gray-400 text-base font-semibold mt-3 text-center">
+              {isTeacher
+                ? t('No modules yet. Add your first module below!')
+                : t('No content available yet.')}
+            </Text>
+          </View>
+        )}
+
+        {course?.modules?.map((mod, modIndex) => (
+          <View
+            key={mod._id}
+            className="mb-5 rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: colors.white,
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.07,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            {/* Module header */}
+            <View
+              className="px-5 py-3 flex-row items-center justify-between"
+              style={{ backgroundColor: colors.primary[500] }}
+            >
+              <View className="flex-1 mr-2">
+                <Text className="text-white font-bold text-base" numberOfLines={1}>
+                  {t('Module')} {modIndex + 1}: {mod.name}
+                </Text>
+                {/* Schedule badge — only visible to teacher */}
+                {isTeacher && mod.scheduled_at && (
+                  <View className="flex-row items-center gap-1 mt-0.5">
+                    <MaterialIcons name="schedule" size={11} color="rgba(255,255,255,0.85)" />
+                    <Text className="text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                      {new Date(mod.scheduled_at) > new Date()
+                        ? `${t('Releases')} ${new Date(mod.scheduled_at).toLocaleString()}`
+                        : `${t('Released')} ${new Date(mod.scheduled_at).toLocaleString()}`}
+                    </Text>
+                  </View>
+                )}
+                {!isTeacher && mod.can_rate && (
+                  <View className="mt-1">
+                    <StarRating
+                      value={mod.my_rating ?? null}
+                      onChange={(stars) => handleRateModule(mod._id, stars)}
+                      size={18}
+                      emptyColor="rgba(255,255,255,0.65)"
+                    />
+                  </View>
+                )}
+              </View>
+              {isTeacher && (
+                <View className="flex-row items-center gap-2">
+                  <TouchableOpacity onPress={() => handleReorderModuleUp(mod, modIndex)}>
+                    <MaterialIcons name="keyboard-arrow-up" size={22} color="rgba(255,255,255,0.8)" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleReorderModuleDown(mod, modIndex)}>
+                    <MaterialIcons name="keyboard-arrow-down" size={22} color="rgba(255,255,255,0.8)" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => openEditModule(mod)}>
+                    <Feather name="edit-2" size={18} color="rgba(255,255,255,0.9)" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setDuplicateTarget({
+                        type: 'module',
+                        sourceId: mod._id,
+                        defaultName: mod.name,
+                      })
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name="content-copy"
+                      size={18}
+                      color="rgba(255,255,255,0.9)"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteModule(mod)}>
+                    <MaterialIcons name="delete-outline" size={20} color="rgba(255,255,255,0.9)" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Lessons */}
+            {(mod.lessons ?? []).length === 0 && (mod.activities ?? []).length === 0 ? (
+              <View className="px-5 py-4">
+                <Text className="text-gray-400 text-sm italic">
+                  {isTeacher
+                    ? t('No content. Add lessons or activities below.')
+                    : t('No content available.')}
+                </Text>
+              </View>
+            ) : null}
+
+            {(mod.lessons ?? []).map((lesson, lessonIndex) => (
+              <TouchableOpacity
+                key={lesson._id}
+                onPress={() => handleOpenLesson(lesson)}
+                className="flex-row items-center px-5 py-3 border-b border-gray-100"
+                style={!lesson.visible ? { opacity: 0.5 } : undefined}
+              >
+                <View
+                  className="rounded-full p-2 mr-3"
+                  style={{ backgroundColor: colors.primary[50] }}
+                >
+                  <MaterialCommunityIcons
+                    name="play-circle-outline"
+                    size={20}
+                    color={colors.primary[500]}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-gray-800 font-semibold text-sm" numberOfLines={1}>
+                    {lesson.title}
+                  </Text>
+                  {lesson.scheduled_at && (
+                    <View className="flex-row items-center mt-0.5 gap-1">
+                      <MaterialIcons name="schedule" size={11} color={colors.warning[600]} />
+                      <Text className="text-xs" style={{ color: colors.warning[600] }}>
+                        {new Date(lesson.scheduled_at).toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
+                  {!lesson.visible && !lesson.scheduled_at && (
+                    <Text className="text-xs text-gray-400 mt-0.5">{t('Hidden')}</Text>
+                  )}
+                  {(lesson.decks?.length || 0) > 0 && (
+                    <Text className="text-xs text-gray-400 mt-0.5">
+                      {lesson.decks!.length} {t('decks')}
+                    </Text>
+                  )}
+                </View>
+                {isTeacher && (
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderLesson(mod, lessonIndex, 'up');
+                      }}
+                      disabled={lessonIndex === 0}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-up"
+                        size={20}
+                        color={lessonIndex === 0 ? colors.gray[300] : colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderLesson(mod, lessonIndex, 'down');
+                      }}
+                      disabled={lessonIndex === (mod.lessons?.length ?? 0) - 1}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-down"
+                        size={20}
+                        color={
+                          lessonIndex === (mod.lessons?.length ?? 0) - 1
+                            ? colors.gray[300]
+                            : colors.gray[500]
+                        }
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleToggleLessonVisibility(lesson);
+                      }}
+                    >
+                      <MaterialIcons
+                        name={lesson.visible ? 'visibility' : 'visibility-off'}
+                        size={18}
+                        color={lesson.visible ? colors.primary[500] : colors.gray[400]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handlePrepareLesson(lesson);
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="note-edit-outline"
+                        size={16}
+                        color={colors.primary[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        openEditLesson(lesson);
+                      }}
+                    >
+                      <Feather name="edit-2" size={16} color={colors.gray[500]} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        setDuplicateTarget({
+                          type: 'lesson',
+                          sourceId: lesson._id,
+                          defaultName: lesson.title,
+                        });
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={16}
+                        color={colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteLesson(lesson);
+                      }}
+                    >
+                      <MaterialIcons name="delete-outline" size={18} color={colors.error[500]} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {(mod.activities ?? []).map((activity, activityIndex) => (
+              <TouchableOpacity
+                key={activity._id}
+                onPress={() => handleOpenActivity(activity)}
+                className="flex-row items-center px-5 py-3 border-b border-gray-100"
+                style={!activity.visible ? { opacity: 0.5 } : undefined}
+              >
+                <View
+                  className="rounded-full p-2 mr-3"
+                  style={{ backgroundColor: colors.warning[100] }}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-box-outline"
+                    size={20}
+                    color={colors.warning[700]}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-gray-800 font-semibold text-sm" numberOfLines={1}>
+                    {activity.title}
+                  </Text>
+                  <Text className="text-xs text-gray-400 mt-0.5">
+                    {activity.feedback_mode === 'after_correction'
+                      ? t('Teacher correction')
+                      : t('Gamified quiz')}
+                  </Text>
+                  {activity.scheduled_at && (
+                    <View className="flex-row items-center mt-0.5 gap-1">
+                      <MaterialIcons name="schedule" size={11} color={colors.warning[600]} />
+                      <Text className="text-xs" style={{ color: colors.warning[600] }}>
+                        {new Date(activity.scheduled_at).toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
+                  {!activity.visible && !activity.scheduled_at && (
+                    <Text className="text-xs text-gray-400 mt-0.5">{t('Hidden')}</Text>
+                  )}
+                </View>
+                {isTeacher && (
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderActivity(mod, activityIndex, 'up');
+                      }}
+                      disabled={activityIndex === 0}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-up"
+                        size={20}
+                        color={activityIndex === 0 ? colors.gray[300] : colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleReorderActivity(mod, activityIndex, 'down');
+                      }}
+                      disabled={activityIndex === (mod.activities?.length ?? 0) - 1}
+                    >
+                      <MaterialIcons
+                        name="keyboard-arrow-down"
+                        size={20}
+                        color={
+                          activityIndex === (mod.activities?.length ?? 0) - 1
+                            ? colors.gray[300]
+                            : colors.gray[500]
+                        }
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleToggleActivityVisibility(activity);
+                      }}
+                    >
+                      <MaterialIcons
+                        name={activity.visible ? 'visibility' : 'visibility-off'}
+                        size={18}
+                        color={activity.visible ? colors.primary[500] : colors.gray[400]}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        openEditActivity(activity);
+                      }}
+                    >
+                      <Feather name="edit-2" size={16} color={colors.gray[500]} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        handleDeleteActivity(activity);
+                      }}
+                    >
+                      <MaterialIcons name="delete-outline" size={18} color={colors.error[500]} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {/* Module actions */}
+            {isTeacher && (
+              <View className="flex-row px-4 py-3 gap-2 border-t border-gray-100">
+                <TouchableOpacity
+                  onPress={() => openCreateLesson(mod._id)}
+                  className="flex-1 flex-row items-center justify-center py-2 rounded-xl gap-1"
+                  style={{ backgroundColor: colors.primary[50] }}
+                >
+                  <MaterialCommunityIcons
+                    name="play-circle-outline"
+                    size={16}
+                    color={colors.primary[500]}
+                  />
+                  <Text
+                    className="text-xs font-semibold"
+                    style={{ color: colors.primary[500] }}
+                  >
+                    {t('Add Lesson')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => openCreateActivity(mod._id)}
+                  className="flex-1 flex-row items-center justify-center py-2 rounded-xl gap-1"
+                  style={{ backgroundColor: colors.warning[100] }}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-box-outline"
+                    size={16}
+                    color={colors.warning[700]}
+                  />
+                  <Text
+                    className="text-xs font-semibold"
+                    style={{ color: colors.warning[700] }}
+                  >
+                    {t('Add Activity')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* FAB: Add Module */}
+      {isTeacher && (
+        <TouchableOpacity
+          className="absolute bottom-7 right-0 rounded-full p-3 flex-row items-center gap-2"
+          style={{ backgroundColor: colors.primary[500] }}
+          onPress={openCreateModule}
+        >
+          <MaterialIcons name="add" size={26} color={colors.white} />
+          <Text className="text-white font-bold mr-2">{t('Add Module')}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Module Modal */}
+      <Modal visible={showModuleModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View
+            className="bg-white rounded-3xl w-full max-w-md p-6"
+            style={{ elevation: 10 }}
+          >
+            <Text className="text-xl font-bold text-gray-800 mb-4">
+              {editingModule ? t('Edit Module') : t('New Module')}
+            </Text>
+
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              {t('Module Name')} *
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+              placeholder={t('e.g. Module 1 – Foundations')}
+              value={moduleName}
+              onChangeText={setModuleName}
+              maxLength={80}
+            />
+
+            {/* Schedule toggle */}
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <MaterialIcons name="schedule" size={18} color={colors.warning[600]} />
+                <Text className="text-sm font-semibold text-gray-700">
+                  {t('Schedule module release')}
+                </Text>
+              </View>
+              <Switch
+                value={moduleUseSchedule}
+                onValueChange={setModuleUseSchedule}
+                trackColor={{ false: colors.gray[300], true: colors.warning[500] }}
+              />
+            </View>
+
+            {moduleUseSchedule && (
+              <View className="mb-4">
+                <Text className="text-xs text-gray-500 mb-1">
+                  {t('Release date & time (YYYY-MM-DDTHH:MM)')}
+                </Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-800"
+                  placeholder="2025-12-31T18:00"
+                  value={moduleScheduledAt}
+                  onChangeText={setModuleScheduledAt}
+                  {...(Platform.OS === 'web' ? { type: 'datetime-local' } as any : {})}
+                />
+                <Text className="text-xs text-gray-400 mt-1">
+                  {t('All content inside this module will be hidden from students until this date.')}
+                </Text>
+              </View>
+            )}
+
+            <View className="flex-row gap-3 mt-2">
+              <TouchableOpacity
+                onPress={() => setShowModuleModal(false)}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.gray[200] }}
+              >
+                <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveModule}
+                disabled={savingModule || !moduleName.trim()}
+                className="flex-[2] rounded-xl py-3 items-center"
+                style={{
+                  backgroundColor: moduleName.trim()
+                    ? colors.primary[500]
+                    : colors.gray[300],
+                }}
+              >
+                {savingModule ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text className="font-bold text-white">{t('Save')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Lesson Modal */}
+      <Modal visible={showLessonModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View
+            className="bg-white rounded-3xl w-full max-w-lg p-6"
+            style={{ elevation: 10, maxHeight: '90%' }}
+          >
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text className="text-xl font-bold text-gray-800 mb-4">
+                {editingLesson ? t('Edit Lesson') : t('New Lesson')}
+              </Text>
+
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                {t('Title')} *
+              </Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+                placeholder={t('Lesson title')}
+                value={lessonTitle}
+                onChangeText={setLessonTitle}
+                maxLength={120}
+              />
+
+              <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Lesson format')}</Text>
+              <View className="flex-row flex-wrap gap-2 mb-3">
+                {([
+                  { key: 'text' as LessonFormat, label: t('Text only') },
+                  { key: 'video' as LessonFormat, label: t('Video only') },
+                  { key: 'both' as LessonFormat, label: t('Text and video') },
+                ]).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => {
+                      setLessonFormat(opt.key);
+                      if (opt.key === 'text') {
+                        setLessonVideoUrl('');
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl"
+                    style={{
+                      backgroundColor: lessonFormat === opt.key ? colors.primary[500] : colors.gray[100],
+                    }}
+                  >
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{ color: lessonFormat === opt.key ? colors.white : colors.gray[600] }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {(lessonFormat === 'text' || lessonFormat === 'both') && (
+                <Text className="text-xs text-gray-500 mb-4">{t('Text only lesson hint')}</Text>
+              )}
+
+              {(lessonFormat === 'video' || lessonFormat === 'both') && (
+                <>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                {t('Video Type')}
+              </Text>
+              <View className="flex-row gap-2 mb-4">
+                {(['youtube', 'upload', 'other'] as const).map((vt) => (
+                  <TouchableOpacity
+                    key={vt}
+                    onPress={() => setLessonVideoType(vt)}
+                    className="flex-1 py-2 rounded-xl items-center"
+                    style={{
+                      backgroundColor:
+                        lessonVideoType === vt ? colors.primary[500] : colors.gray[100],
+                    }}
+                  >
+                    <Text
+                      className="text-xs font-semibold capitalize"
+                      style={{
+                        color: lessonVideoType === vt ? colors.white : colors.gray[600],
+                      }}
+                    >
+                      {vt === 'youtube' ? 'YouTube' : vt === 'upload' ? t('Upload') : t('Other')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {lessonVideoType === 'upload' ? (
+                <>
+                  <Text className="text-sm font-semibold text-gray-700 mb-2">
+                    {t('Video File')}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handlePickAndUploadVideo}
+                    disabled={uploadingVideo}
+                    className="rounded-xl px-4 py-3 mb-4 flex-row items-center gap-3"
+                    style={{
+                      borderWidth: 2,
+                      borderStyle: 'dashed',
+                      borderColor: lessonVideoUrl ? colors.success[500] : colors.primary[300],
+                      backgroundColor: lessonVideoUrl ? colors.success[100] : colors.primary[50],
+                    }}
+                  >
+                    {uploadingVideo ? (
+                      <ActivityIndicator color={colors.primary[500]} />
+                    ) : (
+                      <MaterialIcons
+                        name={lessonVideoUrl ? 'check-circle' : 'cloud-upload'}
+                        size={24}
+                        color={lessonVideoUrl ? colors.success[600] : colors.primary[500]}
+                      />
+                    )}
+                    <Text
+                      className="flex-1 text-sm font-semibold"
+                      style={{ color: lessonVideoUrl ? colors.success[700] : colors.primary[600] }}
+                      numberOfLines={1}
+                    >
+                      {uploadingVideo
+                        ? t('Uploading…')
+                        : lessonVideoUrl
+                        ? t('Video uploaded ✓ Tap to replace')
+                        : t('Tap to select and upload a video')}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text className="text-sm font-semibold text-gray-700 mb-2">
+                    {lessonVideoType === 'youtube' ? t('YouTube URL') : t('Video URL')}
+                  </Text>
+                  <TextInput
+                    className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+                    placeholder={
+                      lessonVideoType === 'youtube'
+                        ? 'https://youtube.com/watch?v=...'
+                        : t('Video URL')
+                    }
+                    value={lessonVideoUrl}
+                    onChangeText={setLessonVideoUrl}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                  />
+                </>
+              )}
+
+                </>
+              )}
+
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                {t('Description')}
+              </Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+                placeholder={t('Optional description')}
+                value={lessonDescription}
+                onChangeText={setLessonDescription}
+                multiline
+                numberOfLines={3}
+                style={{ textAlignVertical: 'top', minHeight: 70 }}
+              />
+
+              {/* Visibility */}
+              {!lessonUseSchedule && (
+                <View className="flex-row items-center justify-between mb-3">
+                  <Text className="text-sm font-semibold text-gray-700">
+                    {t('Visible to students')}
+                  </Text>
+                  <Switch
+                    value={lessonVisible}
+                    onValueChange={setLessonVisible}
+                    trackColor={{ false: colors.gray[300], true: colors.primary[400] }}
+                  />
+                </View>
+              )}
+
+              {/* Schedule */}
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-2">
+                  <MaterialIcons name="schedule" size={18} color={colors.warning[600]} />
+                  <Text className="text-sm font-semibold text-gray-700">
+                    {t('Schedule release')}
+                  </Text>
+                </View>
+                <Switch
+                  value={lessonUseSchedule}
+                  onValueChange={setLessonUseSchedule}
+                  trackColor={{ false: colors.gray[300], true: colors.warning[500] }}
+                />
+              </View>
+              {lessonUseSchedule && (
+                <View className="mb-4">
+                  <Text className="text-xs text-gray-500 mb-1">{t('Release date & time (YYYY-MM-DDTHH:MM)')}</Text>
+                  <TextInput
+                    className="border border-gray-300 rounded-xl px-4 py-3 text-gray-800"
+                    placeholder="2025-12-31T18:00"
+                    value={lessonScheduledAt}
+                    onChangeText={setLessonScheduledAt}
+                    {...(Platform.OS === 'web' ? { type: 'datetime-local' } as any : {})}
+                  />
+                </View>
+              )}
+
+              <View className="flex-row gap-3 mt-2">
+                <TouchableOpacity
+                  onPress={() => setShowLessonModal(false)}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ backgroundColor: colors.gray[200] }}
+                >
+                  <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveLesson}
+                  disabled={savingLesson || !lessonTitle.trim()}
+                  className="flex-[2] rounded-xl py-3 items-center"
+                  style={{
+                    backgroundColor: lessonTitle.trim() ? colors.primary[500] : colors.gray[300],
+                  }}
+                >
+                  {savingLesson ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <Text className="font-bold text-white">{t('Save')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Activity Modal */}
+      <Modal visible={showActivityModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View
+            className="bg-white rounded-3xl w-full max-w-lg p-6"
+            style={{ elevation: 10 }}
+          >
+            <Text className="text-xl font-bold text-gray-800 mb-4">
+              {editingActivity ? t('Edit Activity') : t('New Activity')}
+            </Text>
+
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              {t('Title')} *
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+              placeholder={t('Activity title')}
+              value={activityTitle}
+              onChangeText={setActivityTitle}
+              maxLength={120}
+            />
+
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              {t('Description')}
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+              placeholder={t('Optional description / instructions')}
+              value={activityDescription}
+              onChangeText={setActivityDescription}
+              multiline
+              numberOfLines={3}
+              style={{ textAlignVertical: 'top', minHeight: 70 }}
+            />
+
+            {/* Visibility */}
+            {!activityUseSchedule && (
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-sm font-semibold text-gray-700">
+                  {t('Visible to students')}
+                </Text>
+                <Switch
+                  value={activityVisible}
+                  onValueChange={setActivityVisible}
+                  trackColor={{ false: colors.gray[300], true: colors.primary[400] }}
+                />
+              </View>
+            )}
+
+            {/* Schedule */}
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <MaterialIcons name="schedule" size={18} color={colors.warning[600]} />
+                <Text className="text-sm font-semibold text-gray-700">
+                  {t('Schedule release')}
+                </Text>
+              </View>
+              <Switch
+                value={activityUseSchedule}
+                onValueChange={setActivityUseSchedule}
+                trackColor={{ false: colors.gray[300], true: colors.warning[500] }}
+              />
+            </View>
+            {activityUseSchedule && (
+              <View className="mb-4">
+                <Text className="text-xs text-gray-500 mb-1">{t('Release date & time (YYYY-MM-DDTHH:MM)')}</Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-800"
+                  placeholder="2025-12-31T18:00"
+                  value={activityScheduledAt}
+                  onChangeText={setActivityScheduledAt}
+                  {...(Platform.OS === 'web' ? { type: 'datetime-local' } as any : {})}
+                />
+              </View>
+            )}
+
+            <Text className="text-sm font-semibold text-gray-700 mb-2">
+              {t('When to show answers')}
+            </Text>
+            <View className="flex-row gap-2 mb-4">
+              <TouchableOpacity
+                onPress={() => setActivityFeedbackMode('immediate')}
+                className="flex-1 rounded-xl px-3 py-3"
+                style={{
+                  backgroundColor:
+                    activityFeedbackMode === 'immediate' ? colors.primary[50] : colors.gray[50],
+                  borderWidth: 1.5,
+                  borderColor:
+                    activityFeedbackMode === 'immediate' ? colors.primary[500] : colors.gray[200],
+                }}
+              >
+                <Text
+                  className="text-xs font-bold mb-1"
+                  style={{
+                    color:
+                      activityFeedbackMode === 'immediate' ? colors.primary[700] : colors.gray[600],
+                  }}
+                >
+                  {t('Gamified quiz')}
+                </Text>
+                <Text className="text-[11px] text-gray-500">
+                  {t('Show answers automatically after submit')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setActivityFeedbackMode('after_correction')}
+                className="flex-1 rounded-xl px-3 py-3"
+                style={{
+                  backgroundColor:
+                    activityFeedbackMode === 'after_correction' ? colors.warning[50] : colors.gray[50],
+                  borderWidth: 1.5,
+                  borderColor:
+                    activityFeedbackMode === 'after_correction'
+                      ? colors.warning[600]
+                      : colors.gray[200],
+                }}
+              >
+                <Text
+                  className="text-xs font-bold mb-1"
+                  style={{
+                    color:
+                      activityFeedbackMode === 'after_correction'
+                        ? colors.warning[700]
+                        : colors.gray[600],
+                  }}
+                >
+                  {t('Teacher correction')}
+                </Text>
+                <Text className="text-[11px] text-gray-500">
+                  {t('Release answers after you review')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row gap-3 mt-2">
+              <TouchableOpacity
+                onPress={() => setShowActivityModal(false)}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.gray[200] }}
+              >
+                <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveActivity}
+                disabled={savingActivity || !activityTitle.trim()}
+                className="flex-[2] rounded-xl py-3 items-center"
+                style={{
+                  backgroundColor: activityTitle.trim() ? colors.primary[500] : colors.gray[300],
+                }}
+              >
+                {savingActivity ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text className="font-bold text-white">{t('Save')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showCourseEditModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center px-4"
+          style={{ backgroundColor: colors.overlay.medium }}
+        >
+          <View className="bg-white rounded-3xl w-full max-w-lg p-6">
+            <View className="flex-row justify-between items-center mb-5">
+              <Text className="text-xl font-bold" style={{ color: colors.primary[700] }}>
+                {t('Edit course')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowCourseEditModal(false)}
+                className="rounded-full p-2"
+                style={{ backgroundColor: colors.gray[100] }}
+              >
+                <MaterialIcons name="close" size={20} color={colors.gray[700]} />
+              </TouchableOpacity>
+            </View>
+            <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Course Name')} *</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-800"
+              value={editCourseName}
+              onChangeText={setEditCourseName}
+              maxLength={80}
+            />
+            <Text className="text-sm font-semibold text-gray-700 mb-2">{t('Description')}</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 mb-5 text-gray-800"
+              value={editCourseDescription}
+              onChangeText={setEditCourseDescription}
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+              style={{ textAlignVertical: 'top', minHeight: 80 }}
+            />
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowCourseEditModal(false)}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: colors.gray[200] }}
+              >
+                <Text className="font-bold text-gray-700">{t('Cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveCourseEdit}
+                disabled={savingCourseEdit || !editCourseName.trim()}
+                className="flex-[2] rounded-xl py-3 items-center"
+                style={{
+                  backgroundColor:
+                    editCourseName.trim() ? colors.primary[500] : colors.gray[300],
+                }}
+              >
+                {savingCourseEdit ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text className="font-bold text-white">{t('Save')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ModuleRatingModal
+        visible={!!promptModule && !isTeacher}
+        moduleName={promptModule?.name ?? ''}
+        saving={savingModuleRating}
+        onConfirm={(stars) => {
+          if (promptModule) handleRateModule(promptModule._id, stars);
+        }}
+        onDismiss={() => {
+          if (promptModule) handleDismissModuleRating(promptModule._id);
+        }}
+      />
+
+      <DuplicateTargetModal
+        visible={!!duplicateTarget}
+        type={duplicateTarget?.type ?? 'lesson'}
+        sourceId={duplicateTarget?.sourceId ?? ''}
+        defaultName={duplicateTarget?.defaultName}
+        onClose={() => setDuplicateTarget(null)}
+        onSuccess={() => {
+          toast({ message: t('Duplicated successfully'), variant: 'success' });
+          fetchCourse();
+        }}
+      />
+    </View>
+  );
+}

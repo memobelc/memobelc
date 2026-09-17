@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon2.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.memobelc"
@@ -55,7 +54,9 @@
       "expo-web-browser",
       "expo-audio",
       "expo-asset",
-      "expo-localization"
+      "expo-localization",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

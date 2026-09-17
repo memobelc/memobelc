@@ -1,6 +1,7 @@
-import { Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { View } from 'react-native';
+import { Redirect, Stack } from 'expo-router';
 import { useEffect } from 'react';
+import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
 
 import { useSession } from '@/contexts/AuthContext';
 import { PushNotificationProvider } from '@/contexts/PushNotificationContext';
@@ -14,6 +15,10 @@ export default function AppLayout() {
   const backgroundColor = colors.gray[100];
 
   useEffect(() => {
+    captureAffiliateRefFromUrl();
+  }, []);
+
+  useEffect(() => {
     if (!userInfo && session && !isLoading) {
       refresh_token();
     }
@@ -21,6 +26,10 @@ export default function AppLayout() {
 
   if (isLoading) {
     return <Loading classname="flex-1 items-center justify-center" />;
+  }
+
+  if (session && userInfo?.must_change_password) {
+    return <Redirect href="/change-password" />;
   }
 
   // Always render Stack - let individual screens handle redirects

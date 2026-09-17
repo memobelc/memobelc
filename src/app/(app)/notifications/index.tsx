@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useNotification } from '@/contexts/NotificationContext';
+import { useSupportChat } from '@/contexts/SupportChatContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 
 const NotificationsScreen = () => {
   const router = useRouter();
-  const { notifications, markAllAsRead, markAsRead } = useNotification();
+  const { notifications, markAllAsRead, markAsRead, refreshNotifications } = useNotification();
+  const { openChat } = useSupportChat();
+  const { roles } = useHasRole();
   const { t } = useTranslation();
+  const isAssignedAdmin = roles.includes('admin');
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshNotifications();
+    }, [refreshNotifications]),
+  );
 
   const handleBack = () => {
     router.back();
@@ -38,13 +49,22 @@ const NotificationsScreen = () => {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        {notifications.length > 0 && (
-          <TouchableOpacity onPress={handleMarkAll}>
-            <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
-              {t('Mark all as read')}
-            </Text>
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.push('/settings' as any)}
+            className="mr-4"
+            accessibilityLabel={t('Notification settings')}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.primary[500]} />
           </TouchableOpacity>
-        )}
+          {notifications.length > 0 && (
+            <TouchableOpacity onPress={handleMarkAll}>
+              <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
+                {t('Mark all as read')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <Text
@@ -72,6 +92,30 @@ const NotificationsScreen = () => {
             const handlePressItem = async () => {
               if (!isRead) {
                 await markAsRead(item._id);
+              }
+              if (item.type === 'support') {
+                const ticketId = item.data?.ticket_id;
+                if (isAssignedAdmin && ticketId) {
+                  router.push({
+                    pathname: '/admin/support/[ticketId]' as any,
+                    params: { ticketId },
+                  });
+                } else {
+                  openChat();
+                }
+              }
+              if (item.type === 'affiliate_sales') {
+                router.push('/affiliate/sales' as any);
+              }
+              if (item.type === 'affiliate' && isAssignedAdmin) {
+                const kind = item.data?.kind;
+                if (kind === 'application') {
+                  router.push('/admin/affiliates/applications' as any);
+                } else if (kind === 'withdrawal') {
+                  router.push('/admin/affiliates/withdrawals' as any);
+                } else {
+                  router.push('/admin/affiliates/commissions' as any);
+                }
               }
             };
 

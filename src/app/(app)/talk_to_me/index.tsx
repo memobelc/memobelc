@@ -99,17 +99,18 @@ export default function ChatScreen() {
   useEffect(() => {
     fetchDataChats();
     if (messages.length == 0) {
+      const rawName = userInfo?.name ?? '';
+      const displayName = rawName
+        ? rawName.charAt(0).toUpperCase() + rawName.slice(1)
+        : '';
+      const greeting =
+        setting_language == 'pt-BR'
+          ? `Oi${displayName ? `, ${displayName}` : ''}! 🚀 Que tal aprender algo novo de um jeito super divertido? 🎉 O que você quer explorar hoje?`
+          : `Hi${displayName ? `, ${displayName}` : ''}! 🚀 How about learning something new in a super fun way? 🎉 What do you want to explore today?`;
       setMessages([
         {
           role: 'model',
-          parts: [
-            {
-              text:
-                setting_language == 'pt-BR'
-                  ? `Oi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 Que tal aprender algo novo de um jeito super divertido? 🎉 O que você quer explorar hoje?`
-                  : `Hi, ${userInfo!.name.charAt(0).toUpperCase() + userInfo!.name.slice(1)}! 🚀 How about learning something new in a super fun way? 🎉 What do you want to explore today?`,
-            },
-          ],
+          parts: [{ text: greeting }],
         },
       ]);
     }

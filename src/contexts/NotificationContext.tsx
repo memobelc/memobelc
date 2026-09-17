@@ -1,15 +1,20 @@
 import React, {
   createContext,
   PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { AppState, Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import { Notifications } from '@/utils/loadExpoNotifications';
+import { ensureNotificationPermission, presentLocalNotification } from '@/utils/notifications';
 
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
+
+const POLL_MS = 2000;
 
 type NotificationItem = {
   _id: string;
@@ -47,26 +52,40 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const { userInfo } = useSession();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const seenIdsRef = useRef<Set<string> | null>(null);
 
-  const refreshNotifications = async () => {
+  const refreshNotifications = useCallback(async () => {
     if (!userInfo?.token) return;
 
     try {
+      const authHeaders = { Authorization: `Bearer ${userInfo.token}` };
       const [listRes, countRes] = await Promise.all([
-        api.get('/notifications/list', {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        }),
-        api.get('/notifications/unread_count', {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        }),
+        api.get('/notifications/list', { headers: authHeaders }),
+        api.get('/notifications/unread_count', { headers: authHeaders }),
       ]);
 
-      setNotifications(listRes.data.notifications || []);
-      setUnreadCount(countRes.data.unread_count || 0);
+      const list: NotificationItem[] = listRes.data.notifications || [];
+      const unread = countRes.data.unread_count || 0;
+      setNotifications(list);
+      setUnreadCount(unread);
+
+      const incomingIds = list.map((item) => item._id);
+      if (seenIdsRef.current === null) {
+        seenIdsRef.current = new Set(incomingIds);
+      } else {
+        const newUnread = list.filter(
+          (item) => !item.is_read && !seenIdsRef.current!.has(item._id),
+        );
+        incomingIds.forEach((id) => seenIdsRef.current!.add(id));
+        if (newUnread.length > 0) {
+          const latest = newUnread[0];
+          await presentLocalNotification(latest.data?.title, latest.data?.body);
+        }
+      }
     } catch (error) {
       console.error('Error loading notifications', error);
     }
-  };
+  }, [userInfo?.token]);
 
   const markAllAsRead = async () => {
     if (!userInfo?.token) return;
@@ -87,7 +106,6 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const markAsRead = async (id: string) => {
     if (!userInfo?.token) return;
 
-    // Atualiza otimisticamente no estado local
     setNotifications((prev) =>
       prev.map((n) =>
         n._id === id
@@ -110,29 +128,37 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       );
     } catch (error) {
       console.error('Error marking notification as read', error);
-      // Em caso de erro, recarrega do servidor para não ficar inconsistente
       await refreshNotifications();
     }
   };
 
   useEffect(() => {
-    if (!userInfo?.token) return;
+    if (!userInfo?.token) {
+      seenIdsRef.current = null;
+      return;
+    }
+    ensureNotificationPermission().catch(() => {});
     refreshNotifications();
-  }, [userInfo?.token]);
-
-  // Atualiza notificações quando um push chega ou o app volta para foreground (mobile)
-  useEffect(() => {
-    if (!userInfo?.token || Platform.OS === 'web') return;
-
-    const notifSub = Notifications.addNotificationReceivedListener(() => {
+    const timer = setInterval(() => {
       refreshNotifications();
-    });
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [userInfo?.token, refreshNotifications]);
 
-    const responseSub = Notifications.addNotificationResponseReceivedListener(
-      () => {
+  useEffect(() => {
+    if (!userInfo?.token) return;
+
+    let notifSub: { remove: () => void } | undefined;
+    let responseSub: { remove: () => void } | undefined;
+
+    if (Platform.OS !== 'web' && Notifications) {
+      notifSub = Notifications.addNotificationReceivedListener(() => {
         refreshNotifications();
-      },
-    );
+      });
+      responseSub = Notifications.addNotificationResponseReceivedListener(() => {
+        refreshNotifications();
+      });
+    }
 
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
@@ -141,18 +167,18 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     });
 
     return () => {
-      notifSub.remove();
-      responseSub.remove();
+      notifSub?.remove();
+      responseSub?.remove();
       appStateSub.remove();
     };
-  }, [userInfo?.token]);
+  }, [userInfo?.token, refreshNotifications]);
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
-        refreshNotifications,
+        refreshNotifications: () => refreshNotifications(),
         markAllAsRead,
         markAsRead,
       }}
@@ -161,5 +187,3 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     </NotificationContext.Provider>
   );
 }
-
-

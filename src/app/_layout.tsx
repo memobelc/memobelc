@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { colors } from '@/styles/colors';
 import { Stack } from 'expo-router';
-import { SessionProvider, useSession } from '@/contexts/AuthContext';
+import { SessionProvider } from '@/contexts/AuthContext';
 import { useFonts } from 'expo-font';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/styles/global.css';
 import { Loading } from '@/components/Loading';
 import { DialogProvider } from '@/components/Dialog';
@@ -14,7 +15,9 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import '@/locales/i18n';
 import { ProfileProvider } from '@/contexts/profileContext';
 import { LanguageSync } from '@/components/LanguageSync';
-// import StripeWrapper from '@/components/molecules/StripeWrapper';
+import { EntitlementProvider } from '@/contexts/EntitlementContext';
+import { SupportChatProvider } from '@/contexts/SupportChatContext';
+import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
 
 export default function Layout() {
   const backgroundColor = colors.primary[500];
@@ -23,12 +26,17 @@ export default function Layout() {
     ComicSans: require('../../assets/fonts/ComicSans-MS-400.ttf'),
   });
 
+  useEffect(() => {
+    captureAffiliateRefFromUrl();
+  }, []);
+
   if (!fontsLoaded) {
     return <Loading classname="flex-1 items-center justify-center" />;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
       <ToastProvider>
         <PaperProvider>
           <DialogProvider>
@@ -37,12 +45,16 @@ export default function Layout() {
                 <LanguageSync />
                 <CollectionProvider>
                   <NotificationProvider>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor },
-                      }}
-                    />
+                    <EntitlementProvider>
+                      <SupportChatProvider>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: { backgroundColor },
+                          }}
+                        />
+                      </SupportChatProvider>
+                    </EntitlementProvider>
                   </NotificationProvider>
                 </CollectionProvider>
               </ProfileProvider>
@@ -50,6 +62,7 @@ export default function Layout() {
           </DialogProvider>
         </PaperProvider>
       </ToastProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

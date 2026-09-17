@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
+import BookCheckoutModal from '@/components/molecules/BookCheckoutModal';
 
 type Chapter = {
   titulo: string;
@@ -35,6 +37,8 @@ type Book = {
   genero?: string;
   is_free: boolean;
   price?: number;
+  coins_enabled?: boolean;
+  coin_price?: number;
   payment_link?: string;
   chapters: Chapter[];
   collection_id?: string | null;
@@ -44,12 +48,14 @@ export default function BooksScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { userInfo } = useSession();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
 
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   const [discoverBooks, setDiscoverBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [checkoutBook, setCheckoutBook] = useState<Book | null>(null);
 
   const fetchBooks = async () => {
     if (!userInfo?.token) return;
@@ -76,7 +82,7 @@ export default function BooksScreen() {
   };
 
   const handleGenerateCollection = async (book: Book) => {
-    if (!userInfo?.token || userInfo?.role !== 'admin') return;
+    if (!userInfo?.token || !hasRole('admin')) return;
     setGeneratingId(book._id);
     try {
       const response = await api.post(
@@ -107,27 +113,17 @@ export default function BooksScreen() {
         pathname: './books/book',
         params: { bookId: book._id },
       });
-    } else {
-      // Livro pago - abrir link de pagamento ou mostrar modal
-      if (book.payment_link) {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.open(book.payment_link, '_blank');
-        } else {
-          const { WebBrowser } = require('expo-web-browser');
-          await WebBrowser.openBrowserAsync(book.payment_link);
-        }
-      } else {
-        toast({
-          message: t('Payment link not available'),
-          variant: 'destructive',
-        });
-      }
+      return;
     }
+    setCheckoutBook(book);
   };
 
   // Recarrega automaticamente quando a tela ganha foco (por exemplo, após criar livro)
   useFocusEffect(
     useCallback(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7550/ingest/bc00b530-5fab-47e9-b067-96a2caa9e0db',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ba354b'},body:JSON.stringify({sessionId:'ba354b',runId:'post-fix',hypothesisId:'A',location:'src/app/(app)/books/index.tsx:useFocusEffect',message:'Books screen focused after expo-router import',data:{hasToken:!!userInfo?.token,importSource:'expo-router/react-navigation'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (userInfo?.token) {
         fetchBooks();
       }
@@ -146,7 +142,7 @@ export default function BooksScreen() {
       }}
     >
       {/* Menu admin no canto superior do livro */}
-      {userInfo?.role === 'admin' && (
+      {hasRole('admin') && (
         <View className="absolute top-1 right-1 flex-row items-center z-10 gap-1">
           {!book.collection_id && (
             <TouchableOpacity
@@ -230,7 +226,11 @@ export default function BooksScreen() {
               className="text-xs font-semibold"
               style={{ color: '#FFFFFF' }}
             >
-              {book.price ? `$${book.price}` : t('Paid')}
+          {book.price
+            ? `R$ ${book.price}`
+            : book.coins_enabled && book.coin_price
+              ? `${book.coin_price} ${t('coins')}`
+              : t('Paid')}
             </Text>
           </View>
         )}
@@ -269,7 +269,7 @@ export default function BooksScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
 
-        {userInfo?.role === 'admin' && (
+        {hasRole('admin') && (
           <TouchableOpacity
             onPress={() => router.push('./books/admin')}
             className="flex-row items-center"
@@ -363,6 +363,12 @@ export default function BooksScreen() {
           )}
         </ScrollView>
       )}
+      <BookCheckoutModal
+        visible={!!checkoutBook}
+        book={checkoutBook}
+        onClose={() => setCheckoutBook(null)}
+        onUnlocked={() => fetchBooks()}
+      />
     </View>
   );
 }

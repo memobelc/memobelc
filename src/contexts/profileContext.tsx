@@ -4,9 +4,13 @@ import { useStorageStateSession } from '@/storage/useStorageState';
 const ProfileContext = createContext<{
   language?: string | null;
   setLanguage: (lang: string) => void;
+  activeRoleView?: string | null;
+  setActiveRoleView: (view: string) => void;
 }>({
   language: null,
   setLanguage: () => false,
+  activeRoleView: 'all',
+  setActiveRoleView: () => false,
 });
 
 export function useProfile() {
@@ -22,12 +26,16 @@ export function useProfile() {
 
 export function ProfileProvider({ children }: PropsWithChildren) {
   const [language, setLanguage] = useStorageStateSession('language');
+  const [activeRoleView, setActiveRoleView] =
+    useStorageStateSession('activeRoleView');
 
   return (
     <ProfileContext.Provider
       value={{
         language,
         setLanguage,
+        activeRoleView: activeRoleView ?? 'all',
+        setActiveRoleView,
       }}
     >
       {children}

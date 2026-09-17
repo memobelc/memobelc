@@ -7,6 +7,7 @@ import {
   Animated,
   Pressable,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
@@ -15,13 +16,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageSelectWithFlags } from '@/components/atoms/LanguageSelectWithFlags';
+import { RoleViewSelect } from '@/components/atoms/RoleViewSelect';
 
 import { useSession } from '@/contexts/AuthContext';
+import { useHasRole } from '@/hooks/useHasRole';
 import { Avatar, AvatarImage } from '@/components/Avatar';
 import { useProfile } from '@/contexts/profileContext';
 import { colors } from '@/styles/colors';
 import api from '@/services/api';
 import { InviteFriendsModal } from './InviteFriendsModal';
+import { useEntitlements } from '@/contexts/EntitlementContext';
+import { useSupportChat } from '@/contexts/SupportChatContext';
 
 type menuItem = {
   name: string;
@@ -34,8 +39,12 @@ const menuItems: menuItem[] | [] = [];
 
 const AvatarProfileDrawer = () => {
   const { userInfo, signOut } = useSession();
+  const { roles, activeRoleView, setActiveRoleView } = useHasRole();
   const { language, setLanguage } = useProfile();
   const { t, i18n } = useTranslation();
+  const { entitlements } = useEntitlements();
+  const { openChat, unreadCount, refreshUnread } = useSupportChat();
+  const isAssignedAdmin = roles.includes('admin');
 
   const [open, setOpen] = useState(false);
   const [openInviteModal, setOpenInviteModal] = useState(false);
@@ -155,7 +164,14 @@ const AvatarProfileDrawer = () => {
               }}
               className="bg-white  h-full w-[300px] absolute right-0 top-0 p-4 rounded-l-2xl shadow-lg"
             >
-              <TouchableOpacity className="flex flex-row gap-2 items-center mb-3">
+              <ScrollView showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                className="flex flex-row gap-2 items-center mb-3"
+                onPress={() => {
+                  router.push('/profile');
+                  handleClose();
+                }}
+              >
                 <Avatar>
                   <AvatarImage
                     source={
@@ -174,41 +190,69 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
-              {/*{!userInfo?.premium && (
-                <TouchableOpacity
-                  className="mb-3"
-                  disabled={loading}
-                  onPress={handleSubscribe}
+              <TouchableOpacity
+                className="mb-3"
+                onPress={() => {
+                  router.push('/subscription');
+                  handleClose();
+                }}
+              >
+                <LinearGradient
+                  start={{ x: 1, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  colors={[colors.warning[500], colors.warning[100]]}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    borderRadius: 25,
+                    width: '100%',
+                    paddingVertical: 8,
+                    alignItems: 'center',
+                  }}
                 >
-                  <LinearGradient
-                    start={{ x: 1, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    colors={[colors.warning[500], colors.warning[100]]}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      borderRadius: 25,
-                      width: '100%',
-                      paddingVertical: 8,
-                      alignItems: 'center',
-                    }}
+                  <MaterialCommunityIcons
+                    className="px-3"
+                    name="crown-circle"
+                    size={20}
+                    color="black"
+                  />
+                  <Text
+                    className="text-sm font-bold"
+                    style={{ color: colors.gray[950] }}
                   >
-                    <MaterialCommunityIcons
-                      className="px-3"
-                      name="crown-circle"
-                      size={20}
-                      color="black"
-                    />
-                    <Text
-                      className="text-sm font-bold"
-                      style={{ color: colors.gray[950] }}
-                    >
-                      {t('Go premium')}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )} */}
-
+                    {entitlements?.is_subscriber ? t('My subscription') : t('Go premium')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+                            <View className="mb-3">
+                <Text className="font-bold text-primary mb-1">
+                  {t('Language')}
+                </Text>
+                <LanguageSelectWithFlags
+                  value={language ?? i18n.language ?? 'en'}
+                  onValueChange={(v) => setLanguage(v ?? 'en')}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  router.push('/profile');
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="person" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('My profile')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  router.push('/settings' as any);
+                  handleClose();
+                }}
+                className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+              >
+                <MaterialIcons name="settings" size={20} color={colors.primary[500]} />
+                <Text className="text-primary text-xs">{t('Settings')}</Text>
+              </TouchableOpacity>
               <View>
                 {menuItems &&
                   menuItems.map((item) => {
@@ -238,15 +282,44 @@ const AvatarProfileDrawer = () => {
                     );
                   })}
               </View>
-              <View className="mb-3">
-                <Text className="font-bold text-primary mb-1">
-                  {t('Language')}
-                </Text>
-                <LanguageSelectWithFlags
-                  value={language ?? i18n.language ?? 'en'}
-                  onValueChange={(v) => setLanguage(v ?? 'en')}
-                />
-              </View>
+
+              {roles.includes("admin") && roles.length >= 2 && (
+                <View className="mb-3">
+                  <Text className="font-bold text-primary mb-1">
+                    {t('View as')}
+                  </Text>
+                  <RoleViewSelect
+                    value={activeRoleView}
+                    onValueChange={setActiveRoleView}
+                    options={[
+                      { value: 'all', label: t('All roles') },
+                      ...roles.map((role) => ({
+                        value: role,
+                        label:
+                          role === 'admin'
+                            ? t('Admin')
+                            : role === 'teacher'
+                              ? t('Teacher')
+                              : role === 'affiliate'
+                                ? t('Affiliate')
+                                : t('User'),
+                      })),
+                    ]}
+                  />
+                </View>
+              )}
+              {roles.includes('affiliate') && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleClose();
+                    router.push('/affiliate' as any);
+                  }}
+                  className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+                >
+                  <MaterialCommunityIcons name="handshake-outline" size={20} color={colors.primary[500]} />
+                  <Text className="text-primary text-xs">{t('Affiliate')}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   setOpenInviteModal(true);
@@ -257,6 +330,29 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="person-add" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('Invite Friends')}</Text>
               </TouchableOpacity>
+              {!isAssignedAdmin && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleClose();
+                    refreshUnread();
+                    openChat();
+                  }}
+                  className="flex flex-row gap-2 items-center cursor-pointer mb-3"
+                >
+                  <MaterialIcons name="headset-mic" size={20} color={colors.primary[500]} />
+                  <Text className="text-primary text-xs">{t('Support')}</Text>
+                  {unreadCount > 0 ? (
+                    <View
+                      className="min-w-[18px] h-[18px] px-1 rounded-full items-center justify-center"
+                      style={{ backgroundColor: colors.error[500] }}
+                    >
+                      <Text className="text-white text-[10px] font-bold">
+                        {unreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   signOut();
@@ -267,6 +363,7 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="logout" size={20} />
                 <Text className="text-primary text-xs">{t('Log out')}</Text>
               </TouchableOpacity>
+              </ScrollView>
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>
