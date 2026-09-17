@@ -59,9 +59,6 @@ export default function PlanCard({
   const benefits = (plan.benefits || []).filter((item) => String(item).trim());
   const highlighted = !!isCurrent || !!plan.badge;
   const isSwitch = ctaVariant === 'switch';
-  // #region agent log
-  fetch('http://127.0.0.1:7550/ingest/bc00b530-5fab-47e9-b067-96a2caa9e0db',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ba354b'},body:JSON.stringify({sessionId:'ba354b',runId:'post-fix',hypothesisId:'B',location:'src/components/molecules/PlanCard.tsx:render',message:'PlanCard rendered',data:{name:plan?.name,price:plan?.price,compact:!!compact},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   return (
     <View

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -30,12 +30,6 @@ export function LessonAnnotatedContent({
     () => applyAnnotationsToHtml(baseHtml, annotations),
     [baseHtml, annotations],
   );
-
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'LessonAnnotatedContent.tsx:mount',message:'native variant mounted',data:{lessonId,hasHtml:!!baseHtml},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
-  }, [lessonId, baseHtml]);
-  // #endregion
 
   if (!baseHtml) {
     return <Text className="text-gray-400 italic">{t('No content yet')}</Text>;

@@ -475,9 +475,6 @@ export default function CourseDetailScreen() {
       course_id: courseId,
       scheduled_at: lessonUseSchedule && lessonScheduledAt ? lessonScheduledAt : null,
     };
-    // #region agent log
-    fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson start',data:{isEdit:!!editingLesson,courseId,lessonModuleId,lessonFormat,payloadKeys:Object.keys(payload)},timestamp:Date.now(),hypothesisId:'H1,H4',runId:'save-lesson'})}).catch(()=>{});
-    // #endregion
     try {
       setSavingLesson(true);
       if (editingLesson) {
@@ -493,19 +490,14 @@ export default function CourseDetailScreen() {
         setShowLessonModal(false);
         fetchCourse();
         const newLessonId = res.data?.lesson_id;
-        // #region agent log
-        fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'create lesson ok',data:{newLessonId,lessonFormat},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
-        // #endregion
         if (newLessonId && lessonFormat !== 'video') {
           try {
             router.push({
               pathname: '/classrooms/class/courses/[courseId]/lesson/[lessonId]/prepare' as any,
               params: { courseId, lessonId: newLessonId, lessonTitle: lessonTitle.trim() },
             });
-          } catch (navErr) {
-            // #region agent log
-            fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'navigate prepare failed',data:{newLessonId,error:String(navErr)},timestamp:Date.now(),hypothesisId:'H6',runId:'save-lesson'})}).catch(()=>{});
-            // #endregion
+          } catch {
+            // Navigation to prepare is best-effort after create.
           }
         }
       }
@@ -514,11 +506,7 @@ export default function CourseDetailScreen() {
         response?: { status?: number; data?: { error?: string } };
         message?: string;
       };
-      const status = ax.response?.status;
       const apiError = ax.response?.data?.error;
-      // #region agent log
-      fetch('http://127.0.0.1:7706/ingest/3c3de19b-64fc-4dfc-aa79-c317e1e7954a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2878ad'},body:JSON.stringify({sessionId:'2878ad',location:'index.tsx:handleSaveLesson',message:'save lesson failed',data:{isEdit:!!editingLesson,status,apiError,error:String(err)},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H5',runId:'save-lesson'})}).catch(()=>{});
-      // #endregion
       toast({
         message: apiError || t('Failed to save lesson'),
         variant: 'destructive',

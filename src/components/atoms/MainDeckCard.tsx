@@ -43,9 +43,6 @@ export const MainDeckCard = ({
   return (
     <Link
       className="flex items-center justify-center md:justify-end p-3"
-      style={{
-        padding: 12,
-      }}
       href={{
         pathname: type == 'class' ? './classrooms/class' : './collection',
         params: { name },
