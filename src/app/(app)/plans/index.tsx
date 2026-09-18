@@ -45,7 +45,7 @@ export default function PlansCatalogScreen() {
       }
       try {
         const bundleRes = await billingApi.publicBundles(userInfo?.token);
-        nextBundles = bundleRes.data.bundles || [];
+        nextBundles = (bundleRes.data.bundles || []).filter((item: any) => item.is_published);
       } catch {
         // Bundles are optional; the plans catalog still renders if this fails.
       }

@@ -55,6 +55,7 @@ export const billingApi = {
     api.get(`/coupons/admin/${id}/redemptions`, auth(token)),
   adminBundles: (token?: string) => api.get('/bundles/admin', auth(token)),
   publicBundles: (token?: string) => api.get('/bundles/public', auth(token)),
+  publicBundle: (id: string) => api.get(`/bundles/public/${id}`),
   createBundle: (token: string | undefined, payload: Record<string, unknown>) =>
     api.post('/bundles/admin', payload, auth(token)),
   updateBundle: (token: string | undefined, id: string, payload: Record<string, unknown>) =>

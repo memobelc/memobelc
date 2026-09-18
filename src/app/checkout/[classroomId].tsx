@@ -20,12 +20,13 @@ import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
 import { CheckoutField } from '@/components/atoms/CheckoutField';
 import { formatCpfCnpj } from '@/services/checkout';
 
-type PublicClassroom = {
+type CheckoutProduct = {
   _id: string;
   name: string;
   description?: string;
   price?: number | null;
   checkout_url?: string;
+  productType: 'classroom' | 'bundle';
 };
 
 export default function ClassroomCheckoutScreen() {
@@ -36,7 +37,7 @@ export default function ClassroomCheckoutScreen() {
   const { session, signOut } = useSession();
 
   const [loading, setLoading] = useState(true);
-  const [classroom, setClassroom] = useState<PublicClassroom | null>(null);
+  const [product, setProduct] = useState<CheckoutProduct | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [payVisible, setPayVisible] = useState(false);
   const [formData, setFormData] = useState({
@@ -69,19 +70,29 @@ export default function ClassroomCheckoutScreen() {
         setLoading(true);
         try {
           const response = await api.get(`/classroom/public/${classroomId}`);
-          setClassroom(response.data);
+          setProduct({ ...response.data, productType: 'classroom' });
           setNotFound(false);
+          return;
         } catch {
+          /* try course, then bundle */
+        }
+        try {
           const courseRes = await api.get(`/course/public/${classroomId}`);
           const nestedId = courseRes.data?.classroom_id;
           if (!nestedId) throw new Error('missing classroom');
           const classRes = await api.get(`/classroom/public/${nestedId}`);
-          setClassroom(classRes.data);
+          setProduct({ ...classRes.data, productType: 'classroom' });
           setNotFound(false);
+          return;
+        } catch {
+          /* try bundle */
         }
+        const bundleRes = await api.get(`/bundles/public/${classroomId}`);
+        setProduct({ ...bundleRes.data, productType: 'bundle' });
+        setNotFound(false);
       } catch {
         setNotFound(true);
-        setClassroom(null);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -127,8 +138,8 @@ export default function ClassroomCheckoutScreen() {
   };
 
   const priceLabel =
-    classroom?.price != null
-      ? `R$ ${Number(classroom.price).toFixed(2).replace('.', ',')}`
+    product?.price != null
+      ? `R$ ${Number(product.price).toFixed(2).replace('.', ',')}`
       : '';
 
   if (loading) {
@@ -139,11 +150,11 @@ export default function ClassroomCheckoutScreen() {
     );
   }
 
-  if (notFound || !classroom) {
+  if (notFound || !product) {
     return (
       <View className="flex-1 items-center justify-center p-6">
         <Text className="text-lg font-bold text-center mb-2" style={{ color: colors.primary[600] }}>
-          {t('Classroom checkout unavailable')}
+          {t('This checkout is unavailable')}
         </Text>
         <TouchableOpacity onPress={() => router.replace('/login')}>
           <Text style={{ color: colors.primary[500] }}>{t('Go to login')}</Text>
@@ -162,7 +173,7 @@ export default function ClassroomCheckoutScreen() {
           />
           <AuthLanguagePicker />
           <Text className="text-xl font-bold text-center mt-2" style={{ color: colors.primary[600] }}>
-            {classroom.name}
+            {product.name}
           </Text>
           {priceLabel ? (
             <Text className="text-2xl font-bold mt-2 mb-5" style={{ color: colors.primary[500] }}>
@@ -214,9 +225,6 @@ export default function ClassroomCheckoutScreen() {
             onChangeText={(value) => handleInputChange('cpfCnpj', formatCpfCnpj(value))}
             error={errors.cpfCnpj}
           />
-          {/* <Text className="text-sm mb-3" style={{ color: colors.gray[600] }}>
-            {t('New accounts use your CPF as a temporary password. You will change it on first login.')}
-          </Text> */}
           <CheckoutField
             label={t('Have a discount coupon?')}
             icon="pricetag-outline"
@@ -242,8 +250,8 @@ export default function ClassroomCheckoutScreen() {
         <AsaasPaySheet
           visible={payVisible}
           onClose={() => setPayVisible(false)}
-          productType="classroom"
-          productId={classroom._id}
+          productType={product.productType}
+          productId={product._id}
           title={t('Choose payment method')}
           initialCpf={formData.cpfCnpj}
           initialCoupon={formData.coupon}
