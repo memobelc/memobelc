@@ -20,6 +20,12 @@ import { useToast } from '@/components/Toast';
 import { adminProfileApi, type ProfileBadge } from '@/services/profile';
 import { uploadImageToFirebase } from '@/utils/uploadImage';
 import AdminConfirmModal from '@/components/admin/AdminConfirmModal';
+import { PickerSelect } from '@/components/atoms/PickerSelect';
+import {
+  BADGE_ANIMATIONS,
+  DEFAULT_BADGE_ANIMATION,
+  resolveBadgeAnimation,
+} from '@/constants/badgeAnimations';
 
 type Earner = {
   user_id: string;
@@ -40,7 +46,12 @@ export default function AdminBadgesScreen() {
   const [saving, setSaving] = useState(false);
   const [earners, setEarners] = useState<Earner[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', image: '' });
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    image: '',
+    animation: DEFAULT_BADGE_ANIMATION,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ProfileBadge | null>(null);
@@ -95,7 +106,7 @@ export default function AdminBadgesScreen() {
   };
 
   const resetForm = () => {
-    setForm({ name: '', description: '', image: '' });
+    setForm({ name: '', description: '', image: '', animation: DEFAULT_BADGE_ANIMATION });
     setEditingId(null);
   };
 
@@ -131,6 +142,7 @@ export default function AdminBadgesScreen() {
       name: badge.name || '',
       description: badge.description || '',
       image: badge.image || '',
+      animation: resolveBadgeAnimation(badge.animation),
     });
   };
 
@@ -198,6 +210,17 @@ export default function AdminBadgesScreen() {
           placeholder={t('Description')}
           value={form.description}
           onChangeText={(value) => setForm((prev) => ({ ...prev, description: value }))}
+        />
+        <PickerSelect
+          label="Animation"
+          border
+          className="w-full mb-2"
+          selectedValue={form.animation}
+          onValueChange={(animation) => setForm((prev) => ({ ...prev, animation }))}
+          options={BADGE_ANIMATIONS.map((item) => ({
+            value: item.id,
+            label: t(item.labelKey),
+          }))}
         />
         <TouchableOpacity onPress={pickImage} className="mb-3">
           {form.image ? (

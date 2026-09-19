@@ -25,6 +25,7 @@ export type ProfileBadge = {
   name: string;
   description?: string;
   image?: string | null;
+  animation?: string;
   is_active?: boolean;
   awarded_at?: string | null;
   earners_count?: number;

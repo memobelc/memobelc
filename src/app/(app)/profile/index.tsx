@@ -20,11 +20,13 @@ import { formatCpfCnpj } from '@/services/checkout';
 import {
   emptyAddress,
   profileApi,
+  type ProfileBadge,
   type ProfileMission,
   type UserAddress,
   type UserProfile,
 } from '@/services/profile';
 import { uploadImageToFirebase } from '@/utils/uploadImage';
+import { BadgeRevealModal } from '@/components/molecules/BadgeRevealModal';
 
 function formatCep(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -43,6 +45,7 @@ export default function ProfileScreen() {
   const [uploading, setUploading] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<ProfileBadge | null>(null);
   const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
   const [address, setAddress] = useState<UserAddress>(emptyAddress());
@@ -367,7 +370,13 @@ export default function ProfileScreen() {
             ) : (
               <View className="flex-row flex-wrap">
                 {profile.badges.map((badge) => (
-                  <View key={badge._id} className="w-1/3 items-center mb-4 px-1">
+                  <TouchableOpacity
+                    key={badge._id}
+                    className="w-1/3 items-center mb-4 px-1"
+                    onPress={() => setSelectedBadge(badge)}
+                    accessibilityRole="button"
+                    accessibilityLabel={badge.name}
+                  >
                     {badge.image ? (
                       <Image source={{ uri: badge.image }} className="w-16 h-16 rounded-full" />
                     ) : (
@@ -385,13 +394,18 @@ export default function ProfileScreen() {
                     <Text className="text-xs text-center mt-1 font-bold text-gray-700">
                       {badge.name}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
         </>
       )}
+      <BadgeRevealModal
+        visible={!!selectedBadge}
+        badge={selectedBadge}
+        onClose={() => setSelectedBadge(null)}
+      />
     </ScrollView>
   );
 }
