@@ -17,6 +17,8 @@ import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal';
+import { adminProfileApi } from '@/services/profile';
 
 type AdminUser = {
   _id: string;
@@ -51,6 +53,7 @@ export default function AdminUsersScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftRoles, setDraftRoles] = useState<Record<string, string[]>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [confirmUser, setConfirmUser] = useState<AdminUser | null>(null);
 
   const loadUsers = useCallback(
     async (query?: string) => {
@@ -154,6 +157,23 @@ export default function AdminUsersScreen() {
       });
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!confirmUser || !userInfo?.token) return;
+    try {
+      await adminProfileApi.deleteUser(userInfo.token, confirmUser._id);
+      toast({ message: t('User deleted'), variant: 'success' });
+      setConfirmUser(null);
+      if (expandedId === confirmUser._id) setExpandedId(null);
+      loadUsers(search.trim());
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error deleting user'),
+        variant: 'destructive',
+      });
+      setConfirmUser(null);
     }
   };
 
@@ -327,6 +347,17 @@ export default function AdminUsersScreen() {
                           {t('View profile')}
                         </Text>
                       </TouchableOpacity>
+                      {!isSelf ? (
+                        <TouchableOpacity
+                          onPress={() => setConfirmUser(user)}
+                          className="mt-2 py-2.5 rounded-lg items-center"
+                          style={{ backgroundColor: colors.error[100] }}
+                        >
+                          <Text className="font-bold" style={{ color: colors.error[500] }}>
+                            {t('Delete user')}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
                   )}
                 </View>
@@ -335,6 +366,15 @@ export default function AdminUsersScreen() {
           )}
         </ScrollView>
       )}
+      <AdminConfirmModal
+        open={!!confirmUser}
+        title={t('Delete user')}
+        message={t('Are you sure you want to delete this user? This cannot be undone.')}
+        confirmLabel={t('Delete')}
+        destructive
+        onCancel={() => setConfirmUser(null)}
+        onConfirm={deleteUser}
+      />
     </View>
   );
 }

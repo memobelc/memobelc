@@ -55,6 +55,17 @@ function auth(token?: string) {
   return { headers: { Authorization: `Bearer ${token}` } };
 }
 
+export type AdminSentNotification = {
+  batch_id: string;
+  title: string;
+  body: string;
+  target_type?: NotificationTargetType | string | null;
+  sent_to: number;
+  created_at?: string | null;
+  from_admin_id?: string | null;
+  legacy?: boolean;
+};
+
 export const notificationsApi = {
   getSettings: (token?: string) =>
     api.get<NotificationSettings>('/notifications/settings', auth(token)),
@@ -70,7 +81,12 @@ export const notificationsApi = {
   sendAdminCustom: (
     token: string | undefined,
     data: { title: string; body: string } & AdminNotificationTarget,
-  ) => api.post<{ sent_to: number }>('/notifications/admin/custom', data, auth(token)),
+  ) =>
+    api.post<{ sent_to: number; batch_id?: string }>(
+      '/notifications/admin/custom',
+      data,
+      auth(token),
+    ),
   previewAdmin: (token: string | undefined, data: AdminNotificationTarget) =>
     api.post<{ count: number }>('/notifications/admin/preview', data, auth(token)),
   listGroups: (token?: string) =>
@@ -86,4 +102,11 @@ export const notificationsApi = {
   ) => api.patch<NotificationGroup>(`/notifications/admin/groups/${groupId}`, data, auth(token)),
   deleteGroup: (token: string | undefined, groupId: string) =>
     api.delete<{ deleted: boolean }>(`/notifications/admin/groups/${groupId}`, auth(token)),
+  listSent: (token?: string) =>
+    api.get<{ notifications: AdminSentNotification[] }>('/notifications/admin/sent', auth(token)),
+  deleteSent: (token: string | undefined, batchId: string) =>
+    api.delete<{ deleted: boolean; count?: number }>(
+      `/notifications/admin/sent/${encodeURIComponent(batchId)}`,
+      auth(token),
+    ),
 };

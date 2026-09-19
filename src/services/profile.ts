@@ -89,6 +89,27 @@ export const adminProfileApi = {
     api.get(`/admin/badges/${id}/users`, auth(token)),
   awardBadge: (token: string | undefined, userId: string, badgeId: string) =>
     api.post(`/admin/users/${userId}/badges`, { badge_id: badgeId }, auth(token)),
+  deleteBadge: (token: string | undefined, id: string) =>
+    api.delete(`/admin/badges/${id}`, auth(token)),
+  updateUser: (
+    token: string | undefined,
+    userId: string,
+    data: {
+      name?: string;
+      email?: string;
+      image?: string | null;
+      cpf_cnpj?: string | null;
+      address?: UserAddress;
+    },
+  ) => api.patch(`/admin/users/${userId}`, data, auth(token)),
+  deleteUser: (token: string | undefined, userId: string) =>
+    api.delete(`/admin/users/${userId}`, auth(token)),
+  deleteUserCollection: (token: string | undefined, userId: string, collectionId: string) =>
+    api.delete(`/admin/users/${userId}/collections/${collectionId}`, auth(token)),
+  deleteUserDeck: (token: string | undefined, userId: string, deckId: string) =>
+    api.delete(`/admin/users/${userId}/decks/${deckId}`, auth(token)),
+  deleteUserCard: (token: string | undefined, userId: string, cardId: string) =>
+    api.delete(`/admin/users/${userId}/cards/${cardId}`, auth(token)),
   missions: (token?: string) => api.get('/admin/missions', auth(token)),
   createMission: (token: string | undefined, data: Record<string, unknown>) =>
     api.post('/admin/missions', data, auth(token)),

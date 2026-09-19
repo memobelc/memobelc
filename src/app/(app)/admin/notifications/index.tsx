@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -16,6 +15,7 @@ import api from '@/services/api';
 import { billingApi } from '@/services/billing';
 import {
   notificationsApi,
+  type AdminSentNotification,
   type NotificationAudienceRole,
   type NotificationGroup,
   type NotificationGroupMember,
@@ -26,6 +26,7 @@ import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal';
 
 type AdminUser = NotificationGroupMember & {
   roles?: string[];
@@ -87,17 +88,31 @@ export default function AdminNotificationsScreen() {
   const [groupUserSearch, setGroupUserSearch] = useState('');
   const [groupUserResults, setGroupUserResults] = useState<AdminUser[]>([]);
   const [savingGroup, setSavingGroup] = useState(false);
+  const [sent, setSent] = useState<AdminSentNotification[]>([]);
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () =>
+    setConfirm({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     if (!userInfo?.token) return;
     try {
       setLoading(true);
-      const [groupsRes, classroomsRes] = await Promise.all([
+      const [groupsRes, classroomsRes, sentRes] = await Promise.all([
         notificationsApi.listGroups(userInfo.token),
         billingApi.adminClassrooms(userInfo.token),
+        notificationsApi.listSent(userInfo.token),
       ]);
       setGroups(groupsRes.data.groups || []);
       setClassrooms(classroomsRes.data.classrooms || []);
+      setSent(sentRes.data.notifications || []);
     } catch (error: any) {
       toast({
         message: error.response?.data?.error || t('Error loading groups'),
@@ -225,28 +240,53 @@ export default function AdminNotificationsScreen() {
   };
 
   const deleteGroup = (group: NotificationGroup) => {
-    Alert.alert(t('Delete group'), t('Are you sure?'), [
-      { text: t('Cancel'), style: 'cancel' },
-      {
-        text: t('Delete'),
-        style: 'destructive',
-        onPress: async () => {
-          if (!userInfo?.token) return;
-          try {
-            await notificationsApi.deleteGroup(userInfo.token, group._id);
-            if (groupId === group._id) setGroupId(null);
-            if (editingGroupId === group._id) resetGroupForm();
-            toast({ message: t('Group deleted'), variant: 'success' });
-            load();
-          } catch (error: any) {
-            toast({
-              message: error.response?.data?.error || t('Error deleting group'),
-              variant: 'destructive',
-            });
-          }
-        },
+    setConfirm({
+      open: true,
+      title: t('Delete group'),
+      message: t('Are you sure you want to delete this group?'),
+      confirmLabel: t('Delete'),
+      destructive: true,
+      onConfirm: async () => {
+        closeConfirm();
+        if (!userInfo?.token) return;
+        try {
+          await notificationsApi.deleteGroup(userInfo.token, group._id);
+          if (groupId === group._id) setGroupId(null);
+          if (editingGroupId === group._id) resetGroupForm();
+          toast({ message: t('Group deleted'), variant: 'success' });
+          load();
+        } catch (error: any) {
+          toast({
+            message: error.response?.data?.error || t('Error deleting group'),
+            variant: 'destructive',
+          });
+        }
       },
-    ]);
+    });
+  };
+
+  const deleteSent = (item: AdminSentNotification) => {
+    setConfirm({
+      open: true,
+      title: t('Delete notification'),
+      message: t('This notification will disappear from users inboxes.'),
+      confirmLabel: t('Delete'),
+      destructive: true,
+      onConfirm: async () => {
+        closeConfirm();
+        if (!userInfo?.token) return;
+        try {
+          await notificationsApi.deleteSent(userInfo.token, item.batch_id);
+          toast({ message: t('Notification deleted'), variant: 'success' });
+          load();
+        } catch (error: any) {
+          toast({
+            message: error.response?.data?.error || t('Error deleting notification'),
+            variant: 'destructive',
+          });
+        }
+      },
+    });
   };
 
   const doSend = async () => {
@@ -265,6 +305,7 @@ export default function AdminNotificationsScreen() {
       setTitle('');
       setBody('');
       setPreviewCount(null);
+      load();
     } catch (error: any) {
       toast({
         message:
@@ -297,14 +338,17 @@ export default function AdminNotificationsScreen() {
       }
       const confirmSend = () => doSend();
       if (targetType === 'all' || count > 20) {
-        Alert.alert(
-          t('Send notification'),
-          t('This will send to {{count}} people.', { count }),
-          [
-            { text: t('Cancel'), style: 'cancel' },
-            { text: t('Send'), onPress: confirmSend },
-          ],
-        );
+        setConfirm({
+          open: true,
+          title: t('Send notification'),
+          message: t('This will send to {{count}} people.', { count }),
+          confirmLabel: t('Send'),
+          destructive: false,
+          onConfirm: () => {
+            closeConfirm();
+            confirmSend();
+          },
+        });
         return;
       }
       confirmSend();
@@ -547,6 +591,35 @@ export default function AdminNotificationsScreen() {
         </TouchableOpacity>
       </View>
 
+      <Text className="text-lg font-bold mb-3">{t('Sent notifications')}</Text>
+      {loading ? (
+        <Loading color={colors.primary[500]} classname="items-center justify-center py-4" />
+      ) : sent.length === 0 ? (
+        <Text className="text-center mb-4" style={{ color: colors.gray[500] }}>
+          {t('No sent notifications')}
+        </Text>
+      ) : (
+        sent.map((item) => (
+          <View key={item.batch_id} className="bg-white rounded-xl p-4 mb-3">
+            <Text className="font-semibold">{item.title}</Text>
+            {!!item.body && (
+              <Text className="text-sm mt-1" style={{ color: colors.gray[600] }}>
+                {item.body}
+              </Text>
+            )}
+            <Text className="text-xs mt-1" style={{ color: colors.gray[500] }}>
+              {item.created_at ? new Date(item.created_at).toLocaleString() : ''}
+              {item.target_type ? ` · ${targetLabel(item.target_type as NotificationTargetType, t)}` : ''}
+              {' · '}
+              {t('Sent to {{count}} people.', { count: item.sent_to })}
+            </Text>
+            <TouchableOpacity onPress={() => deleteSent(item)} className="mt-2">
+              <Text style={{ color: colors.error[500] }}>{t('Delete')}</Text>
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
+
       <View className="bg-white rounded-xl p-4 mb-4">
         <Text className="font-bold mb-3" style={{ color: colors.gray[800] }}>
           {editingGroupId ? t('Edit group') : t('Create group')}
@@ -629,6 +702,15 @@ export default function AdminNotificationsScreen() {
           </View>
         ))
       )}
+      <AdminConfirmModal
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel || t('Confirm')}
+        destructive={confirm.destructive}
+        onCancel={closeConfirm}
+        onConfirm={confirm.onConfirm}
+      />
     </ScrollView>
   );
 }

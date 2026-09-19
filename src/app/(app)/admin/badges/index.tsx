@@ -19,6 +19,7 @@ import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 import { adminProfileApi, type ProfileBadge } from '@/services/profile';
 import { uploadImageToFirebase } from '@/utils/uploadImage';
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal';
 
 type Earner = {
   user_id: string;
@@ -40,6 +41,9 @@ export default function AdminBadgesScreen() {
   const [earners, setEarners] = useState<Earner[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '', image: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProfileBadge | null>(null);
 
   const load = useCallback(async () => {
     if (!userInfo?.token) return;
@@ -90,6 +94,11 @@ export default function AdminBadgesScreen() {
     }
   };
 
+  const resetForm = () => {
+    setForm({ name: '', description: '', image: '' });
+    setEditingId(null);
+  };
+
   const save = async () => {
     if (!form.name.trim()) {
       toast({ message: t('Badge name is required'), variant: 'destructive' });
@@ -97,9 +106,14 @@ export default function AdminBadgesScreen() {
     }
     try {
       setSaving(true);
-      await adminProfileApi.createBadge(userInfo?.token, form);
-      toast({ message: t('Badge saved'), variant: 'success' });
-      setForm({ name: '', description: '', image: '' });
+      if (editingId) {
+        await adminProfileApi.updateBadge(userInfo?.token, editingId, form);
+        toast({ message: t('Badge updated'), variant: 'success' });
+      } else {
+        await adminProfileApi.createBadge(userInfo?.token, form);
+        toast({ message: t('Badge saved'), variant: 'success' });
+      }
+      resetForm();
       load();
     } catch (error: any) {
       toast({
@@ -108,6 +122,42 @@ export default function AdminBadgesScreen() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (badge: ProfileBadge) => {
+    setEditingId(badge._id);
+    setForm({
+      name: badge.name || '',
+      description: badge.description || '',
+      image: badge.image || '',
+    });
+  };
+
+  const askDelete = (badge: ProfileBadge) => {
+    setPendingDelete(badge);
+    setConfirmOpen(true);
+  };
+
+  const removeBadge = async () => {
+    if (!pendingDelete) return;
+    try {
+      await adminProfileApi.deleteBadge(userInfo?.token, pendingDelete._id);
+      toast({ message: t('Badge deleted'), variant: 'success' });
+      if (editingId === pendingDelete._id) resetForm();
+      if (selectedId === pendingDelete._id) {
+        setSelectedId(null);
+        setEarners([]);
+      }
+      load();
+    } catch (error: any) {
+      toast({
+        message: error.response?.data?.error || t('Error deleting badge'),
+        variant: 'destructive',
+      });
+    } finally {
+      setConfirmOpen(false);
+      setPendingDelete(null);
     }
   };
 
@@ -165,9 +215,16 @@ export default function AdminBadgesScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white">{t('Create badge')}</Text>
+            <Text className="text-white">
+              {editingId ? t('Save badge') : t('Create badge')}
+            </Text>
           )}
         </TouchableOpacity>
+        {editingId ? (
+          <TouchableOpacity onPress={resetForm} className="mt-2">
+            <Text style={{ color: colors.gray[600] }}>{t('Cancel')}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       {loading ? (
         <ActivityIndicator color={colors.primary[500]} />
@@ -195,8 +252,14 @@ export default function AdminBadgesScreen() {
                   {badge.is_active === false ? t('Activate') : t('Deactivate')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => showEarners(badge._id)}>
+              <TouchableOpacity onPress={() => startEdit(badge)} className="mr-4">
+                <Text style={{ color: colors.primary[500] }}>{t('Edit')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => showEarners(badge._id)} className="mr-4">
                 <Text>{t('Users who earned')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => askDelete(badge)}>
+                <Text style={{ color: colors.error[500] }}>{t('Delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -226,6 +289,18 @@ export default function AdminBadgesScreen() {
           )}
         </View>
       )}
+      <AdminConfirmModal
+        open={confirmOpen}
+        title={t('Delete badge')}
+        message={t('Are you sure you want to delete this badge? Users will lose it.')}
+        confirmLabel={t('Delete')}
+        destructive
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingDelete(null);
+        }}
+        onConfirm={removeBadge}
+      />
     </ScrollView>
   );
 }
