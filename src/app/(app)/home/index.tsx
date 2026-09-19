@@ -34,6 +34,8 @@ import { imageSources } from '@/utils/imgSource';
 import * as yup from 'yup';
 import StudyStreak from '@/components/atoms/StudyStreak';
 import { NotificationPermissionCard } from '@/components/atoms/NotificationPermissionCard';
+import TourTarget from '@/components/atoms/TourTarget';
+import BrainEmptyState from '@/components/atoms/BrainEmptyState';
 
 export default function Home() {
   const { userInfo } = useSession();
@@ -200,6 +202,7 @@ export default function Home() {
               : 'flex-col md:flex-row '
           }  justify-center md:justify-between`}
         >
+          <TourTarget id="home_dashboard">
           <View className="flex flex-col md:w-[60%] justify-start md:justify-center items-start py-5">
             <Text className="text-lg md:text-2xl text-gray-600 mb-1 font-[ComicSans]">
               {t(getGreeting())}, {userInfo?.name.split(' ')[0].toUpperCase()}!
@@ -211,6 +214,7 @@ export default function Home() {
               {t('New Day, Stronger Memories!')}
             </Text>
           </View>
+          </TourTarget>
           {loadingCollection ? (
             <Loading classname="flex-1 items-center justify-center" />
           ) : collections && collections.length > 0 ? (
@@ -225,19 +229,12 @@ export default function Home() {
               />
             </View>
           ) : (
-            <View className="flex  items-center justify-center py-10">
-              <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-                {t(
-                  'Every great journey begins with a single step. Start your first collection today and take your learning to new heights!',
-                )}
-              </Text>
-              <Image
-                style={{ width: 200, height: 200 }}
-                className="w-60 h-60"
-                source={require('@/assets/1.png')}
-                resizeMode="cover"
-              />
-            </View>
+            <BrainEmptyState
+              expression="happy"
+              title={t(
+                'Every great journey begins with a single step. Start your first collection today and take your learning to new heights!',
+              )}
+            />
           )}
         </View>
 
@@ -307,7 +304,9 @@ export default function Home() {
 
         {/* Study Streak Component */}
         <View className="mt-8 mb-4">
-          <StudyStreak />
+          <TourTarget id="study_streak">
+            <StudyStreak />
+          </TourTarget>
         </View>
       </ScrollView>
 
@@ -317,6 +316,8 @@ export default function Home() {
         pointerEvents="none"
       />
 
+      <View className="absolute bottom-7 right-7">
+      <TourTarget id="create_collection">
       <TouchableOpacity
         style={{
           backgroundColor: colors.primary[500],
@@ -326,13 +327,15 @@ export default function Home() {
           shadowRadius: 8,
           elevation: 8,
         }}
-        className="absolute bottom-7 right-7 rounded-full p-4 active:scale-95"
+        className="rounded-full p-4 active:scale-95"
         onPress={() => {
           setOpenAddCollection(true);
         }}
       >
         <MaterialIcons name="add" size={32} color={colors.white} />
       </TouchableOpacity>
+      </TourTarget>
+      </View>
 
       <Modal
         transparent

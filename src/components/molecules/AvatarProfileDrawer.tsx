@@ -28,6 +28,8 @@ import { InviteFriendsModal } from './InviteFriendsModal';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import { useSupportChat } from '@/contexts/SupportChatContext';
 import { usePushNotification } from '@/contexts/PushNotificationContext';
+import TourTarget from '@/components/atoms/TourTarget';
+import { useTourTargets } from '@/contexts/TourTargetContext';
 
 type menuItem = {
   name: string;
@@ -50,6 +52,7 @@ const AvatarProfileDrawer = () => {
     enableNotifications,
     isRegistering,
   } = usePushNotification();
+  const { requestedDrawer } = useTourTargets();
   const isAssignedAdmin = roles.includes('admin');
   const showNotificationBanner =
     Platform.OS !== 'web' && isPermissionGranted === false;
@@ -59,6 +62,12 @@ const AvatarProfileDrawer = () => {
   const [avatarFocused, setAvatarFocused] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (requestedDrawer === 'profile' && !open) {
+      setOpen(true);
+    }
+  }, [requestedDrawer, open]);
   // const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
 
@@ -134,6 +143,7 @@ const AvatarProfileDrawer = () => {
 
   return (
     <View>
+      <TourTarget id="profile">
       <Pressable
         onPress={() => setOpen(true)}
         hitSlop={4}
@@ -188,6 +198,7 @@ const AvatarProfileDrawer = () => {
           ) : null}
         </View>
       </Pressable>
+      </TourTarget>
       <Modal
         transparent
         animationType="fade"
@@ -215,6 +226,7 @@ const AvatarProfileDrawer = () => {
               className="bg-white  h-full w-[300px] absolute right-0 top-0 p-4 rounded-l-2xl shadow-lg"
             >
               <ScrollView showsVerticalScrollIndicator={false}>
+              <TourTarget id="profile_me">
               <TouchableOpacity
                 className="flex flex-row gap-2 items-center mb-3"
                 onPress={() => {
@@ -240,6 +252,9 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </View>
               </TouchableOpacity>
+              </TourTarget>
+              <TourTarget id="profile_subscription">
+              <TourTarget id="subscription">
               <TouchableOpacity
                 className="mb-3"
                 onPress={() => {
@@ -274,7 +289,8 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
-              {showNotificationBanner ? (
+              </TourTarget>
+              </TourTarget>
                 <TouchableOpacity
                   onPress={() => {
                     handleClose();
@@ -323,6 +339,8 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="person" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('My profile')}</Text>
               </TouchableOpacity>
+              <TourTarget id="profile_settings">
+              <TourTarget id="settings">
               <TouchableOpacity
                 onPress={() => {
                   router.push('/settings' as any);
@@ -333,6 +351,8 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="settings" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('Settings')}</Text>
               </TouchableOpacity>
+              </TourTarget>
+              </TourTarget>
               <View>
                 {menuItems &&
                   menuItems.map((item) => {
@@ -389,6 +409,7 @@ const AvatarProfileDrawer = () => {
                 </View>
               )}
               {roles.includes('affiliate') && (
+                <TourTarget id="profile_affiliate">
                 <TouchableOpacity
                   onPress={() => {
                     handleClose();
@@ -399,7 +420,9 @@ const AvatarProfileDrawer = () => {
                   <MaterialCommunityIcons name="handshake-outline" size={20} color={colors.primary[500]} />
                   <Text className="text-primary text-xs">{t('Affiliate')}</Text>
                 </TouchableOpacity>
+                </TourTarget>
               )}
+              <TourTarget id="profile_invite">
               <TouchableOpacity
                 onPress={() => {
                   setOpenInviteModal(true);
@@ -410,6 +433,7 @@ const AvatarProfileDrawer = () => {
                 <MaterialIcons name="person-add" size={20} color={colors.primary[500]} />
                 <Text className="text-primary text-xs">{t('Invite Friends')}</Text>
               </TouchableOpacity>
+              </TourTarget>
               {!isAssignedAdmin && (
                 <TouchableOpacity
                   onPress={() => {

@@ -10,6 +10,7 @@ import { IClassroom, ICourse, useCollection } from '@/contexts/CollectionContext
 import { useSession } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
+import TourTarget from '@/components/atoms/TourTarget';
 
 type MineCourse = ICourse & { classroom_name?: string };
 
@@ -91,6 +92,7 @@ export default function MyCoursesScreen() {
   };
 
   return (
+    <TourTarget id="courses_list">
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8">
       <View className="flex-row items-center mb-4">
         <TouchableOpacity
@@ -184,5 +186,6 @@ export default function MyCoursesScreen() {
         </ScrollView>
       )}
     </View>
+    </TourTarget>
   );
 }

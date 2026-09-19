@@ -14,6 +14,7 @@ import {
   type NotificationSettings,
   type ServicePreference,
 } from '@/services/notifications';
+import TutorialHelpSection from '@/components/molecules/TutorialHelpSection';
 
 const USER_SERVICES: { key: NotificationServiceKey; title: string; description: string }[] = [
   {
@@ -155,6 +156,7 @@ export default function SettingsScreen() {
         <ActivityIndicator color={colors.primary[500]} />
       ) : (
         <>
+          <TutorialHelpSection />
           <View className="bg-white rounded-2xl p-4 mb-4">
             <Text className="text-lg font-bold mb-1" style={{ color: colors.primary[600] }}>
               {t('Notification settings')}

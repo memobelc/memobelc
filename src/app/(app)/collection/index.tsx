@@ -35,6 +35,7 @@ import { colors } from '@/styles/colors';
 import { storage } from '../../../../FirebaseConfig';
 import { imageSourcesDeck, setImageUrl } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
+import BrainEmptyState from '@/components/atoms/BrainEmptyState';
 import * as yup from 'yup';
 
 export default function Collection() {
@@ -321,17 +322,10 @@ export default function Collection() {
               </View> */}
             </>
           ) : (
-            <View className="flex  items-center justify-center py-10">
-              <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-                {t('Your collection is empty, add a deck to your collection')}
-              </Text>
-              <Image
-                style={{ width: 200, height: 200 }}
-                className="w-60 h-60"
-                source={require('@/assets/empty.png')}
-                resizeMode="cover"
-              />
-            </View>
+            <BrainEmptyState
+              expression="sad"
+              title={t('Your collection is empty, add a deck to your collection')}
+            />
           )}
 
           <View>

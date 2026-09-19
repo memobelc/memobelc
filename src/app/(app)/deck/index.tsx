@@ -26,6 +26,7 @@ import { useToast } from '@/components/Toast';
 import { useTranslation } from 'react-i18next';
 import { setImageUrlDeck } from '@/utils/imgSource';
 import { Loading } from '@/components/Loading';
+import BrainEmptyState from '@/components/atoms/BrainEmptyState';
 
 import { storage } from '../../../../FirebaseConfig';
 
@@ -489,17 +490,10 @@ export default function Deck() {
             <Feather name="arrow-right" size={40} color="white" />
           </TouchableOpacity>
         ) : (
-          <View className="flex  items-center justify-center py-10">
-            <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-              {t('Your deck is empty, add a cards to your deck')}
-            </Text>
-            <Image
-              style={{ width: 200, height: 200 }}
-              className="w-60 h-60"
-              source={require('@/assets/empty.png')}
-              resizeMode="cover"
-            />
-          </View>
+          <BrainEmptyState
+            expression="sad"
+            title={t('Your deck is empty, add a cards to your deck')}
+          />
         )}
 
         <View>

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/styles/colors';
 import { useNotification } from '@/contexts/NotificationContext';
+import TourTarget from '@/components/atoms/TourTarget';
 
 const NotificationBell = () => {
   const router = useRouter();
@@ -19,6 +20,7 @@ const NotificationBell = () => {
   };
 
   return (
+    <TourTarget id="notifications">
     <Pressable
       onPress={handlePress}
       hitSlop={4}
@@ -63,6 +65,7 @@ const NotificationBell = () => {
         )}
       </View>
     </Pressable>
+    </TourTarget>
   );
 };
 

@@ -18,6 +18,8 @@ const TONES: Record<string, { bg: string; fg: string; label: string }> = {
   received: { bg: colors.success[100], fg: colors.success[700], label: 'Confirmed' },
   paid: { bg: colors.success[100], fg: colors.success[700], label: 'Confirmed' },
   inactive: { bg: colors.gray[200], fg: colors.gray[700], label: 'Inactive' },
+  draft: { bg: colors.warning[100], fg: '#854D0E', label: 'Draft' },
+  archived: { bg: colors.gray[200], fg: colors.gray[700], label: 'Archived' },
 };
 
 export function statusTone(status?: string) {

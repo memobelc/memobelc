@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/styles/colors';
 import { useProfile } from '@/contexts/profileContext';
 import ChatExploreDrawer from '@/components/molecules/ChatExploreDrawer';
+import TourTarget from '@/components/atoms/TourTarget';
 import { Chats } from '@/contexts/CollectionContext';
 
 type TextMessage = {
@@ -143,12 +144,14 @@ export default function ChatScreen() {
           <Text style={{ color: colors.primary[500] }}>{t('Back')}</Text>
         </TouchableOpacity>
         {menuItems && menuItems.length > 0 && (
+          <TourTarget id="chat_explore">
           <View className="">
             <ChatExploreDrawer
               menuItems={menuItems}
               onSelectChat={handleSetChat}
             />
           </View>
+          </TourTarget>
         )}
       </View>
       <View className="flex-1  pt-0 p-4">
@@ -193,6 +196,7 @@ export default function ChatScreen() {
           )}
         />
 
+        <TourTarget id="chat_composer">
         <View className="flex-row items-center border-t border-gray-300 p-2">
           <TextInput
             className="flex-1 p-2 bg-gray-100 rounded-lg"
@@ -215,6 +219,7 @@ export default function ChatScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </TourTarget>
       </View>
     </View>
   );

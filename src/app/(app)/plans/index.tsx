@@ -10,6 +10,8 @@ import { billingApi } from '@/services/billing';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import AsaasPaySheet from '@/components/molecules/AsaasPaySheet';
 import PlanCard, { formatPlanPrice } from '@/components/molecules/PlanCard';
+import BrainAvatarView from '@/components/atoms/BrainAvatar';
+import TourTarget from '@/components/atoms/TourTarget';
 
 type PressableVisualState = {
   pressed: boolean;
@@ -74,6 +76,7 @@ export default function PlansCatalogScreen() {
   const canSwitch = entitlements?.is_subscriber && entitlements?.subscription?.provider === 'asaas';
 
   return (
+    <TourTarget id="plans_list">
     <ScrollView
       className="flex-1 w-full px-4 md:w-4/5 max-w-[1440px] mx-auto mt-8"
       contentContainerStyle={{ paddingBottom: 80 }}
@@ -104,6 +107,14 @@ export default function PlansCatalogScreen() {
       <Text className="text-2xl font-bold mb-5" style={{ color: colors.gray[900] }}>
         {t('Plans')}
       </Text>
+      {!entitlements?.is_subscriber ? (
+        <View className="flex-row items-center mb-4">
+          <BrainAvatarView expression="premium" size={64} />
+          <Text className="flex-1 ml-2 text-sm text-gray-600">
+            {t('Unlock extra content and premium tools at your own pace.')}
+          </Text>
+        </View>
+      ) : null}
       {loading ? (
         <ActivityIndicator color={colors.primary[500]} />
       ) : plans.length === 0 ? (
@@ -216,5 +227,6 @@ export default function PlansCatalogScreen() {
         }}
       />
     </ScrollView>
+    </TourTarget>
   );
 }

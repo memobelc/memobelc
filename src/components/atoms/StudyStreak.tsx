@@ -7,6 +7,7 @@ import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
+import BrainAvatarView from '@/components/atoms/BrainAvatar';
 
 type StreakData = {
   current_streak: number;
@@ -141,21 +142,16 @@ const StudyStreak = () => {
         <View className="flex-row items-center justify-center mb-5 md:mb-6">
           <View className="flex-row items-center">
             {/* Ícone de fogo suave e amigável */}
-            <View
-              className="bg-white rounded-full p-2 md:p-3 mr-3 md:mr-4"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-            >
-              <MaterialIcons
-                name="local-fire-department"
-                size={isMobile ? 32 : 36}
-                color={colors.warning[500]}
-              />
+            <View className="bg-white rounded-full p-2 md:p-3 mr-3 md:mr-4">
+              {streakData.current_streak > 0 ? (
+                <BrainAvatarView expression="celebrating" size={isMobile ? 36 : 40} />
+              ) : (
+                <MaterialIcons
+                  name="local-fire-department"
+                  size={isMobile ? 32 : 36}
+                  color={colors.warning[500]}
+                />
+              )}
             </View>
             <View className="items-start">
               <Text

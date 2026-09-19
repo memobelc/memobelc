@@ -43,6 +43,7 @@ import { NotifyPeopleModal } from '@/components/molecules/NotifyPeopleModal';
 import { notificationsApi } from '@/services/notifications';
 import { Loading } from '@/components/Loading';
 import { DeckCardSecondary } from '@/components/atoms/DeckCardSecondary';
+import BrainEmptyState from '@/components/atoms/BrainEmptyState';
 import { ModalGenerateCards } from '@/components/atoms/ModalGenerateCards';
 import {
   PublishStatus,
@@ -1166,19 +1167,12 @@ export default function Classroom() {
                     ))}
                   </>
                 ) : (
-                  <View className="flex  items-center justify-center py-10">
-                    <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-                      {t(
-                        'Your collection is empty, add a deck to your collection',
-                      )}
-                    </Text>
-                    <Image
-                      style={{ width: 200, height: 200 }}
-                      className="w-60 h-60"
-                      source={require('@/assets/empty.png')}
-                      resizeMode="cover"
-                    />
-                  </View>
+                  <BrainEmptyState
+                    expression="sad"
+                    title={t(
+                      'Your collection is empty, add a deck to your collection',
+                    )}
+                  />
                 )}
               </View>
             </View>

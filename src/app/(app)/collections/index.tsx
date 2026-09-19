@@ -26,6 +26,7 @@ import { useToast } from '@/components/Toast';
 // Dialog removido, agora usando Modal diretamente
 import { Input } from '@/components/Input';
 import { Loading } from '@/components/Loading';
+import TourTarget from '@/components/atoms/TourTarget';
 import { storage } from '../../../../FirebaseConfig';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import api from '@/services/api';
@@ -295,6 +296,7 @@ export default function AllCollections() {
   };
 
   return (
+    <TourTarget id="collections_list">
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View
         className="absolute top-0 left-0 right-0 flex-col w-full items-start
@@ -707,5 +709,6 @@ export default function AllCollections() {
         </View>
       </Modal>
     </View>
+    </TourTarget>
   );
 }

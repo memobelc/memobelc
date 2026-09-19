@@ -5,6 +5,8 @@ import { captureAffiliateRefFromUrl } from '@/utils/affiliateRef';
 
 import { useSession } from '@/contexts/AuthContext';
 import { PushNotificationProvider } from '@/contexts/PushNotificationContext';
+import { TourTargetProvider } from '@/contexts/TourTargetContext';
+import { TutorialProvider } from '@/contexts/TutorialContext';
 import { Loading } from '@/components/Loading';
 import { colors } from '@/styles/colors';
 import HeaderWrapper from '@/components/organisms/header/HeaderWrapper';
@@ -35,6 +37,8 @@ export default function AppLayout() {
   // Always render Stack - let individual screens handle redirects
   return (
     <PushNotificationProvider>
+      <TourTargetProvider>
+        <TutorialProvider>
       <View style={{ flex: 1 }}>
         <HeaderWrapper />
         <Stack
@@ -44,6 +48,8 @@ export default function AppLayout() {
         }}
       />
       </View>
+        </TutorialProvider>
+      </TourTargetProvider>
     </PushNotificationProvider>
   );
 }

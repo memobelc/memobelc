@@ -63,6 +63,25 @@ type AdminProfile = {
     coins?: number;
     completed_at?: string | null;
   }[];
+  tutorials?: {
+    current?: {
+      name?: string;
+      version?: number;
+      completed?: boolean;
+      skipped?: boolean;
+      last_viewed_at?: string | null;
+      time_spent_ms?: number;
+    } | null;
+    history?: {
+      tutorial_id?: string;
+      name?: string;
+      version?: number;
+      completed?: boolean;
+      skipped?: boolean;
+      last_viewed_at?: string | null;
+      time_spent_ms?: number;
+    }[];
+  };
   access: {
     last_access: string | null;
     total_logins: number;
@@ -688,6 +707,41 @@ export default function AdminUserProfileScreen() {
               <Stat label={t('Total de acessos')} value={profile.access.total_logins} />
               <Stat label={t('Dias ativos')} value={profile.access.active_days} />
             </View>
+          </View>
+
+          <View className="bg-white rounded-2xl p-4 mb-4">
+            <Text className="font-bold text-gray-700 mb-3">{t('Tutorial status')}</Text>
+            {!profile.tutorials?.current ? (
+              <Text className="text-gray-400">{t('No tutorials viewed yet')}</Text>
+            ) : (
+              <>
+                <Text className="text-sm text-gray-700 mb-1">
+                  {profile.tutorials.current.name} · v{profile.tutorials.current.version}
+                </Text>
+                <View className="flex-row flex-wrap">
+                  <Stat
+                    label={t('Completed')}
+                    value={profile.tutorials.current.completed ? t('Yes') : t('No')}
+                  />
+                  <Stat
+                    label={t('Skipped')}
+                    value={profile.tutorials.current.skipped ? t('Yes') : t('No')}
+                  />
+                  <Stat
+                    label={t('Time spent')}
+                    value={`${Math.round((profile.tutorials.current.time_spent_ms || 0) / 1000)}s`}
+                  />
+                </View>
+                <Text className="text-xs text-gray-500 mt-2">
+                  {t('Last viewed')}: {formatDate(profile.tutorials.current.last_viewed_at || null)}
+                </Text>
+                {(profile.tutorials.history || []).slice(1).map((item, index) => (
+                  <Text key={`${item.tutorial_id}-${index}`} className="text-xs text-gray-500 mt-1">
+                    {item.name} · v{item.version} · {item.completed ? t('Completed') : item.skipped ? t('Skipped') : t('In progress')}
+                  </Text>
+                ))}
+              </>
+            )}
           </View>
 
           <View className="bg-white rounded-2xl p-4 mb-4">

@@ -1,4 +1,5 @@
-import { LanguageSelectWithFlags } from '@/components/atoms/LanguageSelectWithFlags';
+import TourTarget from '@/components/atoms/TourTarget';
+import BrainEmptyState from '@/components/atoms/BrainEmptyState';
 import api from '@/services/api';
 import { colors } from '@/styles/colors';
 import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -53,6 +54,7 @@ export default function VideoScreen() {
   }, [languageVideo]);
 
   return (
+    <TourTarget id="videos_list">
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View className="flex-row justify-between items-center w-full bg-gray-100 -mt-2 gap-3">
         <TouchableOpacity
@@ -138,21 +140,15 @@ export default function VideoScreen() {
             ))}
 
             {videos?.length == 0 && (
-              <View className="flex  items-center justify-center py-10">
-                <Text className="font-[ComicSans] text-lg md:text-2xl text-gray-500 text-center font-semibold">
-                  {tVideoLang('There are no videos in the selected language!')}
-                </Text>
-                <Image
-                  style={{ width: 200, height: 200 }}
-                  className="w-60 h-60"
-                  source={require('@/assets/shame.png')}
-                  resizeMode="cover"
-                />
-              </View>
+              <BrainEmptyState
+                expression="worried"
+                title={tVideoLang('There are no videos in the selected language!')}
+              />
             )}
           </View>
         </ScrollView>
       </View>
     </View>
+    </TourTarget>
   );
 }

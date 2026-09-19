@@ -18,6 +18,7 @@ import { Loading } from '@/components/Loading';
 import { useToast } from '@/components/Toast';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import BookCheckoutModal from '@/components/molecules/BookCheckoutModal';
+import TourTarget from '@/components/atoms/TourTarget';
 
 type Chapter = {
   titulo: string;
@@ -288,6 +289,7 @@ export default function BooksScreen() {
           <Loading />
         </View>
       ) : (
+        <TourTarget id="books_list">
         <ScrollView
           contentContainerStyle={{ paddingBottom: 200 }}
           showsVerticalScrollIndicator={false}
@@ -359,6 +361,7 @@ export default function BooksScreen() {
             </View>
           )}
         </ScrollView>
+        </TourTarget>
       )}
       <BookCheckoutModal
         visible={!!checkoutBook}

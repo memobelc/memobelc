@@ -30,6 +30,7 @@ import { Input } from '@/components/Input';
 import { useToast } from '@/components/Toast';
 import { useDialog } from '@/components/Dialog';
 import { Loading } from '@/components/Loading';
+import TourTarget from '@/components/atoms/TourTarget';
 import { OpenDialogInput } from '@/components/atoms/DialogInput';
 import { MainDeckCard } from '@/components/atoms/MainDeckCard';
 
@@ -285,6 +286,7 @@ export default function Classrooms() {
   }, []);
 
   return (
+    <TourTarget id="classrooms_list">
     <View className="flex-1 w-4/5 max-w-[1440px] mx-auto mt-8 relative">
       <View
         className="absolute top-0 left-0 right-0 flex-row w-full items-center
@@ -681,5 +683,6 @@ export default function Classrooms() {
         </View>
       </Modal>
     </View>
+    </TourTarget>
   );
 }

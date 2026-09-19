@@ -28,6 +28,9 @@ import api from '@/services/api';
 import { useEntitlements, type ServiceAction } from '@/contexts/EntitlementContext';
 import SubscribeModal from '@/components/molecules/SubscribeModal';
 import { supportApi } from '@/services/support';
+import TourTarget from '@/components/atoms/TourTarget';
+import { MENU_PATH_TARGETS } from '@/constants/brain';
+import { useTourTargets } from '@/contexts/TourTargetContext';
 
 function menuAction(action: ServiceAction | string): ServiceAction {
   if (action === 'redirect_plans') return 'disabled_upgrade';
@@ -42,6 +45,7 @@ const MenuExploreDrawer = () => {
   const { serviceAction, configuredAction, entitlements } = useEntitlements();
   const router = useRouter();
   const pathname = usePathname();
+  const { requestedDrawer } = useTourTargets();
   const [open, setOpen] = useState(false);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [hasCourses, setHasCourses] = useState(false);
@@ -83,6 +87,12 @@ const MenuExploreDrawer = () => {
       cancelled = true;
     };
   }, [userInfo?.token, open, activeRoleView]);
+
+  useEffect(() => {
+    if (requestedDrawer === 'menu' && !open) {
+      setOpen(true);
+    }
+  }, [requestedDrawer, open]);
 
   useEffect(() => {
     if (!open || !isAdmin || !userInfo?.token) return;
@@ -199,6 +209,7 @@ const MenuExploreDrawer = () => {
       { name: t('Affiliates'), path: '/admin/affiliates', icon: <MaterialCommunityIcons name="handshake-outline" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Classroom checkouts'), path: '/admin/checkouts', icon: <MaterialIcons name="link" size={24} />, disabled: false, serviceKey: '' },
       { name: t('Send notifications'), path: '/admin/notifications', icon: <MaterialIcons name="campaign" size={24} />, disabled: false, serviceKey: '' },
+      { name: t('Tutorials'), path: '/admin/tutorials', icon: <MaterialIcons name="school" size={24} />, disabled: false, serviceKey: '' },
       { name: t('System settings'), path: '/admin/settings', icon: <MaterialIcons name="settings" size={24} />, disabled: false, serviceKey: '' },
     );
   } else if (hasRole('super_admin')) {
@@ -247,9 +258,10 @@ const MenuExploreDrawer = () => {
     const icon = isValidElement(item.icon) && iconColor
       ? cloneElement(item.icon, { color: iconColor } as any)
       : item.icon;
+    const tourId = MENU_PATH_TARGETS[item.path];
     return (
+      <TourTarget id={tourId || `menu_${item.path}`} key={item.path + item.name}>
       <Pressable
-        key={item.path + item.name}
         className={`flex-row items-center mb-1 px-3 py-2 rounded-r-3xl ${
           isActive ? 'bg-orange-400' : ''
         }`}
@@ -294,14 +306,17 @@ const MenuExploreDrawer = () => {
           />
         ) : null}
       </Pressable>
+      </TourTarget>
     );
   };
 
   return (
     <View>
-      <TouchableOpacity onPress={() => setOpen(true)}>
-        <MaterialIcons name="menu" size={24} color="white" />
-      </TouchableOpacity>
+      <TourTarget id="menu">
+        <TouchableOpacity onPress={() => setOpen(true)} accessibilityRole="button">
+          <MaterialIcons name="menu" size={24} color="white" />
+        </TouchableOpacity>
+      </TourTarget>
       <Modal
         transparent
         animationType="fade"
