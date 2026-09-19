@@ -14,16 +14,20 @@ import { supportApi } from '@/services/support';
 type SupportChatContextType = {
   isOpen: boolean;
   unreadCount: number;
-  openChat: () => void;
+  focusTicketId: string | null;
+  openChat: (ticketId?: string) => void;
   closeChat: () => void;
+  clearFocusTicketId: () => void;
   refreshUnread: () => Promise<void>;
 };
 
 const SupportChatContext = createContext<SupportChatContextType>({
   isOpen: false,
   unreadCount: 0,
+  focusTicketId: null,
   openChat: () => {},
   closeChat: () => {},
+  clearFocusTicketId: () => {},
   refreshUnread: async () => {},
 });
 
@@ -37,6 +41,7 @@ export function SupportChatProvider({ children }: PropsWithChildren) {
   const isAdmin = roles.includes('admin');
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [focusTicketId, setFocusTicketId] = useState<string | null>(null);
 
   const refreshUnread = useCallback(async () => {
     if (!userInfo?.token || isAdmin) {
@@ -44,8 +49,8 @@ export function SupportChatProvider({ children }: PropsWithChildren) {
       return;
     }
     try {
-      const response = await supportApi.getConversation(userInfo.token);
-      setUnreadCount(response.data.ticket?.unread_for_user || 0);
+      const response = await supportApi.listTickets(userInfo.token);
+      setUnreadCount(response.data.unread_total || 0);
     } catch {
       // keep last known count
     }
@@ -55,18 +60,32 @@ export function SupportChatProvider({ children }: PropsWithChildren) {
     refreshUnread();
   }, [refreshUnread]);
 
-  const openChat = useCallback(() => {
+  const openChat = useCallback((ticketId?: string) => {
+    setFocusTicketId(ticketId || null);
     setIsOpen(true);
   }, []);
 
   const closeChat = useCallback(() => {
     setIsOpen(false);
+    setFocusTicketId(null);
     refreshUnread();
   }, [refreshUnread]);
 
+  const clearFocusTicketId = useCallback(() => {
+    setFocusTicketId(null);
+  }, []);
+
   return (
     <SupportChatContext.Provider
-      value={{ isOpen, unreadCount, openChat, closeChat, refreshUnread }}
+      value={{
+        isOpen,
+        unreadCount,
+        focusTicketId,
+        openChat,
+        closeChat,
+        clearFocusTicketId,
+        refreshUnread,
+      }}
     >
       {children}
     </SupportChatContext.Provider>

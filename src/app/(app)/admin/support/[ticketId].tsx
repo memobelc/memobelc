@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/styles/colors';
@@ -18,6 +18,13 @@ import { useSession } from '@/contexts/AuthContext';
 import { useHasRole } from '@/hooks/useHasRole';
 import { useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
+import { StarRating } from '@/components/molecules/StarRating';
+import {
+  DropDown,
+  DropDownContent,
+  DropDownItem,
+  DropDownTrigger,
+} from '@/components/DropDown';
 import {
   supportApi,
   type SupportMessage,
@@ -174,14 +181,29 @@ export default function AdminSupportTicketScreen() {
     }
   };
 
-  const handleToggleStatus = async () => {
+  const handleCloseTicket = async (skipCsat = false) => {
     if (!userInfo?.token || !ticketId || updating) return;
     setUpdating(true);
     try {
-      const response =
-        ticket?.status === 'closed'
-          ? await supportApi.adminReopen(userInfo.token, ticketId)
-          : await supportApi.adminClose(userInfo.token, ticketId);
+      const response = await supportApi.adminClose(userInfo.token, ticketId, {
+        skip_csat: skipCsat,
+      });
+      setTicket(response.data.ticket);
+    } catch (error: any) {
+      toast({
+        message: error?.response?.data?.error || t('Error updating ticket'),
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!userInfo?.token || !ticketId || updating) return;
+    setUpdating(true);
+    try {
+      const response = await supportApi.adminReopen(userInfo.token, ticketId);
       setTicket(response.data.ticket);
     } catch (error: any) {
       toast({
@@ -200,6 +222,8 @@ export default function AdminSupportTicketScreen() {
       </View>
     );
   }
+
+  const isClosed = ticket?.status === 'closed';
 
   return (
     <KeyboardAvoidingView
@@ -223,11 +247,42 @@ export default function AdminSupportTicketScreen() {
           <Text className="flex-1 text-center font-bold text-primary text-lg">
             {ticket?.user_name || t('Support')}
           </Text>
-          <TouchableOpacity onPress={handleToggleStatus} disabled={updating}>
-            <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
-              {ticket?.status === 'closed' ? t('Reopen') : t('Close ticket')}
-            </Text>
-          </TouchableOpacity>
+          {isClosed ? (
+            <TouchableOpacity onPress={handleReopen} disabled={updating}>
+              <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
+                {t('Reopen')}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => handleCloseTicket(false)}
+                disabled={updating}
+              >
+                <Text style={{ color: colors.primary[500], fontWeight: 'bold' }}>
+                  {t('Close ticket')}
+                </Text>
+              </TouchableOpacity>
+              <DropDown>
+                <DropDownTrigger>
+                  <TouchableOpacity disabled={updating} className="ml-1 p-1">
+                    <MaterialIcons
+                      name="arrow-drop-down"
+                      size={22}
+                      color={colors.primary[500]}
+                    />
+                  </TouchableOpacity>
+                </DropDownTrigger>
+                <DropDownContent className="right-0 top-8 min-w-[16rem]">
+                  <DropDownItem onPress={() => handleCloseTicket(true)}>
+                    <Text className="text-sm text-gray-700">
+                      {t('Close without rating (exceptional)')}
+                    </Text>
+                  </DropDownItem>
+                </DropDownContent>
+              </DropDown>
+            </View>
+          )}
         </View>
 
         {ticket ? (
@@ -236,6 +291,25 @@ export default function AdminSupportTicketScreen() {
             <Text className="text-xs text-gray-500">
               {t('Status')}: {statusLabel(ticket.status, t)}
             </Text>
+            {ticket.handled_by_name ? (
+              <Text className="text-xs text-gray-500">
+                {t('Handled by')} {ticket.handled_by_name}
+              </Text>
+            ) : null}
+            {ticket.csat_score !== null && ticket.csat_score !== undefined ? (
+              <View className="flex-row items-center mt-1">
+                <Text className="text-xs text-gray-500 mr-2">{t('Rating')}</Text>
+                <StarRating value={ticket.csat_score} readonly size={16} allowZero />
+              </View>
+            ) : isClosed && ticket.csat_required ? (
+              <Text className="text-xs text-gray-500 mt-1">
+                {t('Waiting for rating')}
+              </Text>
+            ) : isClosed ? (
+              <Text className="text-xs text-gray-500 mt-1">
+                {t('No rating requested')}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -249,6 +323,15 @@ export default function AdminSupportTicketScreen() {
             className="flex-1"
             contentContainerStyle={{ paddingBottom: 12 }}
             renderItem={({ item }) => {
+              if (item.author_role === 'system') {
+                return (
+                  <View className="mb-2 items-center">
+                    <Text className="text-xs text-center text-gray-500 italic px-4">
+                      {t(item.body)}
+                    </Text>
+                  </View>
+                );
+              }
               const mine = item.author_role === 'admin';
               return (
                 <View
@@ -274,12 +357,12 @@ export default function AdminSupportTicketScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder={
-              ticket?.status === 'closed'
+              isClosed
                 ? t('Reopen the ticket to reply')
                 : t('Type your message')
             }
             placeholderTextColor={colors.gray[400]}
-            editable={ticket?.status !== 'closed'}
+            editable={!isClosed}
             multiline
             maxLength={4000}
           />
@@ -287,11 +370,11 @@ export default function AdminSupportTicketScreen() {
             className="ml-2 p-3 rounded-full"
             style={{
               backgroundColor:
-                sending || !draft.trim() || ticket?.status === 'closed'
+                sending || !draft.trim() || isClosed
                   ? colors.gray[400]
                   : colors.primary[500],
             }}
-            disabled={sending || !draft.trim() || ticket?.status === 'closed'}
+            disabled={sending || !draft.trim() || isClosed}
             onPress={handleSend}
           >
             {sending ? (

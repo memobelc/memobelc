@@ -169,7 +169,7 @@ const NotificationsScreen = () => {
                     params: { ticketId },
                   });
                 } else {
-                  openChat();
+                  openChat(typeof ticketId === 'string' ? ticketId : undefined);
                 }
               }
               if (item.type === 'affiliate_sales') {

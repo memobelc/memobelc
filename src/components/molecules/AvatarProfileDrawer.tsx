@@ -291,6 +291,7 @@ const AvatarProfileDrawer = () => {
               </TouchableOpacity>
               </TourTarget>
               </TourTarget>
+              {showNotificationBanner ? (
                 <TouchableOpacity
                   onPress={() => {
                     handleClose();
