@@ -13,10 +13,22 @@ function loadLocalNotificationsFallback(): NotificationsModule {
   const types = require('expo-notifications/build/Notifications.types');
   const emitter = require('expo-notifications/build/NotificationsEmitter');
 
+  let openSettingsAsync: NotificationsModule['openSettingsAsync'] | undefined;
+  try {
+    openSettingsAsync = require('expo-notifications/build/NotificationPermissions').openSettingsAsync;
+  } catch {
+    try {
+      openSettingsAsync = require('expo-notifications/build/openSettingsAsync').openSettingsAsync;
+    } catch {
+      openSettingsAsync = undefined;
+    }
+  }
+
   return {
     scheduleNotificationAsync: schedule.scheduleNotificationAsync,
     getPermissionsAsync: perms.getPermissionsAsync,
     requestPermissionsAsync: perms.requestPermissionsAsync,
+    openSettingsAsync,
     setNotificationHandler: handler.setNotificationHandler,
     setNotificationChannelAsync: channel.setNotificationChannelAsync,
     AndroidImportance: channelTypes.AndroidImportance,

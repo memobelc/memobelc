@@ -6,28 +6,40 @@ import React, {
   useCallback,
   type PropsWithChildren,
 } from 'react';
-import { Platform, Modal, View, Text, TouchableOpacity } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Device from 'expo-device';
-import { useTranslation } from 'react-i18next';
 import { Notifications } from '@/utils/loadExpoNotifications';
-import { registerForPushNotificationsAsync, ensureNotificationPermission } from '@/utils/notifications';
+import {
+  registerForPushNotificationsAsync,
+  getNotificationPermissionStatus,
+  openDeviceNotificationSettings as openOsNotificationSettings,
+  type NotificationPermissionStatus,
+} from '@/utils/notifications';
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
-import { colors } from '@/styles/colors';
-import { setStorageItemAsync, getStorageItemAsync } from '@/storage/useStorageState';
-
-const NOTIFICATION_PROMPT_DISMISSED = 'notification_prompt_dismissed';
 
 type PushNotificationContextType = {
   requestPermissionAndRegister: () => Promise<boolean>;
+  enableNotifications: () => Promise<boolean>;
   isPermissionGranted: boolean | null;
-  hasAskedUser: boolean;
+  permissionStatus: NotificationPermissionStatus | null;
+  showHomeCard: boolean;
+  dismissHomeCard: () => void;
+  openDeviceNotificationSettings: () => Promise<void>;
+  refreshPermission: () => Promise<void>;
+  isRegistering: boolean;
 };
 
 const PushNotificationContext = createContext<PushNotificationContextType>({
   requestPermissionAndRegister: async () => false,
+  enableNotifications: async () => false,
   isPermissionGranted: null,
-  hasAskedUser: false,
+  permissionStatus: null,
+  showHomeCard: false,
+  dismissHomeCard: () => {},
+  openDeviceNotificationSettings: async () => {},
+  refreshPermission: async () => {},
+  isRegistering: false,
 });
 
 export function usePushNotification() {
@@ -36,10 +48,11 @@ export function usePushNotification() {
 
 export function PushNotificationProvider({ children }: PropsWithChildren) {
   const { userInfo } = useSession();
-  const { t } = useTranslation();
-  const [showPrompt, setShowPrompt] = useState(false);
   const [isPermissionGranted, setIsPermissionGranted] = useState<boolean | null>(null);
-  const [hasAskedUser, setHasAskedUser] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus | null>(
+    null,
+  );
+  const [homeCardDismissed, setHomeCardDismissed] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
   const requestPermissionAndRegister = useCallback(async (): Promise<boolean> => {
@@ -48,6 +61,11 @@ export function PushNotificationProvider({ children }: PropsWithChildren) {
     try {
       setIsRegistering(true);
       const token = await registerForPushNotificationsAsync();
+      const status = await getNotificationPermissionStatus();
+      setPermissionStatus(status);
+      const permissionGranted = status === 'granted';
+      setIsPermissionGranted(permissionGranted);
+
       if (token && userInfo?.token && userInfo?.user_id) {
         const deviceInfo = Device.isDevice
           ? {
@@ -64,17 +82,11 @@ export function PushNotificationProvider({ children }: PropsWithChildren) {
         await api.post(
           '/notifications/register_token',
           { push_token: token, device_info: deviceInfo },
-          { headers: { Authorization: `Bearer ${userInfo.token}` } }
+          { headers: { Authorization: `Bearer ${userInfo.token}` } },
         );
-        setIsPermissionGranted(true);
-        setShowPrompt(false);
         return true;
       }
-      const { status } = Notifications
-        ? await Notifications.getPermissionsAsync()
-        : { status: 'undetermined' };
-      const permissionGranted = status === 'granted';
-      setIsPermissionGranted(permissionGranted);
+
       return permissionGranted;
     } catch (error) {
       console.warn('Failed to register push token:', error);
@@ -84,108 +96,88 @@ export function PushNotificationProvider({ children }: PropsWithChildren) {
     }
   }, [userInfo?.token, userInfo?.user_id]);
 
-  const handleEnable = async () => {
-    const granted = await requestPermissionAndRegister();
-    setHasAskedUser(true);
-    if (!granted) {
-      await setStorageItemAsync(NOTIFICATION_PROMPT_DISMISSED, 'true');
-    }
-  };
+  const refreshPermission = useCallback(async () => {
+    if (Platform.OS === 'web' || !Notifications) return;
 
-  const handleNotNow = async () => {
-    setShowPrompt(false);
-    setHasAskedUser(true);
-    await setStorageItemAsync(NOTIFICATION_PROMPT_DISMISSED, 'true');
-  };
+    try {
+      const status = await getNotificationPermissionStatus();
+      setPermissionStatus(status);
+      setIsPermissionGranted(status === 'granted');
+      if (status === 'granted' && userInfo?.token) {
+        await requestPermissionAndRegister();
+      }
+    } catch (error) {
+      console.warn('Error checking notification permission:', error);
+    }
+  }, [userInfo?.token, requestPermissionAndRegister]);
+
+  const openDeviceNotificationSettings = useCallback(async () => {
+    await openOsNotificationSettings();
+  }, []);
+
+  const enableNotifications = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
+
+    const status = permissionStatus ?? (await getNotificationPermissionStatus());
+    if (status === 'denied') {
+      await openOsNotificationSettings();
+      return false;
+    }
+    return requestPermissionAndRegister();
+  }, [permissionStatus, requestPermissionAndRegister]);
+
+  const dismissHomeCard = useCallback(() => {
+    setHomeCardDismissed(true);
+  }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !Notifications || !userInfo?.token) return;
+    if (Platform.OS === 'web') return;
 
-    const checkAndShowPrompt = async () => {
-      try {
-        const granted = await ensureNotificationPermission();
-        setIsPermissionGranted(granted);
+    if (!userInfo?.token) {
+      setHomeCardDismissed(false);
+      setIsPermissionGranted(null);
+      setPermissionStatus(null);
+      return;
+    }
 
-        if (granted) {
-          setHasAskedUser(true);
-          await requestPermissionAndRegister();
-          return;
-        }
+    refreshPermission();
+  }, [userInfo?.token, refreshPermission]);
 
-        const { status } = Notifications
-          ? await Notifications.getPermissionsAsync()
-          : { status: 'undetermined' };
-        if (status === 'denied') {
-          setHasAskedUser(true);
-          return;
-        }
+  useEffect(() => {
+    if (Platform.OS === 'web' || !userInfo?.token) return;
 
-        const val = await getStorageItemAsync(NOTIFICATION_PROMPT_DISMISSED);
-        const dismissed = val === 'true';
-
-        if (!dismissed) {
-          setShowPrompt(true);
-        }
-      } catch (error) {
-        console.warn('Error checking notification permission:', error);
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        refreshPermission();
       }
-    };
+    });
 
-    checkAndShowPrompt();
-  }, [userInfo?.token]);
+    return () => {
+      subscription.remove();
+    };
+  }, [userInfo?.token, refreshPermission]);
+
+  const showHomeCard =
+    Platform.OS !== 'web' &&
+    !!userInfo?.token &&
+    isPermissionGranted === false &&
+    !homeCardDismissed;
 
   return (
     <PushNotificationContext.Provider
       value={{
         requestPermissionAndRegister,
+        enableNotifications,
         isPermissionGranted,
-        hasAskedUser,
+        permissionStatus,
+        showHomeCard,
+        dismissHomeCard,
+        openDeviceNotificationSettings,
+        refreshPermission,
+        isRegistering,
       }}
     >
       {children}
-
-      {showPrompt && Platform.OS !== 'web' && (
-        <Modal
-          visible={showPrompt}
-          transparent
-          animationType="fade"
-          onRequestClose={handleNotNow}
-        >
-          <View className="flex-1 justify-center items-center bg-black/50 px-6">
-            <View
-              className="bg-white rounded-2xl p-6 max-w-sm w-full"
-              style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}
-            >
-              <Text className="text-xl font-bold text-gray-900 mb-2 text-center">
-                {t('Enable daily reminders?')}
-              </Text>
-              <Text className="text-gray-600 mb-6 text-center">
-                {t('Receive a daily notification to help you stay on track with your studies.')}
-              </Text>
-              <View className="flex-row gap-3">
-                <TouchableOpacity
-                  onPress={handleNotNow}
-                  className="flex-1 py-3 rounded-xl border border-gray-300"
-                >
-                  <Text className="text-center font-medium text-gray-700">
-                    {t('Not now')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleEnable}
-                  disabled={isRegistering}
-                  className="flex-1 py-3 rounded-xl"
-                  style={{ backgroundColor: colors.primary[500] }}
-                >
-                  <Text className="text-center font-medium text-white">
-                    {isRegistering ? t('Enabling...') : t('Enable')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
     </PushNotificationContext.Provider>
   );
 }

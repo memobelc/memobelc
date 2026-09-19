@@ -1,9 +1,11 @@
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { Notifications } from '@/utils/loadExpoNotifications';
 
 const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+
+export type NotificationPermissionStatus = 'granted' | 'denied' | 'undetermined';
 
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android' || !Notifications?.setNotificationChannelAsync) {
@@ -18,6 +20,50 @@ async function ensureAndroidChannel() {
   } catch {
     // Channel setup can fail in Expo Go; local presentation may still work.
   }
+}
+
+function mapWebPermission(permission: string | undefined): NotificationPermissionStatus {
+  if (permission === 'granted') return 'granted';
+  if (permission === 'denied') return 'denied';
+  return 'undetermined';
+}
+
+function mapNativePermission(status: string | undefined): NotificationPermissionStatus {
+  if (status === 'granted') return 'granted';
+  if (status === 'denied') return 'denied';
+  return 'undetermined';
+}
+
+export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  if (Platform.OS === 'web') {
+    const WebNotification = (globalThis as any).Notification;
+    if (!WebNotification) return 'denied';
+    return mapWebPermission(WebNotification.permission);
+  }
+
+  if (!Notifications) return 'undetermined';
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return mapNativePermission(status);
+  } catch {
+    return 'undetermined';
+  }
+}
+
+export async function openDeviceNotificationSettings() {
+  if (Platform.OS === 'web') return;
+
+  try {
+    const openSettings = Notifications?.openSettingsAsync;
+    if (typeof openSettings === 'function') {
+      await openSettings();
+      return;
+    }
+  } catch {
+    // Fall through to the OS app settings screen.
+  }
+
+  await Linking.openSettings();
 }
 
 export async function ensureNotificationPermission() {
@@ -73,8 +119,8 @@ export async function presentLocalNotification(title?: string, body?: string) {
 
   if (!Notifications?.scheduleNotificationAsync) return;
   try {
-    const allowed = await ensureNotificationPermission();
-    if (!allowed) return;
+    const status = await getNotificationPermissionStatus();
+    if (status !== 'granted') return;
     await ensureAndroidChannel();
     const trigger = Platform.OS === 'android' ? { channelId: 'default' } : null;
     await Notifications.scheduleNotificationAsync({

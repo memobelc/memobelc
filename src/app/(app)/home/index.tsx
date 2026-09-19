@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import { imageSources } from '@/utils/imgSource';
 import * as yup from 'yup';
 import StudyStreak from '@/components/atoms/StudyStreak';
+import { NotificationPermissionCard } from '@/components/atoms/NotificationPermissionCard';
 
 export default function Home() {
   const { userInfo } = useSession();
@@ -239,6 +240,9 @@ export default function Home() {
             </View>
           )}
         </View>
+
+        <NotificationPermissionCard />
+
         {collections && collections.length > 1 && (
           <>
             <Text

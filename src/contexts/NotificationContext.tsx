@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { AppState, Platform } from 'react-native';
 import { Notifications } from '@/utils/loadExpoNotifications';
-import { ensureNotificationPermission, presentLocalNotification } from '@/utils/notifications';
+import { presentLocalNotification } from '@/utils/notifications';
 
 import api from '@/services/api';
 import { useSession } from '@/contexts/AuthContext';
@@ -137,7 +137,6 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       seenIdsRef.current = null;
       return;
     }
-    ensureNotificationPermission().catch(() => {});
     refreshNotifications();
     const timer = setInterval(() => {
       refreshNotifications();

@@ -185,6 +185,9 @@
     "Not now": "Ahora no",
     "Enable": "Activar",
     "Enabling...": "Activando...",
+    "Enable notifications": "Activar notificaciones",
+    "Open notification settings": "Abrir ajustes de notificaciones",
+    "Notifications are off on this device": "Notificaciones desactivadas en el dispositivo",
 
     "Notifications": "Notificaciones",
     "Mark all as read": "Marcar todas como leídas",

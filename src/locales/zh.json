@@ -185,6 +185,9 @@
     "Not now": "暂不",
     "Enable": "启用",
     "Enabling...": "正在启用...",
+    "Enable notifications": "启用通知",
+    "Open notification settings": "打开通知设置",
+    "Notifications are off on this device": "此设备未开启通知",
 
     "Notifications": "通知",
     "Mark all as read": "全部标为已读",

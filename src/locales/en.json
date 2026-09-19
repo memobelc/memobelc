@@ -185,6 +185,9 @@
     "Not now": "Not now",
     "Enable": "Enable",
     "Enabling...": "Enabling...",
+    "Enable notifications": "Enable notifications",
+    "Open notification settings": "Open notification settings",
+    "Notifications are off on this device": "Notifications are off on this device",
 
     "Notifications": "Notifications",
     "Mark all as read": "Mark all as read",

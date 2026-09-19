@@ -27,6 +27,7 @@ import api from '@/services/api';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { useEntitlements } from '@/contexts/EntitlementContext';
 import { useSupportChat } from '@/contexts/SupportChatContext';
+import { usePushNotification } from '@/contexts/PushNotificationContext';
 
 type menuItem = {
   name: string;
@@ -44,7 +45,14 @@ const AvatarProfileDrawer = () => {
   const { t, i18n } = useTranslation();
   const { entitlements } = useEntitlements();
   const { openChat, unreadCount, refreshUnread } = useSupportChat();
+  const {
+    isPermissionGranted,
+    enableNotifications,
+    isRegistering,
+  } = usePushNotification();
   const isAssignedAdmin = roles.includes('admin');
+  const showNotificationBanner =
+    Platform.OS !== 'web' && isPermissionGranted === false;
 
   const [open, setOpen] = useState(false);
   const [openInviteModal, setOpenInviteModal] = useState(false);
@@ -147,17 +155,38 @@ const AvatarProfileDrawer = () => {
           ...(Platform.OS === 'web' ? { cursor: 'pointer' as const } : {}),
         })}
       >
-        <Avatar>
-          <AvatarImage
-            source={
-              userInfo?.image
-                ? {
-                    uri: userInfo?.image,
-                  }
-                : require('@/assets/fallback.png')
-            }
-          />
-        </Avatar>
+        <View className="relative">
+          <Avatar>
+            <AvatarImage
+              source={
+                userInfo?.image
+                  ? {
+                      uri: userInfo?.image,
+                    }
+                  : require('@/assets/fallback.png')
+              }
+            />
+          </Avatar>
+          {showNotificationBanner ? (
+            <View
+              className="absolute items-center justify-center"
+              style={{
+                top: -2,
+                right: -2,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                backgroundColor: colors.warning[500],
+                borderWidth: 1.5,
+                borderColor: '#FFFFFF',
+              }}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              <MaterialIcons name="notifications-off" size={9} color={colors.gray[950]} />
+            </View>
+          ) : null}
+        </View>
       </Pressable>
       <Modal
         transparent
@@ -245,7 +274,37 @@ const AvatarProfileDrawer = () => {
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
-                            <View className="mb-3">
+              {showNotificationBanner ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleClose();
+                    enableNotifications();
+                  }}
+                  disabled={isRegistering}
+                  className="mb-3 flex-row items-center rounded-xl px-3 py-2.5"
+                  style={{ backgroundColor: colors.primary[50] }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('Enable notifications')}
+                >
+                  <MaterialIcons
+                    name="notifications-off"
+                    size={18}
+                    color={colors.primary[500]}
+                  />
+                  <Text
+                    className="flex-1 text-xs font-semibold mx-2"
+                    style={{ color: colors.primary[600] }}
+                  >
+                    {t('Notifications are off on this device')}
+                  </Text>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.primary[500]}
+                  />
+                </TouchableOpacity>
+              ) : null}
+              <View className="mb-3">
                 <Text className="font-bold text-primary mb-1">
                   {t('Language')}
                 </Text>
